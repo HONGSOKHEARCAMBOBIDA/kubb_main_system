@@ -9,5 +9,5 @@ type Setting struct {
 }
 
 func (Setting) TableName() string {
-	return "setting"
+	return "settings"
 }

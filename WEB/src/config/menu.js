@@ -21,10 +21,18 @@ export const menuConfig = [
     icon: 'Setting',
     children: [
       { title: 'General', icon: 'Tools', path: '/settings' },
-      {title: 'អ្នកប្រេីប្រាស់', icon: 'User',path: '/users'},
-      {title: 'សិទ្ធ',icon: 'UserFilled',path: '/role'},
-      {title: 'អ្នកនិពន្ធ', icon: 'UserFilled',path: '/author'},
-      {title: 'ប្រភេទសៀវភៅ', icon: 'Document',path: '/category'}
+      // {title: 'អ្នកប្រេីប្រាស់', icon: 'User',path: '/users'},
+      { title: 'សិទ្ធ', icon: 'UserFilled', path: '/role' },
+
+      { title: 'កម្រិតសិក្សា', icon: 'Document', path: '/programmes' },
+      { title: 'ឆ្នាំសិក្សា', icon: 'Document', path: '/academic' },
+      { title: 'ជំនាន់', icon: 'Document', path: '/generation' },
+      { title: 'សាលា', icon: 'Document', path: '/school' },
+      { title: 'សាខាសាលា', icon: 'Document', path: '/campuse' },
+      { title: 'អគ្គា', icon: 'Document', path: '/building' },
+      { title: 'ជាន់', icon: 'Document', path: '/floor' },
+      { title: 'ការិយាល័យ', icon: 'Document', path: '/school_office' },
+      { title: 'បន្ទប់', icon: 'Document', path: '/school_room' },
     ],
   },
 ]

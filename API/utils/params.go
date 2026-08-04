@@ -20,3 +20,12 @@ func GetParamID(c *gin.Context) (int, bool) {
 	}
 	return id, true
 }
+
+func GetParamUUID(c *gin.Context) (string, bool) {
+	id := c.Param("uuid")
+	if id == "" {
+		share.ResponseError(c, http.StatusBadRequest, "uuid is required")
+		return "", false
+	}
+	return id, true
+}

@@ -19,7 +19,7 @@
 <script setup>
 defineProps({
   type: { type: String, default: 'primary' },
-  size: { type: String, default: 'large' },
+  size: { type: String, default: 'default' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   nativeType: { type: String, default: 'button' },

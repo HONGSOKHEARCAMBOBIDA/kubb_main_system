@@ -12,13 +12,15 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	authcontroller := controller.NewAuthController()
 	rolecontroller := controller.NewRoleHasPermissionController()
-	authorcontroller := controller.NewAuthorController()
-	facultycontroller := controller.NewFacultyController()
-	departmentcontroller := controller.NewDepartmentController()
-	programcontroller := controller.NewProgramController()
-	categorycontroller := controller.NewCategoryController()
-	cabinetcontroller := controller.NewCabinetController()
-	filingcabinetcontroller := controller.NewFilingCabinetController()
+	programmescontroller := controller.NewProgrammescontroller()
+	academiccontroller := controller.NewAcademicController()
+	generationcontroller := controller.NewGenerationController()
+	schoolcontroller := controller.NewSchoolController()
+	campusecontroller := controller.NewCampuseController()
+	buildingcontroller := controller.NewBuildingController()
+	floorcontroller := controller.NewFloorController()
+	schoolofficecontroller := controller.NewSchoolOfficeController()
+	schoolroomcontroller := controller.NewSchoolRoomController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -35,33 +37,40 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.UserUpdate, middleware.PermissionMiddleware(permission.UserUpdate), authcontroller.Update)
 
 		// Role
-		auth.GET(route.RoleView, middleware.PermissionMiddleware(permission.RoleView), rolecontroller.GetRole)
-		auth.PUT(route.RoleUpdate, middleware.PermissionMiddleware(permission.RoleUpdate), rolecontroller.UpdateRole)
-		auth.GET(route.RolePermissionView, middleware.PermissionMiddleware(permission.RolePermissionView), rolecontroller.GetRolePermission)
-		auth.POST(route.RolePermissionCreate, middleware.PermissionMiddleware(permission.RolePermissionCreate), rolecontroller.CreateRoleHasPermission)
-		auth.DELETE(route.RolePermissionDelete, middleware.PermissionMiddleware(permission.RolePermissionDelete), rolecontroller.DeleteRoleHasPermission)
+		auth.GET(route.RoleView, middleware.PermissionMiddleware(permission.CRUDPERMISSION), rolecontroller.GetRole)
+		auth.PUT(route.RoleUpdate, middleware.PermissionMiddleware(permission.CRUDPERMISSION), rolecontroller.UpdateRole)
+		auth.GET(route.RolePermissionView, middleware.PermissionMiddleware(permission.CRUDPERMISSION), rolecontroller.GetRolePermission)
+		auth.POST(route.RolePermissionCreate, middleware.PermissionMiddleware(permission.CRUDPERMISSION), rolecontroller.CreateRoleHasPermission)
+		auth.DELETE(route.RolePermissionDelete, middleware.PermissionMiddleware(permission.CRUDPERMISSION), rolecontroller.DeleteRoleHasPermission)
 
-		// Author
-		auth.POST(route.AuthorCreate, middleware.PermissionMiddleware(permission.AuthorCreate), authorcontroller.CreateAuthor)
-		auth.GET(route.AuthorView, middleware.PermissionMiddleware(permission.AuthorView), authorcontroller.GetAuthor)
-		auth.PUT(route.AuthorUpdate, middleware.PermissionMiddleware(permission.AuthorUpdate), authorcontroller.UpdateAuthor)
-		auth.PUT(route.AuthorToggleStatus, middleware.PermissionMiddleware(permission.AuthorUpdate), authorcontroller.ToggleStatusAuthor)
+		// Programmes
+		auth.GET(route.ProgrammesView, middleware.PermissionMiddleware(permission.ProgrammesView), programmescontroller.GetProgrammes)
 
-		// Faculty
-		auth.GET(route.FacultyView, middleware.PermissionMiddleware(permission.FacultyView), facultycontroller.GetFaculty)
-		auth.GET(route.DepartmentView, middleware.PermissionMiddleware(permission.DepartmentView), departmentcontroller.GetDepartment)
-		auth.GET(route.ProgramView, middleware.PermissionMiddleware(permission.ProgramView), programcontroller.GetProgram)
+		// Academic
+		auth.GET(route.AcademicView, middleware.PermissionMiddleware(permission.CRUDACADEMIC), academiccontroller.GetAcademic)
+		auth.POST(route.AcademicCreate, middleware.PermissionMiddleware(permission.CRUDACADEMIC), academiccontroller.CreateAcademic)
+		auth.PUT(route.AcademicUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMIC), academiccontroller.UpdateAcademic)
+		auth.PUT(route.AcademicToggle, middleware.PermissionMiddleware(permission.CRUDACADEMIC), academiccontroller.Toggle)
+		// Generation
+		auth.GET(route.GenerationView, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.GetGeneration)
 
-		// Category
-		auth.GET(route.CategoryView, middleware.PermissionMiddleware(permission.CategoryModify), categorycontroller.GetCategory)
-		auth.POST(route.CategoryCreate, middleware.PermissionMiddleware(permission.CategoryModify), categorycontroller.CreateCategory)
-		auth.PUT(route.CategoryUpdate, middleware.PermissionMiddleware(permission.CategoryModify), categorycontroller.UpdateCategory)
-		auth.PUT(route.CategoryToggleStatus, middleware.PermissionMiddleware(permission.CategoryModify), categorycontroller.ToggleStatusCategory)
+		// School
+		auth.GET(route.SchoolView, middleware.PermissionMiddleware(permission.CRUDSCHOOL), schoolcontroller.GetSchool)
 
-		// Cabinet
-		auth.GET(route.CabinetView, middleware.PermissionMiddleware(permission.CabinetModify), cabinetcontroller.GetCabinet)
+		// Campuse
+		auth.GET(route.CampuseView, middleware.PermissionMiddleware(permission.CRUDECAMPUSE), campusecontroller.GetCampuse)
 
-		// FilingCabinet
-		auth.GET(route.FilingCabinetView, middleware.PermissionMiddleware(permission.FilingCabinetModify), filingcabinetcontroller.GetFilingCabinet)
+		// Building
+		auth.GET(route.BuildingView, middleware.PermissionMiddleware(permission.CRUDEBUILDING), buildingcontroller.GetBuilding)
+
+		// Floor
+		auth.GET(route.FloorView, middleware.PermissionMiddleware(permission.CRUDFLOOR), floorcontroller.GetFloor)
+
+		// SchoolOffice
+		auth.GET(route.SchoolOfficeView, middleware.PermissionMiddleware(permission.CRUDSCHOOLOFFICE), schoolofficecontroller.GetSchoolOffice)
+
+		// SchoolRoom
+		auth.GET(route.SchoolRoomView, middleware.PermissionMiddleware(permission.CRUDSCHOOLROOM), schoolroomcontroller.GetSchoolRoom)
+
 	}
 }

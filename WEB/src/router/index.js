@@ -36,7 +36,7 @@ const routes = [
         path: 'users',
         name: 'Users',
         component: () => import('@/views/users/Users.vue'),
-        meta: { title: 'Users', icon: 'User', },
+        meta: { title: 'Users', icon: 'User' },
       },
       {
         path: 'profile',
@@ -54,20 +54,74 @@ const routes = [
         path: 'role',
         name: 'សិទ្ធ',
         component: () => import('@/views/role/permission.vue'),
-        meta: {title: 'សិទ្ធ', icone: 'UserFilled'}
+        meta: { title: 'សិទ្ធ', icone: 'UserFilled' },
       },
       {
         path: 'author',
         name: 'អ្នកនិពន្ធ',
         component: () => import('@/views/author/author.vue'),
-        meta: {title: 'អ្នកនិពន្ធ', icone: 'UserFilled'}
+        meta: { title: 'អ្នកនិពន្ធ', icone: 'UserFilled' },
       },
       {
         path: 'category',
         name: 'ប្រភេទសៀវភៅ',
         component: () => import('@/views/category/category.vue'),
-        meta: {title: 'category', icone: 'Document'}
-      }
+        meta: { title: 'category', icone: 'Document' },
+      },
+      {
+        path: 'programmes',
+        name: 'កម្រិតសិក្សា',
+        component: () => import('@/views/programmes/programmes.vue'),
+        meta: { title: 'កម្រិតសិក្សា', icone: 'Document' },
+      },
+      {
+        path: 'academic',
+        name: 'ឆ្នាំសិក្សា',
+        component: () => import('@/views/academic/academic.vue'),
+        meta: { title: 'ឆ្នាំសិក្សា', icone: 'Document' },
+      },
+      {
+        path: 'generation',
+        name: 'ជំនាន់',
+        component: () => import('@/views/generation/generation.vue'),
+        meta: { title: 'ជំនាន់', icone: 'Document' },
+      },
+      {
+        path: 'school',
+        name: 'សាលា',
+        component: () => import('@/views/school/school.vue'),
+        meta: { title: 'សាលា', icone: 'Document' },
+      },
+      {
+        path: 'campuse',
+        name: 'សាខាសាលា',
+        component: () => import('@/views/campuse/campuse.vue'),
+        meta: { title: 'សាខាសាលា', icone: 'Document' },
+      },
+      {
+        path: 'building',
+        name: 'អគ្គា',
+        component: () => import('@/views/building/building.vue'),
+        meta: { title: 'អគ្គា', icone: 'Document' },
+      },
+      {
+        path: 'floor',
+        name: 'ជាន់',
+        component: () => import('@/views/floor/floor.vue'),
+        meta: { title: 'ជាន់', icone: 'Document' },
+      },
+      {
+        path: 'school_office',
+        name: 'ការិយាល័យ',
+        component: () => import('@/views/school_office/school_office.vue'),
+        meta: { title: 'ការិយាល័យ', icone: 'Document' },
+      },
+      {
+        path: 'school_room',
+        name: 'បន្ទប់',
+        component: () => import('@/views/school_room/school_room.vue'),
+        meta: { title: 'បន្ទប់', icone: 'Document' },
+      },
     ],
   },
   {

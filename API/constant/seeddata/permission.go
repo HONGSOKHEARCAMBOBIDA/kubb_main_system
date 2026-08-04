@@ -4,142 +4,47 @@ import "mysql/model"
 
 var Permissions = []model.Permission{
 	{
-		Name:        "user.view",
-		ModuleName:  "user",
-		DisplayName: "View User",
-		OrderNo:     1,
+		Name:  "crud.user",
+		Group: "user",
 	},
-
 	{
-		Name:        "user.create",
-		ModuleName:  "user",
-		DisplayName: "Create User",
-		OrderNo:     2,
+		Name:  "crud.programmes",
+		Group: "programmes",
 	},
-
 	{
-		Name:        "user.update",
-		ModuleName:  "user",
-		DisplayName: "Update User",
-		OrderNo:     3,
+		Name:  "crud.permission",
+		Group: "permission",
 	},
-
 	{
-		Name:        "user.delete",
-		ModuleName:  "user",
-		DisplayName: "Delete User",
-		OrderNo:     4,
+		Name:  "crud.academic",
+		Group: "academic",
 	},
-
 	{
-		Name:        "role.view",
-		ModuleName:  "role",
-		DisplayName: "View Role",
-		OrderNo:     1,
+		Name:  "crud.generation",
+		Group: "generation",
 	},
-
 	{
-		Name:        "role.create",
-		ModuleName:  "role",
-		DisplayName: "Create Role",
-		OrderNo:     2,
+		Name:  "crud.school",
+		Group: "school",
 	},
-
 	{
-		Name:        "role.update",
-		ModuleName:  "role",
-		DisplayName: "Update Role",
-		OrderNo:     3,
+		Name:  "crud.campuse",
+		Group: "campuse",
 	},
-
 	{
-		Name:        "role.permission.view",
-		ModuleName:  "role",
-		DisplayName: "View Role Has Permission",
-		OrderNo:     4,
+		Name:  "crud.building",
+		Group: "building",
 	},
-
 	{
-		Name:        "role.permission.create",
-		ModuleName:  "role",
-		DisplayName: "Create Role Has Permission",
-		OrderNo:     5,
+		Name:  "crud.floor",
+		Group: "floor",
 	},
-
 	{
-		Name:        "role.permission.delete",
-		ModuleName:  "role",
-		DisplayName: "Delete Role Has Permission",
-		OrderNo:     6,
+		Name:  "crud.school.office",
+		Group: "school.office",
 	},
-
 	{
-		Name:        "author.create",
-		ModuleName:  "author",
-		DisplayName: "Create Author",
-		OrderNo:     1,
-	},
-
-	{
-		Name:        "author.view",
-		ModuleName:  "author",
-		DisplayName: "View Author",
-		OrderNo:     2,
-	},
-
-	{
-		Name:        "author.update",
-		ModuleName:  "author",
-		DisplayName: "Update Author",
-		OrderNo:     3,
-	},
-
-	{
-		Name:        "author.delete",
-		ModuleName:  "author",
-		DisplayName: "Delete Author",
-		OrderNo:     4,
-	},
-
-	{
-		Name:        "faculty.view",
-		ModuleName:  "fdp",
-		DisplayName: "View Faculty",
-		OrderNo:     1,
-	},
-
-	{
-		Name:        "department.view",
-		ModuleName:  "fdp",
-		DisplayName: "View Department",
-		OrderNo:     2,
-	},
-
-	{
-		Name:        "program.view",
-		ModuleName:  "fdp",
-		DisplayName: "View Program",
-		OrderNo:     3,
-	},
-
-	{
-		Name:        "category.modify",
-		ModuleName:  "category",
-		DisplayName: "Modify Category",
-		OrderNo:     1,
-	},
-
-	{
-		Name:        "cabinet.modify",
-		ModuleName:  "cabinet",
-		DisplayName: "Modify Cabinet",
-		OrderNo:     1,
-	},
-
-	{
-		Name:        "filing.cabinet.modify",
-		ModuleName:  "filingcabinet",
-		DisplayName: "Modify Filing Cabinet",
-		OrderNo:     1,
+		Name:  "crud.school.room",
+		Group: "school.room",
 	},
 }

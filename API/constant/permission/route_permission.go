@@ -6,25 +6,23 @@ const (
 	UserUpdate = "user.update"
 	UserDelete = "user.delete"
 
-	RoleView             = "role.view"
-	RoleCreate           = "role.create"
-	RoleUpdate           = "role.update"
-	RolePermissionView   = "role.permission.view"
-	RolePermissionCreate = "role.permission.create"
-	RolePermissionDelete = "role.permission.delete"
+	ProgrammesView = "crud.programmes"
 
-	AuthorView   = "author.view"
-	AuthorCreate = "author.create"
-	AuthorUpdate = "author.update"
-	AuthorDelete = "author.delete"
+	CRUDPERMISSION = "crud.permission"
 
-	FacultyView    = "faculty.view"
-	DepartmentView = "department.view"
-	ProgramView    = "program.view"
+	CRUDACADEMIC = "crud.academic"
 
-	CategoryModify = "category.modify"
+	CRUDGENERATION = "crud.generation"
 
-	CabinetModify = "cabinet.modify"
+	CRUDSCHOOL = "crud.school"
 
-	FilingCabinetModify = "filing.cabinet.modify"
+	CRUDECAMPUSE = "crud.campuse"
+
+	CRUDEBUILDING = "crud.building"
+
+	CRUDFLOOR = "crud.floor"
+
+	CRUDSCHOOLOFFICE = "crud.school.office"
+
+	CRUDSCHOOLROOM = "crud.school.room"
 )

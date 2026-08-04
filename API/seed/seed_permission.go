@@ -14,10 +14,8 @@ func SeedPermissions(db *gorm.DB) error {
 
 	for _, p := range seeddata.Permissions {
 		permissions = append(permissions, model.Permission{
-			Name:        p.Name,
-			ModuleName:  p.ModuleName,
-			DisplayName: p.DisplayName,
-			OrderNo:     p.OrderNo,
+			Name:  p.Name,
+			Group: p.Group,
 		})
 	}
 
@@ -27,9 +25,7 @@ func SeedPermissions(db *gorm.DB) error {
 			{Name: "name"}, // unique key
 		},
 		DoUpdates: clause.AssignmentColumns([]string{
-			"module_name",
-			"display_name",
-			"order_no",
+			"name",
 		}),
 	}).Create(&permissions).Error
 }

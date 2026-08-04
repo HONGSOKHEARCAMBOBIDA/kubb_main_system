@@ -48,8 +48,8 @@ defineExpose({ validate: () => formRef.value?.validate(), resetFields: handleRes
     <slot />
 
     <div v-if="showActions" class="flex items-center gap-2 mt-2">
-      <app-button plain type="primary" :loading="loading" @click="handleSubmit" size="default">{{ submitText }}</app-button>
-       <app-button plain type="warning" :disabled="loading" @click="handleReset" size="default">{{ resetText }}</app-button>
+      <app-button plain type="default" :loading="loading" @click="handleSubmit" size="default">{{ submitText }}</app-button>
+       <app-button plain type="default" :disabled="loading" @click="handleReset" size="default">{{ resetText }}</app-button>
     </div>
   </el-form>
 </template>

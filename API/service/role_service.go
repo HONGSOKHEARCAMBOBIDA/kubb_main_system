@@ -83,11 +83,10 @@ func (s *roleservice) GetRolePermission(ctx context.Context, id int) ([]response
 	}
 
 	var permissions []response.PermissionWithAssignedRole
-	err := s.db.WithContext(ctx).Table("permission p").
+	err := s.db.WithContext(ctx).Table("permissions p").
 		Select(`
             p.id AS id,
             p.name AS name,
-            p.module_name AS module_name,
             CASE 
                 WHEN role_has_permission.permission_id IS NULL THEN false 
                 ELSE true 

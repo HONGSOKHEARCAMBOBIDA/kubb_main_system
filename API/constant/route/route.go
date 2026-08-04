@@ -31,7 +31,6 @@ const (
 	// Faculty-Department-Program
 	FacultyView    = "faculty.view"
 	DepartmentView = "department.view/:id"
-	ProgramView    = "program.view/:id"
 
 	// Category
 	CategoryView         = "category.view"
@@ -44,4 +43,17 @@ const (
 
 	// Filing Cabinet
 	FilingCabinetView = "filing.cabinet.view"
+
+	ProgrammesView   = "programmes.view"
+	AcademicView     = "academic.view"
+	AcademicCreate   = "academic.create"
+	AcademicUpdate   = "academic.update/:uuid"
+	AcademicToggle   = "academic.toggle/:uuid"
+	GenerationView   = "generation.view"
+	SchoolView       = "school.view"
+	CampuseView      = "campuse.view"
+	BuildingView     = "building.view"
+	FloorView        = "floor.view"
+	SchoolOfficeView = "school.office.view"
+	SchoolRoomView   = "school.room.view"
 )

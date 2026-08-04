@@ -130,7 +130,7 @@ func (s *authservice) Login(ctx context.Context, input request.AuthRequest, c *g
 
 	var permissions []model.Permission
 	if err := s.db.WithContext(ctx).
-		Table("permission p").
+		Table("permissions p").
 		Select("p.name AS name").
 		Joins("JOIN role_has_permission rhp ON rhp.permission_id = p.id").
 		Where("rhp.role_id = ? AND p.name IN ?", user.RoleId, requiredPermissions).
@@ -227,7 +227,7 @@ func (s *authservice) RefreshToken(ctx context.Context, input request.RefreshTok
 
 	var permissions []model.Permission
 	if err := s.db.WithContext(ctx).
-		Table("permission p").
+		Table("permissions p").
 		Select("p.name AS name").
 		Joins("JOIN role_has_permission rhp ON rhp.permission_id = p.id").
 		Where("rhp.role_id = ? AND p.name IN ?", user.RoleId, requiredPermissions).

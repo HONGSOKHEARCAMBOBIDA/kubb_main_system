@@ -2,18 +2,13 @@ package utils
 
 import (
 	"context"
-	"fmt"
 
 	"gorm.io/gorm"
 )
 
-func ToggleStatus[T any](ctx context.Context, db *gorm.DB, id int) error {
-	if id <= 0 {
-		return fmt.Errorf("invalid id")
-	}
-
+func ToggleStatus[T any](ctx context.Context, db *gorm.DB, id string) error {
 	result := db.WithContext(ctx).Model(new(T)).
-		Where("id = ?", id).
-		Update("is_active", gorm.Expr("NOT is_active"))
+		Where("uuid = ?", id).
+		Update("active", gorm.Expr("NOT active"))
 	return result.Error
 }
