@@ -173,5 +173,5 @@ func (s *generationservice) UpdateGeneration(ctx context.Context, id string, inp
 }
 
 func (s *generationservice) Toggle(ctx context.Context, id string) error {
-	return utils.ToggleStatus[model.Academic](ctx, s.db, id)
+	return utils.ToggleStatus[model.Generation](ctx, s.db, id)
 }

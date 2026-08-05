@@ -1,6 +1,6 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { getGenerations } from '../../services/generation.service.js'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { getGenerations, createGeneration, updateGeneration, toggleGeneration } from '../../services/generation.service.js'
 import { getAcademics } from '../../services/academic.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
@@ -25,15 +25,13 @@ const statusOptions = [
   { label: 'អសកម្ម', value: 0 },
 ]
 
-// academic options for the select filter/form (loaded once)
 const academicOptions = ref([])
-
 const filters = reactive({ name: '', active: null, academic_id: null })
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', width: 120 },
   { prop: 'name', label: 'ឈ្មោះជំនាន់' },
-  { prop: 'index', label: 'លំដាប់', width: 90 },
+  // { prop: 'index', label: 'លំដាប់', width: 90 },
   { prop: 'academic', label: 'ឆ្នាំសិក្សា', slot: 'academicName', width: 160 },
   { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្តើម', width: 130 },
   { prop: 'end_date', label: 'ថ្ងៃបញ្ចប់', width: 130 },
@@ -46,31 +44,30 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
 const formRef = ref(null)
-const editingId = ref(null)
+const editingUuid = ref(null)
+const isEditing = computed(() => !!editingUuid.value)
 
 const form = reactive({
   code: '',
   name: '',
-  index: 0,
   academic_id: null,
   start_date: '',
   end_date: '',
   description: '',
 })
 
+// index removed: server computes it on create and ignores it on update
 const rules = {
   code: [{ required: true, message: 'សូមបញ្ចូលលេខកូដ', trigger: 'blur' }],
   name: [{ required: true, message: 'សូមបញ្ចូលឈ្មោះ', trigger: 'blur' }],
-  index: [{ required: true, message: 'សូមបញ្ចូលលំដាប់', trigger: 'blur' }],
   academic_id: [{ required: true, message: 'សូមជ្រើសរើសឆ្នាំសិក្សា', trigger: 'change' }],
   start_date: [{ required: true, message: 'សូមជ្រើសរើសថ្ងៃចាប់ផ្តើម', trigger: 'change' }],
-  end_date: [{ required: true, message: 'សូមជ្រើសរើសថ្ងៃបញ្ចប់', trigger: 'change' }],
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
 }
 
 async function fetchAcademicOptions() {
   try {
-    const res = await getAcademics({ page: 1, pageSize: 100 })
+    const res = await getAcademics()
     academicOptions.value = (res.data.data || []).map((a) => ({
       label: a.name,
       value: a.id,
@@ -105,11 +102,10 @@ const debouncedFetch = debounce(() => {
 }, 400)
 
 function openCreate() {
-  editingId.value = null
+  editingUuid.value = null
   dialogTitle.value = 'បង្កើតជំនាន់ថ្មី'
   form.code = ''
   form.name = ''
-  form.index = 0
   form.academic_id = null
   form.start_date = ''
   form.end_date = ''
@@ -118,11 +114,11 @@ function openCreate() {
 }
 
 function openEdit(row) {
-  editingId.value = row.id
+  // backend looks rows up by uuid, not the numeric id
+  editingUuid.value = row.uuid
   dialogTitle.value = 'កែប្រែជំនាន់'
   form.code = row.code
   form.name = row.name
-  form.index = row.index
   form.academic_id = row.academic?.id ?? row.academic_id ?? null
   form.start_date = row.start_date
   form.end_date = row.end_date
@@ -137,7 +133,25 @@ function closeDialog() {
 async function handleSubmit() {
   submitting.value = true
   try {
-    // TODO: call create/update service depending on editingId.value
+    if (isEditing.value) {
+      // end_date only makes sense on update, per backend logic
+      await updateGeneration(editingUuid.value, {
+        code: form.code,
+        name: form.name,
+        academic_id: form.academic_id,
+        start_date: form.start_date,
+        end_date: form.end_date || null,
+        description: form.description,
+      })
+    } else {
+      await createGeneration({
+        code: form.code,
+        name: form.name,
+        academic_id: form.academic_id,
+        start_date: form.start_date,
+        description: form.description,
+      })
+    }
     notify.success('រក្សាទុកបានជោគជ័យ')
     dialogVisible.value = false
     fetchGenerations()
@@ -150,7 +164,7 @@ async function handleSubmit() {
 
 async function toggleStatus(row) {
   try {
-    // TODO: call toggle-status service with row.id
+    await toggleGeneration(row.uuid)
     notify.success('ធ្វើបច្ចុប្បន្នភាពស្ថានភាពបានជោគជ័យ')
     fetchGenerations()
   } catch (e) {
@@ -168,20 +182,21 @@ onMounted(() => {
   <div class="generation-page">
     <AppFilterBar
       :fields="[
-        { slot: 'search', span: 10 },
+        // { slot: 'search', span: 10 },
         { slot: 'academic', span: 5 },
         { slot: 'active', span: 5 },
+        {slot: 'create',span:5}
       ]"
       :action-span="3"
     >
-      <template #search>
+      <!-- <template #search>
         <AppInput
           v-model="filters.name"
           placeholder="ស្វែងរកតាមឈ្មោះ"
           clearable
           @input="debouncedFetch"
         />
-      </template>
+      </template> -->
       <template #academic>
         <AppSelect
           v-model="filters.academic_id"
@@ -200,8 +215,8 @@ onMounted(() => {
           @change="debouncedFetch"
         />
       </template>
-      <template #actions>
-        <AppButton type="primary" icon="Plus" @click="openCreate">បង្កើតថ្មី</AppButton>
+      <template #create>
+        <AppButton type="default" icon="Plus" @click="openCreate">បង្កើតថ្មី</AppButton>
       </template>
     </AppFilterBar>
 
@@ -216,7 +231,7 @@ onMounted(() => {
       @page-change="fetchGenerations"
     >
       <template #academicName="{ row }">
-       <el-text tag="mark">
+       <el-text tag="b" style="color: cornflowerblue;">
          {{ row.academic?.name || '-' }}
        </el-text>
       </template>
@@ -229,14 +244,15 @@ onMounted(() => {
 
       <template #actions="{ row }">
         <el-tooltip content="កែប្រែ" placement="top">
-          <AppButton icon="Edit" circle size="small" type="warning" @click="openEdit(row)" />
+          <AppButton icon="Edit" circle size="small" type="default" plain @click="openEdit(row)" />
         </el-tooltip>
         <el-tooltip content="បិទ/បេីក" placement="top">
           <AppButton
             :icon="row.active ? 'CircleClose' : 'CircleCheck'"
             circle
             size="small"
-            type="danger"
+            type="default"
+            plain
             @click="toggleStatus(row)"
           />
         </el-tooltip>
@@ -269,14 +285,14 @@ onMounted(() => {
           prop="name"
           label="ឈ្មោះជំនាន់"
         />
-        <AppInput
+        <!-- <AppInput
           v-model.number="form.index"
           type="number"
           placeholder="បញ្ចូលលំដាប់"
           clearable
           prop="index"
           label="លំដាប់"
-        />
+        /> -->
         <AppSelect
           v-model="form.academic_id"
           :options="academicOptions"
@@ -294,6 +310,7 @@ onMounted(() => {
           label="ថ្ងៃចាប់ផ្តើម"
         />
         <AppInput
+          v-if="isEditing"
           v-model="form.end_date"
           type="date"
           placeholder="ជ្រើសរើសថ្ងៃបញ្ចប់"

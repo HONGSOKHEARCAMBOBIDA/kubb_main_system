@@ -5,9 +5,16 @@ const year = new Date().getFullYear()
 
 <template>
   <footer
-    class="h-14 flex items-center justify-center text-xs border-t shrink-0"
-    style="color: var(--color-text-secondary); border-color: var(--color-border)"
+    class="sidebar-root h-14 flex items-center justify-center text-xs border-t shrink-0"
+    
   >
     &copy; {{ year }} {{ APP_TITLE }}
   </footer>
 </template>
+
+<style scoped>
+.sidebar-root {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+}
+</style>

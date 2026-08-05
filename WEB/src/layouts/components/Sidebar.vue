@@ -38,13 +38,8 @@ function onSelect() {
   >
     <!-- Logo -->
     <div class="flex items-center gap-2 h-16 px-4 shrink-0">
-      <div
-        class="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold shrink-0"
-      >
-        A
-      </div>
       <span
-        v-show="!collapsed"
+        v-s how="!collapsed"
         class="text-white font-semibold text-[15px] whitespace-nowrap overflow-hidden"
       >
         {{ APP_TITLE }}
