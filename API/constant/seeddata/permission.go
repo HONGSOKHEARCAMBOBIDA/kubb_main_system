@@ -47,4 +47,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.school.room",
 		Group: "school.room",
 	},
+	{
+		Name:  "crud.term",
+		Group: "term",
+	},
 }

@@ -59,4 +59,5 @@ const (
 	FloorView        = "floor.view"
 	SchoolOfficeView = "school.office.view"
 	SchoolRoomView   = "school.room.view"
+	TermView         = "term.view"
 )

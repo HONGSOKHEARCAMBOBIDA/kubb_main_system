@@ -21,6 +21,7 @@ func SetupRoutes(r *gin.Engine) {
 	floorcontroller := controller.NewFloorController()
 	schoolofficecontroller := controller.NewSchoolOfficeController()
 	schoolroomcontroller := controller.NewSchoolRoomController()
+	termcontroller := controller.NewTermController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -74,6 +75,9 @@ func SetupRoutes(r *gin.Engine) {
 
 		// SchoolRoom
 		auth.GET(route.SchoolRoomView, middleware.PermissionMiddleware(permission.CRUDSCHOOLROOM), schoolroomcontroller.GetSchoolRoom)
+
+		// Term
+		auth.GET(route.TermView, middleware.PermissionMiddleware(permission.CRUDTERM), termcontroller.GetTerm)
 
 	}
 }
