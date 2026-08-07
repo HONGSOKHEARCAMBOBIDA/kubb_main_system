@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"mysql/config"
 	"mysql/constant/apperror"
 	"mysql/helper"
 	"mysql/model"
 	"mysql/model/base"
 	"mysql/request"
+	"mysql/response"
 	"mysql/utils"
 	"strings"
 
@@ -17,10 +19,11 @@ import (
 )
 
 type GenerationService interface {
-	GetGeneration(ctx context.Context, academicid *int) ([]model.Generation, error)
+	GetGeneration(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.GenerationResponse, *model.PaginationMetadata, error)
 	CreateGeneration(ctx context.Context, input request.GenerationRequestCreate) error
 	UpdateGeneration(ctx context.Context, id string, input request.GenerationRequestUpdate) error
 	Toggle(ctx context.Context, id string) error
+	GetGenerationByAcademic(ctx context.Context, academicID int) ([]response.GenerationResponseByAcademic, error)
 }
 
 type generationservice struct {
@@ -33,26 +36,76 @@ func NewGenerationService() GenerationService {
 	}
 }
 
-func (s *generationservice) GetGeneration(ctx context.Context, academicid *int) ([]model.Generation, error) {
+func (s *generationservice) GetGeneration(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.GenerationResponse, *model.PaginationMetadata, error) {
+	helper.NormalizePagination(&pf)
+
+	var data []response.GenerationResponse
+	var total int64
+
+	base := func() *gorm.DB {
+		return s.db.WithContext(ctx).
+			Table("generations g").
+			Joins("LEFT JOIN academics a ON a.id = g.academic_id")
+	}
+
+	applyFilters := func(tx *gorm.DB) *gorm.DB {
+		if v, ok := filter["academic_id"]; ok && v != "" {
+			tx = tx.Where("a.id = ?", v)
+		}
+		return tx
+	}
+
+	if err := applyFilters(base()).Count(&total).Error; err != nil {
+		return nil, nil, fmt.Errorf("count terms: %w", err)
+	}
+
+	if total == 0 {
+		return data, helper.BuildPaginationMeta(pf, total), nil
+	}
+
+	offset := (pf.Page - 1) * pf.PageSize
+
+	dataQuery := applyFilters(base()).Select(`
+		g.id AS id,
+		g.uuid AS uuid,
+		a.id AS academic_id,
+		a.name AS academic_name,
+		g.code AS code,
+		g.name AS name,
+		g.start_date AS start_date,
+		g.end_date AS end_date,
+		g.description AS description,
+		g.active AS active
+	`)
+
+	if err := dataQuery.Offset(offset).Limit(pf.PageSize).Scan(&data).Error; err != nil {
+		return nil, nil, fmt.Errorf("fetch terms: %w", err)
+	}
+
+	return data, helper.BuildPaginationMeta(pf, total), nil
+}
+
+func (s *generationservice) GetGenerationByAcademic(ctx context.Context, academicID int) ([]response.GenerationResponseByAcademic, error) {
+	if academicID <= 0 {
+		return nil, apperror.New(apperror.CodeInvalidInput, "academic_id is required", nil)
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
 	defer cancel()
 
-	var data []model.Generation
+	var data []response.GenerationResponseByAcademic
 
-	query := s.db.WithContext(ctx).Preload("Academic")
+	err := s.db.WithContext(ctx).
+		Table("generations g").
+		Select(`
+			g.id AS id,
+			g.name AS name
+		`).
+		Where("g.academic_id = ?", academicID).
+		Find(&data).Error
 
-	if academicid != nil {
-		query = query.Where("academic_id = ?", *academicid)
-	}
-
-	err := query.Find(&data).Error
 	if err != nil {
-		return nil, apperror.Internal("failed to fetch generations", err)
-	}
-
-	for i := range data {
-		data[i].StartDate = helper.FormatDate(data[i].StartDate)
-		data[i].EndDate = helper.FormatDatePtr(data[i].EndDate)
+		return nil, fmt.Errorf("fetch generations by academic: %w", err)
 	}
 
 	return data, nil

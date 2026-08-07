@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"context"
+	"errors"
 	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
 	"mysql/utils"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,16 +24,38 @@ func NewGenerationController() GenerationController {
 }
 
 func (cr *GenerationController) GetGeneration(c *gin.Context) {
-	academicIDStr := c.Query("academic_id")
-	var academicID *int
-	if academicIDStr != "" {
-		id, err := strconv.Atoi(academicIDStr)
-		if err != nil {
-			// handle error
-		}
-		academicID = &id
+	page, pageSize := helper.GetPagination(c)
+
+	filter := map[string]string{
+		"academic_id": c.Query("academic_id"),
 	}
-	data, err := cr.service.GetGeneration(c, academicID)
+
+	data, meta, err := cr.service.GetGeneration(c.Request.Context(), request.Pagination{
+		Page:     page,
+		PageSize: pageSize,
+	}, filter)
+	for i := range data {
+		data[i].StartDate = helper.FormatDate(data[i].StartDate)
+		data[i].EndDate = helper.FormatDatePtr(data[i].EndDate)
+	}
+
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
+			return
+		}
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponsePagination(c, 200, data, meta)
+}
+
+func (cr *GenerationController) GetGenerationByAcademic(c *gin.Context) {
+	academicID, ok := utils.GetParamID(c)
+	if !ok {
+		return
+	}
+	data, err := cr.service.GetGenerationByAcademic(c, academicID)
 	if err != nil {
 		share.RespondServiceError(c, err)
 		return

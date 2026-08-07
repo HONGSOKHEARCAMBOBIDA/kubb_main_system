@@ -20,6 +20,7 @@ onMounted(() => {
     <transition name="app-fade" mode="out-in">
       <component :is="Component" :key="route.fullPath" />
     </transition>
+    
   </router-view>
 
   <!-- Global loading overlay, toggled by the loading store / axios interceptors -->

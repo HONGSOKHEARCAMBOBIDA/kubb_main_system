@@ -54,6 +54,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.AcademicToggle, middleware.PermissionMiddleware(permission.CRUDACADEMIC), academiccontroller.Toggle)
 		// Generation
 		auth.GET(route.GenerationView, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.GetGeneration)
+		auth.GET(route.GenerationViewByAcademic, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.GetGenerationByAcademic)
 		auth.POST(route.GenerationCreate, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.CreateGeneration)
 		auth.PUT(route.GenerationUpdate, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.UpdateGeneration)
 		auth.PUT(route.GenerationToggle, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.Toggle)

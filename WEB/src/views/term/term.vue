@@ -1,15 +1,14 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { getTerm, createTerm, updateTerm, toggleTerm } from '../../services/term.service'
 import { getAcademics } from '../../services/academic.service'
-import { getGenerations } from '../../services/generation.service'
+import { getGenerationByAcademic } from '../../services/generation.service'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'
 import AppInput from '../../components/input/AppInput.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
 import AppFilterBar from '../../components/common/AppFilterBar.vue'
-import { debounce } from 'lodash-es'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 
@@ -26,10 +25,9 @@ const statusOptions = [
   { label: 'អសកម្ម', value: 0 },
 ]
 
-// ---- filter bar state ----
 const academicOptions = ref([])
 const filterGenerationOptions = ref([])
-const filters = reactive({ academic_id: null, generation_id: null })
+const filters = reactive({ academic_id: null, generation_id: null, active: null })
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', width: 120 },
@@ -37,12 +35,11 @@ const columns = [
   { prop: 'generation_name', label: 'ឈ្មោះជំនាន់', slot: 'generationName', width: 150 },
   { prop: 'academic_name', label: 'ឈ្មោះឆ្នាំសិក្សា', slot: 'academicName', width: 150 },
   { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្តើម', width: 130 },
-  { prop: 'end_date', label: 'ថ្ងៃបញ្ចប់', width: 130 },
+  {  label: 'ថ្ងៃបញ្ចប់', width: 130,slot: 'enddate' },
   { prop: 'description', label: 'ការពិពណ៌នា' },
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
-// ---- dialog / form state ----
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
@@ -50,8 +47,6 @@ const formRef = ref(null)
 const editingUuid = ref(null)
 const isEditing = computed(() => !!editingUuid.value)
 
-// academic is only used inside the form to narrow down the generation list;
-// the value actually persisted is generation_id
 const formAcademicId = ref(null)
 const formGenerationOptions = ref([])
 
@@ -84,13 +79,11 @@ async function fetchAcademicOptions() {
   }
 }
 
-// generic helper: fetch generations for a given academic id, return mapped options
+// uses the dedicated by-academic endpoint, not the paginated list endpoint
 async function loadGenerationOptions(academicId) {
   if (!academicId) return []
   try {
-    const res = await getGenerations({
-      academic_id: academicId,
-    })
+    const res = await getGenerationByAcademic(academicId)
     return (res.data.data || []).map((g) => ({
       label: g.name,
       value: g.id,
@@ -101,26 +94,18 @@ async function loadGenerationOptions(academicId) {
   }
 }
 
-// ---- filter bar cascading ----
-async function onFilterAcademicChange() {
-  filters.generation_id = null
-  filterGenerationOptions.value = await loadGenerationOptions(filters.academic_id)
-  debouncedFetch()
-}
-
-function onFilterGenerationChange() {
-  debouncedFetch()
-}
-
 async function fetchTerm() {
   loading.value = true
   try {
-    const res = await getTerm({
+    const params = {
       page: page.value,
-      pageSize: pageSize.value,
-      academic_id: filters.academic_id,
-      generation_id: filters.generation_id,
-    })
+      page_size: pageSize.value,
+    }
+    if (filters.academic_id) params.academic_id = filters.academic_id
+    if (filters.generation_id) params.generation_id = filters.generation_id
+    if (filters.active !== null && filters.active !== undefined) params.active = filters.active
+
+    const res = await getTerm(params)
     terms.value = res.data.data || []
     total.value = res.data.total || 0
   } catch (e) {
@@ -130,16 +115,38 @@ async function fetchTerm() {
   }
 }
 
-const debouncedFetch = debounce(() => {
-  page.value = 1
-  fetchTerm()
-}, 400)
+// ---- filter bar cascading via watchers (robust to clear/×) ----
+watch(
+  () => filters.academic_id,
+  async (newVal) => {
+    filters.generation_id = null
+    filterGenerationOptions.value = await loadGenerationOptions(newVal)
+    page.value = 1
+    fetchTerm()
+  }
+)
+
+watch(
+  () => filters.generation_id,
+  () => {
+    page.value = 1
+    fetchTerm()
+  }
+)
+
+watch(
+  () => filters.active,
+  () => {
+    page.value = 1
+    fetchTerm()
+  }
+)
 
 // ---- form cascading ----
-async function onFormAcademicChange() {
+watch(formAcademicId, async (newVal) => {
   form.generation_id = null
-  formGenerationOptions.value = await loadGenerationOptions(formAcademicId.value)
-}
+  formGenerationOptions.value = await loadGenerationOptions(newVal)
+})
 
 function openCreate() {
   editingUuid.value = null
@@ -156,7 +163,6 @@ function openCreate() {
 }
 
 async function openEdit(row) {
-  // backend looks rows up by uuid, not the numeric id
   editingUuid.value = row.uuid
   dialogTitle.value = 'កែប្រែវគ្គ'
   form.code = row.code
@@ -180,7 +186,6 @@ async function handleSubmit() {
   submitting.value = true
   try {
     if (isEditing.value) {
-      // end_date only makes sense on update, per backend logic
       await updateTerm(editingUuid.value, {
         code: form.code,
         name: form.name,
@@ -195,6 +200,7 @@ async function handleSubmit() {
         name: form.name,
         generation_id: form.generation_id,
         start_date: form.start_date,
+        end_date: form.end_date,
         description: form.description,
       })
     }
@@ -202,7 +208,7 @@ async function handleSubmit() {
     dialogVisible.value = false
     fetchTerm()
   } catch (e) {
-    //notify.error(e?.response?.data?.message || e.message || 'Failed to save')
+    notify.error(e?.response?.data?.message || e.message || 'Failed to save')
   } finally {
     submitting.value = false
   }
@@ -288,6 +294,10 @@ onMounted(() => {
         <el-text>{{ row.academic_name || '-' }}</el-text>
       </template>
 
+      <template #enddate="{row}">
+         <el-text tag="b" style="color: crimson;">{{ row.end_date || '-' }}</el-text>
+      </template>
+
       <template #isActive="{ row }">
         <el-tag :type="row.active ? 'success' : 'danger'">
           {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
@@ -363,7 +373,6 @@ onMounted(() => {
           label="ថ្ងៃចាប់ផ្តើម"
         />
         <AppInput
-          v-if="isEditing"
           v-model="form.end_date"
           type="date"
           placeholder="ជ្រើសរើសថ្ងៃបញ្ចប់"

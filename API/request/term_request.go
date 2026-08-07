@@ -6,6 +6,7 @@ type TermRequestCreate struct {
 	Name         string `json:"name" gorm:"column:name"`
 	Index        int    `json:"index" gorm:"column:index"`
 	StartDate    string `json:"start_date" gorm:"column:start_date"`
+	EndDate      string `json:"end_date" gorm:"column:end_date"`
 	Description  string `json:"description" gorm:"column:description"`
 }
 

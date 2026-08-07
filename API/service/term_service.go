@@ -142,7 +142,7 @@ func (s *termservice) CreateTerm(ctx context.Context, input request.TermRequestC
 			Name:         name,
 			Index:        nextIndex,
 			StartDate:    input.StartDate,
-			EndDate:      nil,
+			EndDate:      input.EndDate,
 			Description:  input.Description,
 			Active:       true,
 		}
