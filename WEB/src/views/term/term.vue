@@ -1,7 +1,8 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { getGenerations, createGeneration, updateGeneration, toggleGeneration } from '../../services/generation.service.js'
-import { getAcademics } from '../../services/academic.service.js'
+import { getTerm, createTerm, updateTerm, toggleTerm } from '../../services/term.service'
+import { getAcademics } from '../../services/academic.service'
+import { getGenerations } from '../../services/generation.service'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'
@@ -14,7 +15,7 @@ import AppForm from '@/components/forms/AppForm.vue'
 
 const notify = useNotification()
 
-const generations = ref([])
+const terms = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
@@ -25,21 +26,23 @@ const statusOptions = [
   { label: 'អសកម្ម', value: 0 },
 ]
 
+// ---- filter bar state ----
 const academicOptions = ref([])
-const filters = reactive({ name: '', active: null, academic_id: null })
+const filterGenerationOptions = ref([])
+const filters = reactive({ academic_id: null, generation_id: null })
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', width: 120 },
-  { prop: 'name', label: 'ឈ្មោះជំនាន់' },
-  // { prop: 'index', label: 'លំដាប់', width: 90 },
-  { prop: 'academic', label: 'ឆ្នាំសិក្សា', slot: 'academicName', width: 160 },
+  { prop: 'name', label: 'ឈ្មោះវគ្គ' },
+  { prop: 'generation_name', label: 'ឈ្មោះជំនាន់', slot: 'generationName', width: 150 },
+  { prop: 'academic_name', label: 'ឈ្មោះឆ្នាំសិក្សា', slot: 'academicName', width: 150 },
   { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្តើម', width: 130 },
   { prop: 'end_date', label: 'ថ្ងៃបញ្ចប់', width: 130 },
   { prop: 'description', label: 'ការពិពណ៌នា' },
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
-// dialog / form state
+// ---- dialog / form state ----
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
@@ -47,20 +50,24 @@ const formRef = ref(null)
 const editingUuid = ref(null)
 const isEditing = computed(() => !!editingUuid.value)
 
+// academic is only used inside the form to narrow down the generation list;
+// the value actually persisted is generation_id
+const formAcademicId = ref(null)
+const formGenerationOptions = ref([])
+
 const form = reactive({
   code: '',
   name: '',
-  academic_id: null,
+  generation_id: null,
   start_date: '',
   end_date: '',
   description: '',
 })
 
-// index removed: server computes it on create and ignores it on update
 const rules = {
   code: [{ required: true, message: 'សូមបញ្ចូលលេខកូដ', trigger: 'blur' }],
   name: [{ required: true, message: 'សូមបញ្ចូលឈ្មោះ', trigger: 'blur' }],
-  academic_id: [{ required: true, message: 'សូមជ្រើសរើសឆ្នាំសិក្សា', trigger: 'change' }],
+  generation_id: [{ required: true, message: 'សូមជ្រើសរើសជំនាន់', trigger: 'change' }],
   start_date: [{ required: true, message: 'សូមជ្រើសរើសថ្ងៃចាប់ផ្តើម', trigger: 'change' }],
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
 }
@@ -77,11 +84,44 @@ async function fetchAcademicOptions() {
   }
 }
 
-async function fetchGenerations() {
+// generic helper: fetch generations for a given academic id, return mapped options
+async function loadGenerationOptions(academicId) {
+  if (!academicId) return []
+  try {
+    const res = await getGenerations({
+      academic_id: academicId,
+    })
+    return (res.data.data || []).map((g) => ({
+      label: g.name,
+      value: g.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load generations')
+    return []
+  }
+}
+
+// ---- filter bar cascading ----
+async function onFilterAcademicChange() {
+  filters.generation_id = null
+  filterGenerationOptions.value = await loadGenerationOptions(filters.academic_id)
+  debouncedFetch()
+}
+
+function onFilterGenerationChange() {
+  debouncedFetch()
+}
+
+async function fetchTerm() {
   loading.value = true
   try {
-    const res = await getGenerations()
-    generations.value = res.data.data || []
+    const res = await getTerm({
+      page: page.value,
+      pageSize: pageSize.value,
+      academic_id: filters.academic_id,
+      generation_id: filters.generation_id,
+    })
+    terms.value = res.data.data || []
     total.value = res.data.total || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load')
@@ -92,31 +132,43 @@ async function fetchGenerations() {
 
 const debouncedFetch = debounce(() => {
   page.value = 1
-  fetchGenerations()
+  fetchTerm()
 }, 400)
+
+// ---- form cascading ----
+async function onFormAcademicChange() {
+  form.generation_id = null
+  formGenerationOptions.value = await loadGenerationOptions(formAcademicId.value)
+}
 
 function openCreate() {
   editingUuid.value = null
-  dialogTitle.value = 'បង្កើតជំនាន់ថ្មី'
+  dialogTitle.value = 'បង្កើតវគ្គថ្មី'
   form.code = ''
   form.name = ''
-  form.academic_id = null
+  form.generation_id = null
   form.start_date = ''
   form.end_date = ''
   form.description = ''
+  formAcademicId.value = null
+  formGenerationOptions.value = []
   dialogVisible.value = true
 }
 
-function openEdit(row) {
+async function openEdit(row) {
   // backend looks rows up by uuid, not the numeric id
   editingUuid.value = row.uuid
-  dialogTitle.value = 'កែប្រែជំនាន់'
+  dialogTitle.value = 'កែប្រែវគ្គ'
   form.code = row.code
   form.name = row.name
-  form.academic_id = row.academic?.id ?? row.academic_id ?? null
   form.start_date = row.start_date
   form.end_date = row.end_date
   form.description = row.description
+
+  formAcademicId.value = row.academic_id ?? null
+  formGenerationOptions.value = await loadGenerationOptions(formAcademicId.value)
+  form.generation_id = row.generation_id ?? null
+
   dialogVisible.value = true
 }
 
@@ -129,28 +181,28 @@ async function handleSubmit() {
   try {
     if (isEditing.value) {
       // end_date only makes sense on update, per backend logic
-      await updateGeneration(editingUuid.value, {
+      await updateTerm(editingUuid.value, {
         code: form.code,
         name: form.name,
-        academic_id: form.academic_id,
+        generation_id: form.generation_id,
         start_date: form.start_date,
         end_date: form.end_date || null,
         description: form.description,
       })
     } else {
-      await createGeneration({
+      await createTerm({
         code: form.code,
         name: form.name,
-        academic_id: form.academic_id,
+        generation_id: form.generation_id,
         start_date: form.start_date,
         description: form.description,
       })
     }
     notify.success('រក្សាទុកបានជោគជ័យ')
     dialogVisible.value = false
-    fetchGenerations()
+    fetchTerm()
   } catch (e) {
-    notify.error(e?.response?.data?.message || e.message || 'Failed to save')
+    //notify.error(e?.response?.data?.message || e.message || 'Failed to save')
   } finally {
     submitting.value = false
   }
@@ -158,46 +210,48 @@ async function handleSubmit() {
 
 async function toggleStatus(row) {
   try {
-    await toggleGeneration(row.uuid)
+    await toggleTerm(row.uuid)
     notify.success('ធ្វើបច្ចុប្បន្នភាពស្ថានភាពបានជោគជ័យ')
-    fetchGenerations()
+    fetchTerm()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to toggle status')
   }
 }
 
 onMounted(() => {
-  // fetchAcademicOptions()
-  fetchGenerations()
+  fetchAcademicOptions()
+  fetchTerm()
 })
 </script>
 
 <template>
-  <div class="generation-page">
+  <div class="term-page">
     <AppFilterBar
       :fields="[
-        // { slot: 'search', span: 10 },
-        // { slot: 'academic', span: 5 },
-        // { slot: 'active', span: 5 },
-        {slot: 'create',span:5}
+        { slot: 'academic', span: 5 },
+        { slot: 'generation', span: 5 },
+        { slot: 'active', span: 5 },
+        { slot: 'create', span: 5 },
       ]"
       :action-span="3"
     >
-      <!-- <template #search>
-        <AppInput
-          v-model="filters.name"
-          placeholder="ស្វែងរកតាមឈ្មោះ"
-          clearable
-          @input="debouncedFetch"
-        />
-      </template> -->
-      <!-- <template #academic>
+      <template #academic>
         <AppSelect
           v-model="filters.academic_id"
           :options="academicOptions"
           placeholder="ឆ្នាំសិក្សា"
           clearable
-          @change="debouncedFetch"
+          @change="onFilterAcademicChange"
+        />
+      </template>
+      <template #generation>
+        <AppSelect
+          v-model="filters.generation_id"
+          :options="filterGenerationOptions"
+          placeholder="ជំនាន់"
+          clearable
+          :disabled="!filters.academic_id"
+          @change="onFilterGenerationChange"
         />
       </template>
       <template #active>
@@ -208,7 +262,7 @@ onMounted(() => {
           clearable
           @change="debouncedFetch"
         />
-      </template> -->
+      </template>
       <template #create>
         <AppButton type="default" icon="Plus" @click="openCreate">បង្កើតថ្មី</AppButton>
       </template>
@@ -216,18 +270,22 @@ onMounted(() => {
 
     <TableCustom
       show-index
-      :data="generations"
+      :data="terms"
       :columns="columns"
       :loading="loading"
       :total="total"
       v-model:current-page="page"
       v-model:page-size="pageSize"
-      @page-change="fetchGenerations"
+      @page-change="fetchTerm"
     >
+      <template #generationName="{ row }">
+        <el-text tag="b" style="color: cornflowerblue;">
+          {{ row.generation_name || '-' }}
+        </el-text>
+      </template>
+
       <template #academicName="{ row }">
-       <el-text tag="b" style="color: cornflowerblue;">
-         {{ row.academic?.name || '-' }}
-       </el-text>
+        <el-text>{{ row.academic_name || '-' }}</el-text>
       </template>
 
       <template #isActive="{ row }">
@@ -277,23 +335,24 @@ onMounted(() => {
           placeholder="បញ្ចូលឈ្មោះ"
           clearable
           prop="name"
-          label="ឈ្មោះជំនាន់"
+          label="ឈ្មោះវគ្គ"
         />
-        <!-- <AppInput
-          v-model.number="form.index"
-          type="number"
-          placeholder="បញ្ចូលលំដាប់"
-          clearable
-          prop="index"
-          label="លំដាប់"
-        /> -->
         <AppSelect
-          v-model="form.academic_id"
+          v-model="formAcademicId"
           :options="academicOptions"
           placeholder="ជ្រើសរើសឆ្នាំសិក្សា"
           clearable
-          prop="academic_id"
           label="ឆ្នាំសិក្សា"
+          @change="onFormAcademicChange"
+        />
+        <AppSelect
+          v-model="form.generation_id"
+          :options="formGenerationOptions"
+          placeholder="ជ្រើសរើសជំនាន់"
+          clearable
+          prop="generation_id"
+          label="ជំនាន់"
+          :disabled="!formAcademicId"
         />
         <AppInput
           v-model="form.start_date"
@@ -326,7 +385,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.generation-filters {
+.term-filters {
   display: flex;
   gap: 10px;
   margin-bottom: 16px;

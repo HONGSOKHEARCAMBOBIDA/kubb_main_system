@@ -78,6 +78,9 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Term
 		auth.GET(route.TermView, middleware.PermissionMiddleware(permission.CRUDTERM), termcontroller.GetTerm)
+		auth.POST(route.TermCreate, middleware.PermissionMiddleware(permission.CRUDTERM), termcontroller.CreateTerm)
+		auth.PUT(route.TermUpdate, middleware.PermissionMiddleware(permission.CRUDTERM), termcontroller.UpdateTerm)
+		auth.PUT(route.TermToggle, middleware.PermissionMiddleware(permission.CRUDTERM), termcontroller.Toggle)
 
 	}
 }

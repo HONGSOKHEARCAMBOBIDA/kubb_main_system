@@ -87,10 +87,16 @@ const routes = [
         meta: { title: 'ជំនាន់', icone: 'Document' },
       },
       {
+        path: 'term',
+        name: 'វគ្គ',
+        component: () => import('@/views/term/term.vue'),
+        meta: { title: 'ជំនាន់', icone: 'Document' },
+      },
+      {
         path: 'school',
         name: 'សាលា',
         component: () => import('@/views/school/school.vue'),
-        meta: { title: 'សាលា', icone: 'Document' },
+        meta: { title: 'វគ្គ', icone: 'Document' },
       },
       {
         path: 'campuse',

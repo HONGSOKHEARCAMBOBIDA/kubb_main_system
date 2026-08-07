@@ -27,6 +27,7 @@ export const menuConfig = [
       { title: 'កម្រិតសិក្សា', icon: 'Document', path: '/programmes' },
       { title: 'ឆ្នាំសិក្សា', icon: 'Document', path: '/academic' },
       { title: 'ជំនាន់', icon: 'Document', path: '/generation' },
+      { title: 'វគ្គ', icon: 'Document', path: '/term' },
       { title: 'សាលា', icon: 'Document', path: '/school' },
       { title: 'សាខាសាលា', icon: 'Document', path: '/campuse' },
       { title: 'អគ្គា', icon: 'Document', path: '/building' },

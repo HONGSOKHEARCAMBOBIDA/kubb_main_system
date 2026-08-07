@@ -17,7 +17,7 @@ import (
 )
 
 type GenerationService interface {
-	GetGeneration(ctx context.Context) ([]model.Generation, error)
+	GetGeneration(ctx context.Context, academicid *int) ([]model.Generation, error)
 	CreateGeneration(ctx context.Context, input request.GenerationRequestCreate) error
 	UpdateGeneration(ctx context.Context, id string, input request.GenerationRequestUpdate) error
 	Toggle(ctx context.Context, id string) error
@@ -33,18 +33,28 @@ func NewGenerationService() GenerationService {
 	}
 }
 
-func (s *generationservice) GetGeneration(ctx context.Context) ([]model.Generation, error) {
+func (s *generationservice) GetGeneration(ctx context.Context, academicid *int) ([]model.Generation, error) {
 	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
 	defer cancel()
+
 	var data []model.Generation
-	err := s.db.WithContext(ctx).Preload("Academic").Find(&data).Error
+
+	query := s.db.WithContext(ctx).Preload("Academic")
+
+	if academicid != nil {
+		query = query.Where("academic_id = ?", *academicid)
+	}
+
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, apperror.Internal("failed to fetch generations", err)
+	}
+
 	for i := range data {
 		data[i].StartDate = helper.FormatDate(data[i].StartDate)
 		data[i].EndDate = helper.FormatDatePtr(data[i].EndDate)
 	}
-	if err != nil {
-		return nil, apperror.Internal("failed to fetch filingcabinet", err)
-	}
+
 	return data, nil
 }
 

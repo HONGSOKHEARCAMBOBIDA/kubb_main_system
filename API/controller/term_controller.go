@@ -9,6 +9,7 @@ import (
 	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
+	"mysql/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,6 +37,11 @@ func (cr *TermController) GetTerm(c *gin.Context) {
 		PageSize: pageSize,
 	}, filter)
 
+	for i := range data {
+		data[i].StartDate = helper.FormatDate(data[i].StartDate)
+		data[i].EndDate = helper.FormatDate(data[i].EndDate)
+	}
+
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
@@ -45,4 +51,47 @@ func (cr *TermController) GetTerm(c *gin.Context) {
 		return
 	}
 	share.ResponsePagination(c, 200, data, meta)
+}
+
+func (cr *TermController) CreateTerm(c *gin.Context) {
+	var input request.TermRequestCreate
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CreateTerm(c.Request.Context(), input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
+func (cr *TermController) UpdateTerm(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+	var input request.TermRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateTerm(c.Request.Context(), id, input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
+}
+
+func (cr *TermController) Toggle(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+	if err := cr.service.Toggle(c, id); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
 }

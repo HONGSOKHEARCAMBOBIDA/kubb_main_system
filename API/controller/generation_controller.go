@@ -6,6 +6,7 @@ import (
 	"mysql/service"
 	"mysql/utils"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,7 +22,16 @@ func NewGenerationController() GenerationController {
 }
 
 func (cr *GenerationController) GetGeneration(c *gin.Context) {
-	data, err := cr.service.GetGeneration(c)
+	academicIDStr := c.Query("academic_id")
+	var academicID *int
+	if academicIDStr != "" {
+		id, err := strconv.Atoi(academicIDStr)
+		if err != nil {
+			// handle error
+		}
+		academicID = &id
+	}
+	data, err := cr.service.GetGeneration(c, academicID)
 	if err != nil {
 		share.RespondServiceError(c, err)
 		return

@@ -4,6 +4,7 @@ import "mysql/model/base"
 
 type TermResponse struct {
 	base.ModelBase
+	base.UUIDBase
 	GenerationID   int    `json:"generation_id" gorm:"column:generation_id"`
 	GenerationCode string `json:"generation_code"`
 	GenerationName string `json:"generation_name"`

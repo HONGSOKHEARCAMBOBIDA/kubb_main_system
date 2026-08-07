@@ -60,4 +60,7 @@ const (
 	SchoolOfficeView = "school.office.view"
 	SchoolRoomView   = "school.room.view"
 	TermView         = "term.view"
+	TermCreate       = "term.create"
+	TermUpdate       = "term.update/:uuid"
+	TermToggle       = "term.toggle/:uuid"
 )
