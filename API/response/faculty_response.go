@@ -11,3 +11,8 @@ type FacultyResponse struct {
 	Description   string `json:"description" gorm:"column:description"`
 	Active        bool   `json:"active" gorm:"column:active"`
 }
+
+type FacultyResponseByProgrammes struct {
+	base.ModelBase
+	Name string `json:"name" gorm:"column:name"`
+}
