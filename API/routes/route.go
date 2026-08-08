@@ -22,6 +22,7 @@ func SetupRoutes(r *gin.Engine) {
 	schoolofficecontroller := controller.NewSchoolOfficeController()
 	schoolroomcontroller := controller.NewSchoolRoomController()
 	termcontroller := controller.NewTermController()
+	semestercontroller := controller.NewSemesterController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -59,6 +60,12 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.GenerationUpdate, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.UpdateGeneration)
 		auth.PUT(route.GenerationToggle, middleware.PermissionMiddleware(permission.CRUDGENERATION), generationcontroller.Toggle)
 
+		// Semester
+		auth.GET(route.SemesterView, middleware.PermissionMiddleware(permission.CRUDSEMESTER), semestercontroller.GetSemester)
+		auth.GET(route.SemesterViewByAcademic, middleware.PermissionMiddleware(permission.CRUDSEMESTER), semestercontroller.GetSemesterByAcademic)
+		auth.POST(route.SemesterCreate, middleware.PermissionMiddleware(permission.CRUDSEMESTER), semestercontroller.CreateSemester)
+		auth.PUT(route.SemesterUpdate, middleware.PermissionMiddleware(permission.CRUDSEMESTER), semestercontroller.UpdateSemester)
+		auth.PUT(route.SemesterToggle, middleware.PermissionMiddleware(permission.CRUDSEMESTER), semestercontroller.Toggle)
 		// School
 		auth.GET(route.SchoolView, middleware.PermissionMiddleware(permission.CRUDSCHOOL), schoolcontroller.GetSchool)
 

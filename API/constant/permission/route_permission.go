@@ -27,4 +27,6 @@ const (
 	CRUDSCHOOLROOM = "crud.school.room"
 
 	CRUDTERM = "crud.term"
+
+	CRUDSEMESTER = "crud.semester"
 )

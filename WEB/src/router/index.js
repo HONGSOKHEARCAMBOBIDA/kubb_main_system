@@ -81,6 +81,12 @@ const routes = [
         meta: { title: 'ឆ្នាំសិក្សា', icone: 'Document' },
       },
       {
+        path: 'semester',
+        name: 'ឆមាស',
+        component: () => import('@/views/semester/semester.vue'),
+        meta: { title: 'ឆមាស', icone: 'Document' },
+      },
+      {
         path: 'generation',
         name: 'ជំនាន់',
         component: () => import('@/views/generation/generation.vue'),
