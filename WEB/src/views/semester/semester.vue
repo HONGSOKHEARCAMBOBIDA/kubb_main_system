@@ -199,7 +199,7 @@ onMounted(() => {
     <TableCustom show-index :data="generations" :columns="columns" :loading="loading" :total="total"
       v-model:current-page="page" v-model:page-size="pageSize" @page-change="fetchGenerations">
       <template #academicName="{ row }">
-        <el-text tag="b" style="color: cornflowerblue;">
+        <el-text tag="b" style="color: darkcyan;">
           {{ row.academic_name || '-' }}
         </el-text>
       </template>

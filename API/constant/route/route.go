@@ -29,8 +29,8 @@ const (
 	AuthorDelete       = "author.delete/:id"
 
 	// Faculty-Department-Program
-	FacultyView    = "faculty.view"
-	DepartmentView = "department.view/:id"
+	// FacultyView    = "faculty.view"
+	// DepartmentView = "department.view/:id"
 
 	// Category
 	CategoryView         = "category.view"
@@ -65,8 +65,16 @@ const (
 	FloorView                = "floor.view"
 	SchoolOfficeView         = "school.office.view"
 	SchoolRoomView           = "school.room.view"
-	TermView                 = "term.view"
-	TermCreate               = "term.create"
-	TermUpdate               = "term.update/:uuid"
-	TermToggle               = "term.toggle/:uuid"
+	// term
+	TermView   = "term.view"
+	TermCreate = "term.create"
+	TermUpdate = "term.update/:uuid"
+	TermToggle = "term.toggle/:uuid"
+
+	// faculty
+	FacultyView            = "faculty.view"
+	FacultyViewByProgramme = "faculty.view.by.programmes/:id"
+	FacultyCreate          = "faculty.create"
+	FacultyUpdate          = "faculty.update/:uuid"
+	FacultyToggle          = "faculty.toggle/:uuid"
 )

@@ -285,7 +285,7 @@ onMounted(() => {
       @page-change="fetchTerm"
     >
       <template #generationName="{ row }">
-        <el-text tag="b" style="color: cornflowerblue;">
+        <el-text tag="b" style="color: darkcyan;">
           {{ row.generation_name || '-' }}
         </el-text>
       </template>

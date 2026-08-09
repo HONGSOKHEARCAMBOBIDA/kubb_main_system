@@ -99,6 +99,12 @@ const routes = [
         meta: { title: 'ជំនាន់', icone: 'Document' },
       },
       {
+        path: 'faculty',
+        name: 'មហាវិទ្យាល័យ',
+        component: () => import('@/views/faculty/faculty.vue'),
+        meta: { title: 'មហាវិទ្យាល័យ', icone: 'Document' },
+      },
+      {
         path: 'school',
         name: 'សាលា',
         component: () => import('@/views/school/school.vue'),

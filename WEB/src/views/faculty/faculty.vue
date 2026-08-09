@@ -1,7 +1,13 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import { getGenerations, createGeneration, updateGeneration, toggleGeneration } from '../../services/generation.service.js'
-import { getAcademics } from '../../services/academic.service.js'
+import {
+  getFaculty,
+  getFacultyByProgrammes,
+  createFaculty,
+  updateFaculty,
+  toggleFaculty,
+} from '../../services/faculty.service'
+import { getprogrammes } from '../../services/programmes.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'
@@ -13,8 +19,7 @@ import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 
 const notify = useNotification()
-
-const generations = ref([])
+const faculty = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
@@ -25,21 +30,17 @@ const statusOptions = [
   { label: 'អសកម្ម', value: 0 },
 ]
 
-const academicOptions = ref([])
-const filters = reactive({ academic_id: null })
+const programmesOptions = ref([])
+const filters = reactive({ programme_id: null })
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', width: 120 },
-  { prop: 'name', label: 'ឈ្មោះជំនាន់' },
-  // { prop: 'index', label: 'លំដាប់', width: 90 },
-  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', slot: 'academicName', width: 160 },
-  { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្តើម', width: 130 },
-  { prop: 'end_date', label: 'ថ្ងៃបញ្ចប់', width: 130 },
+  { prop: 'name', label: 'ឈ្មោះមហាវិទ្យាល័យ' },
+  { prop: 'programme_name', label: 'កម្រិត', width: 150,slot:'programme_name' },
   { prop: 'description', label: 'ការពិពណ៌នា' },
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
-// dialog / form state
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
@@ -50,25 +51,21 @@ const isEditing = computed(() => !!editingUuid.value)
 const form = reactive({
   code: '',
   name: '',
-  academic_id: null,
-  start_date: '',
-  end_date: '',
+  programme_id: null,
   description: '',
 })
 
-// index removed: server computes it on create and ignores it on update
 const rules = {
   code: [{ required: true, message: 'សូមបញ្ចូលលេខកូដ', trigger: 'blur' }],
   name: [{ required: true, message: 'សូមបញ្ចូលឈ្មោះ', trigger: 'blur' }],
-  academic_id: [{ required: true, message: 'សូមជ្រើសរើសឆ្នាំសិក្សា', trigger: 'change' }],
-  start_date: [{ required: true, message: 'សូមជ្រើសរើសថ្ងៃចាប់ផ្តើម', trigger: 'change' }],
+  programme_id: [{ required: true, message: 'សូមជ្រើសរើសកម្រិត', trigger: 'change' }],
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
 }
 
-async function fetchAcademicOptions() {
+async function fetchProgrammeOptions() {
   try {
-    const res = await getAcademics()
-    academicOptions.value = (res.data.data || []).map((a) => ({
+    const res = await getprogrammes()
+    programmesOptions.value = (res.data.data || []).map((a) => ({
       label: a.name,
       value: a.id,
     }))
@@ -76,19 +73,20 @@ async function fetchAcademicOptions() {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load academics')
   }
 }
-async function fetchGenerations() {
+
+async function fetchFaculty() {
   loading.value = true
   try {
     const params = {
       page: page.value,
       page_size: pageSize.value,
     }
-    if (filters.academic_id) {
-      params.academic_id = filters.academic_id
+    if (filters.programme_id) {
+      params.programme_id = filters.programme_id
     }
 
-    const res = await getGenerations(params)
-    generations.value = res.data.data || []
+    const res = await getFaculty(params)
+    faculty.value = res.data.data || []
     total.value = res.data.total || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load')
@@ -99,17 +97,15 @@ async function fetchGenerations() {
 
 const debouncedFetch = debounce(() => {
   page.value = 1
-  fetchGenerations()
+  fetchFaculty()
 }, 400)
 
 function openCreate() {
   editingUuid.value = null
-  dialogTitle.value = 'បង្កើតជំនាន់ថ្មី'
+  dialogTitle.value = 'បង្កើតមហាវិទ្យាល័យថ្មី'
   form.code = ''
   form.name = ''
-  form.academic_id = null
-  form.start_date = ''
-  form.end_date = ''
+  form.programme_id = null
   form.description = ''
   dialogVisible.value = true
 }
@@ -117,12 +113,10 @@ function openCreate() {
 function openEdit(row) {
   // backend looks rows up by uuid, not the numeric id
   editingUuid.value = row.uuid
-  dialogTitle.value = 'កែប្រែជំនាន់'
+  dialogTitle.value = 'កែប្រែមហាវិទ្យាល័យ'
   form.code = row.code
   form.name = row.name
-  form.academic_id = row.academic?.id ?? row.academic_id ?? null
-  form.start_date = row.start_date
-  form.end_date = row.end_date
+  form.programme_id = row.programme_id ?? null
   form.description = row.description
   dialogVisible.value = true
 }
@@ -136,26 +130,23 @@ async function handleSubmit() {
   try {
     if (isEditing.value) {
       // end_date only makes sense on update, per backend logic
-      await updateGeneration(editingUuid.value, {
+      await updateFaculty(editingUuid.value, {
         code: form.code,
         name: form.name,
-        academic_id: form.academic_id,
-        start_date: form.start_date,
-        end_date: form.end_date || null,
+        programme_id: form.programme_id,
         description: form.description,
       })
     } else {
-      await createGeneration({
+      await createFaculty({
         code: form.code,
         name: form.name,
-        academic_id: form.academic_id,
-        start_date: form.start_date,
+        programme_id: form.programme_id,
         description: form.description,
       })
     }
     notify.success('រក្សាទុកបានជោគជ័យ')
     dialogVisible.value = false
-    fetchGenerations()
+    fetchFaculty()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to save')
   } finally {
@@ -165,48 +156,63 @@ async function handleSubmit() {
 
 async function toggleStatus(row) {
   try {
-    await toggleGeneration(row.uuid)
+    await toggleFaculty(row.uuid)
     notify.success('ធ្វើបច្ចុប្បន្នភាពស្ថានភាពបានជោគជ័យ')
-    fetchGenerations()
+    fetchFaculty()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to toggle status')
   }
 }
 
 watch(
-  () => filters.academic_id,
+  () => filters.programme_id,
   () => {
     page.value = 1
-    fetchGenerations()
+    fetchFaculty()
   }
 )
 
-
 onMounted(() => {
-  fetchAcademicOptions()
-  fetchGenerations()
+  fetchProgrammeOptions()
+  fetchFaculty()
 })
 </script>
 
 <template>
   <div class="generation-page">
-    <AppFilterBar :fields="[
-      { slot: 'academic', span: 5 },
-      { slot: 'create', span: 5 },
-    ]" :action-span="3">
-      <template #academic>
-        <AppSelect v-model="filters.academic_id" :options="academicOptions" placeholder="ឆ្នាំសិក្សា" clearable />
+    <AppFilterBar
+      :fields="[
+        { slot: 'program', span: 5 },
+        { slot: 'create', span: 5 },
+      ]"
+      :action-span="3"
+    >
+      <template #program>
+        <AppSelect
+          v-model="filters.programme_id"
+          :options="programmesOptions"
+          placeholder="កម្រិតសិក្សា"
+          clearable
+        />
       </template>
       <template #create>
         <AppButton type="default" icon="Plus" @click="openCreate">បង្កើតថ្មី</AppButton>
       </template>
     </AppFilterBar>
 
-    <TableCustom show-index :data="generations" :columns="columns" :loading="loading" :total="total"
-      v-model:current-page="page" v-model:page-size="pageSize" @page-change="fetchGenerations">
-      <template #academicName="{ row }">
+    <TableCustom
+      show-index
+      :data="faculty"
+      :columns="columns"
+      :loading="loading"
+      :total="total"
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      @page-change="fetchFaculty"
+    >
+      <template #programme_name="{ row }">
         <el-text tag="b" style="color: darkcyan;">
-          {{ row.academic_name || '-' }}
+          {{ row.programme_name || '-' }}
         </el-text>
       </template>
 
@@ -221,33 +227,60 @@ onMounted(() => {
           <AppButton icon="Edit" circle size="small" type="default" plain @click="openEdit(row)" />
         </el-tooltip>
         <el-tooltip content="បិទ/បេីក" placement="top">
-          <AppButton :icon="row.active ? 'CircleClose' : 'CircleCheck'" circle size="small" type="default" plain
-            @click="toggleStatus(row)" />
+          <AppButton
+            :icon="row.active ? 'CircleClose' : 'CircleCheck'"
+            circle
+            size="small"
+            type="default"
+            plain
+            @click="toggleStatus(row)"
+          />
         </el-tooltip>
       </template>
     </TableCustom>
 
     <AppDialog v-model:visible="dialogVisible" :title="dialogTitle" :showDefaultFooter="false">
-      <AppForm ref="formRef" :model="form" :rules="rules" :loading="submitting" :show-actions="true"
-        @submit="handleSubmit" @reset="closeDialog" submitText="រក្សាទុក" resetText="ចាកចេញ">
-        <AppInput v-model="form.code" placeholder="បញ្ចូលលេខកូដ" clearable prop="code" label="លេខកូដ" />
-        <AppInput v-model="form.name" placeholder="បញ្ចូលឈ្មោះ" clearable prop="name" label="ឈ្មោះជំនាន់" />
-        <!-- <AppInput
-          v-model.number="form.index"
-          type="number"
-          placeholder="បញ្ចូលលំដាប់"
+      <AppForm
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        :loading="submitting"
+        :show-actions="true"
+        @submit="handleSubmit"
+        @reset="closeDialog"
+        submitText="រក្សាទុក"
+        resetText="ចាកចេញ"
+      >
+        <AppInput
+          v-model="form.code"
+          placeholder="បញ្ចូលលេខកូដ"
           clearable
-          prop="index"
-          label="លំដាប់"
-        /> -->
-        <AppSelect v-model="form.academic_id" :options="academicOptions" placeholder="ជ្រើសរើសឆ្នាំសិក្សា" clearable
-          prop="academic_id" label="ឆ្នាំសិក្សា" />
-        <AppInput v-model="form.start_date" type="date" placeholder="ជ្រើសរើសថ្ងៃចាប់ផ្តើម" clearable prop="start_date"
-          label="ថ្ងៃចាប់ផ្តើម" />
-        <AppInput v-if="isEditing" v-model="form.end_date" type="date" placeholder="ជ្រើសរើសថ្ងៃបញ្ចប់" clearable
-          prop="end_date" label="ថ្ងៃបញ្ចប់" />
-        <AppInput v-model="form.description" placeholder="បញ្ចូលការពិពណ៌នា" clearable prop="description"
-          label="ការពិពណ៌នា" type="textarea" />
+          prop="code"
+          label="លេខកូដ"
+        />
+        <AppInput
+          v-model="form.name"
+          placeholder="បញ្ចូលឈ្មោះ"
+          clearable
+          prop="name"
+          label="ឈ្មោះជំនាន់"
+        />
+        <AppSelect
+          v-model="form.programme_id"
+          :options="programmesOptions"
+          placeholder="ជ្រើសរើសកម្រិតសិក្សា"
+          clearable
+          prop="programme_id"
+          label="កម្រិតសិក្សា"
+        />
+        <AppInput
+          v-model="form.description"
+          placeholder="បញ្ចូលការពិពណ៌នា"
+          clearable
+          prop="description"
+          label="ការពិពណ៌នា"
+          type="textarea"
+        />
       </AppForm>
     </AppDialog>
   </div>

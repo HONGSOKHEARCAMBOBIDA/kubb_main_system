@@ -179,7 +179,7 @@ func (s *facultyservice) UpdateFaculty(ctx context.Context, id string, input req
 }
 
 func (s *facultyservice) Toggle(ctx context.Context, id string) error {
-	return utils.ToggleStatus[model.Generation](ctx, s.db, id)
+	return utils.ToggleStatus[model.Faculty](ctx, s.db, id)
 }
 
 func (s *facultyservice) GetFacultyByProgrammes(ctx context.Context, programmeID int) ([]response.FacultyResponseByProgrammes, error) {

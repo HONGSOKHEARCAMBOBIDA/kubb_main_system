@@ -29,4 +29,6 @@ const (
 	CRUDTERM = "crud.term"
 
 	CRUDSEMESTER = "crud.semester"
+
+	CRUDFACULTY = "crud.faculty"
 )

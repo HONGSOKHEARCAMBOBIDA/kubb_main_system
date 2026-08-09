@@ -3,6 +3,7 @@ package response
 import "mysql/model/base"
 
 type FacultyResponse struct {
+	base.UUIDBase
 	base.ModelBase
 	ProgrammeID   int    `json:"programme_id" gorm:"column:programme_id"`
 	ProgrammeName string `json:"programme_name"`
