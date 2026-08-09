@@ -105,6 +105,12 @@ const routes = [
         meta: { title: 'មហាវិទ្យាល័យ', icone: 'Document' },
       },
       {
+        path: 'department',
+        name: 'ដេប៉ាតេម៉ង',
+        component: () => import('@/views/department/department.vue'),
+        meta: { title: 'ដេប៉ាតេម៉ង', icone: 'Document' },
+      },
+      {
         path: 'school',
         name: 'សាលា',
         component: () => import('@/views/school/school.vue'),

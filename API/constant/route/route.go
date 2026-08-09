@@ -77,4 +77,11 @@ const (
 	FacultyCreate          = "faculty.create"
 	FacultyUpdate          = "faculty.update/:uuid"
 	FacultyToggle          = "faculty.toggle/:uuid"
+
+	// department
+	DepartmentView          = "Department.view"
+	DepartmentViewByFaculty = "Department.view.by.faculty/:id"
+	DepartmentCreate        = "Department.create"
+	DepartmentUpdate        = "Department.update/:uuid"
+	DepartmentToggle        = "Department.toggle/:uuid"
 )

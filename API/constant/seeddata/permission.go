@@ -59,4 +59,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.faculty",
 		Group: "faculty",
 	},
+	{
+		Name:  "crud.department",
+		Group: "department",
+	},
 }

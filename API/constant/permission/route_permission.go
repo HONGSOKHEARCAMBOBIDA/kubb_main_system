@@ -31,4 +31,6 @@ const (
 	CRUDSEMESTER = "crud.semester"
 
 	CRUDFACULTY = "crud.faculty"
+
+	CRUDDEPARTMENT = "crud.department"
 )
