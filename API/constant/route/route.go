@@ -84,4 +84,11 @@ const (
 	DepartmentCreate        = "Department.create"
 	DepartmentUpdate        = "Department.update/:uuid"
 	DepartmentToggle        = "Department.toggle/:uuid"
+
+	// major
+	MajorView             = "Major.view"
+	MajorViewByDepartment = "Major.view.by.department/:id"
+	MajorCreate           = "Major.create"
+	MajorUpdate           = "Major.update/:uuid"
+	MajorToggle           = "Major.toggle/:uuid"
 )

@@ -12,10 +12,10 @@ type MajorRequestCreate struct {
 }
 
 type MajorRequestUpdate struct {
-	DepartmentID     uint                   `json:"department_id" binding:"required"`
-	Code             string                 `json:"code"`
-	Name             string                 `json:"name" binding:"required"`
-	DurationPeriod   int                    `json:"duration_period"`
-	DurationInterval model.DurationInterval `json:"duration_interval"`
-	Description      string                 `json:"description"`
+	DepartmentID     *uint                   `json:"department_id" binding:"required"`
+	Code             *string                 `json:"code"`
+	Name             *string                 `json:"name" binding:"required"`
+	DurationPeriod   *int                    `json:"duration_period"`
+	DurationInterval *model.DurationInterval `json:"duration_interval"`
+	Description      *string                 `json:"description"`
 }

@@ -111,6 +111,12 @@ const routes = [
         meta: { title: 'ដេប៉ាតេម៉ង', icone: 'Document' },
       },
       {
+        path: 'major',
+        name: 'ជំនាញ',
+        component: () => import('@/views/major/major.vue'),
+        meta: { title: 'ជំនាញ', icone: 'Document' },
+      },
+      {
         path: 'school',
         name: 'សាលា',
         component: () => import('@/views/school/school.vue'),

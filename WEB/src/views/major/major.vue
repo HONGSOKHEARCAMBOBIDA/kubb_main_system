@@ -1,13 +1,9 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import {
-  getDepartment,
-  createDepartment,
-  updateDepartment,
-  toggleDepartment,
-} from '../../services/department.service.js'
+import { getMajor, createMajor, updateMajor, toggleMajor } from '../../services/major.service.js'
 import { getprogrammes } from '../../services/programmes.service.js'
 import { getFacultyByProgrammes } from '../../services/faculty.service.js'
+import { getDepartmentByFaculty } from '../../services/department.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'
@@ -18,23 +14,39 @@ import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 
 const notify = useNotification()
-const department = ref([])
+const major = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 
-const formProgramID = ref(null)
+const durationIntervalOptions = [
+  { label: 'ឆ្នាំ', value: 'year' },
+  { label: 'ខែ', value: 'month' },
+  { label: 'សប្តាហ៍', value: 'week' },
+  { label: 'ថ្ងៃ', value: 'day' },
+]
+
+// ---- filter bar state (programme -> faculty -> department cascade) ----
+const filters = reactive({ programme_id: null, faculty_id: null, department_id: null })
 const programmesOptions = ref([])
-const facultyOptions = ref([])
-const filters = reactive({ faculty_id: null, programme_id: null })
+const filterFacultyOptions = ref([])
+const filterDepartmentOptions = ref([])
+
+// ---- create/edit dialog state (its own separate cascade) ----
+const formProgramID = ref(null)
+const formFacultyID = ref(null)
+const formFacultyOptions = ref([])
+const formDepartmentOptions = ref([])
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', width: 120 },
-  { prop: 'name', label: 'ឈ្មោះដេប៉ាតេម៉ង' },
-  { slot: 'programme_name', label: 'កម្រិត', width: 150 },
-  { prop: 'faculty_name', label: 'មហាវិទ្យាល័យ', width: 250, slot: 'faculty_name' },
-  { prop: 'description', label: 'ការពិពណ៌នា' },
+  { prop: 'name', label: 'ឈ្មោះជំនាញ' },
+  { prop: 'duration_period', label: 'រយៈពេលសិក្សា', slot: 'duration_period', width: 140 },
+  { prop: 'programme_name', label: 'កម្រិត', slot: 'programme_name', width: 120 },
+  { prop: 'faculty_name', label: 'មហាវិទ្យាល័យ', slot: 'faculty_name', width: 220 },
+  { prop: 'department_name', label: 'ដេប៉ាតេម៉ង', slot: 'department_name', width: 200 },
+  { prop: 'description', label: 'ការពិពណ៌នា',width:300 },
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
@@ -48,15 +60,19 @@ const isEditing = computed(() => !!editingUuid.value)
 const form = reactive({
   code: '',
   name: '',
-  faculty_id: null,
+  department_id: null,
   description: '',
+  duration_period: '',
+  duration_interval: 'year',
 })
 
 const rules = {
   code: [{ required: true, message: 'សូមបញ្ចូលលេខកូដ', trigger: 'blur' }],
   name: [{ required: true, message: 'សូមបញ្ចូលឈ្មោះ', trigger: 'blur' }],
-  faculty_id: [{ required: true, message: 'សូមជ្រើសរើសមហាវិទ្យាល័យ', trigger: 'change' }],
+  department_id: [{ required: true, message: 'សូមជ្រើសរើសដេប៉ាតេម៉ង', trigger: 'change' }],
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
+  duration_period: [{ required: true, message: 'សូមបញ្ចូលរយៈពេលសិក្សា', trigger: 'blur' }],
+  duration_interval: [{ required: true, message: 'សូមជ្រើសរើសឯកតារយៈពេល', trigger: 'change' }],
 }
 
 async function fetchProgrammeOptions() {
@@ -85,12 +101,29 @@ async function loadFacultyOption(programmeID) {
   }
 }
 
-async function fetchDepartment() {
+async function loadDepartmentOption(facultyID) {
+  if (!facultyID) return []
+  try {
+    const res = await getDepartmentByFaculty(facultyID)
+    return (res.data.data || []).map((d) => ({
+      label: d.name,
+      value: d.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load departments')
+    return []
+  }
+}
+
+async function fetchMajor() {
   loading.value = true
   try {
     const params = {
       page: page.value,
       page_size: pageSize.value,
+    }
+    if (filters.department_id) {
+      params.department_id = filters.department_id
     }
     if (filters.faculty_id) {
       params.faculty_id = filters.faculty_id
@@ -98,8 +131,8 @@ async function fetchDepartment() {
     if (filters.programme_id) {
       params.programme_id = filters.programme_id
     }
-    const res = await getDepartment(params)
-    department.value = res.data.data || []
+    const res = await getMajor(params)
+    major.value = res.data.data || []
     total.value = res.data.total || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load')
@@ -110,31 +143,36 @@ async function fetchDepartment() {
 
 function openCreate() {
   editingUuid.value = null
-  dialogTitle.value = 'បង្កើតដេប៉ាតេម៉ងថ្មី'
+  dialogTitle.value = 'បង្កើតជំនាញថ្មី'
   form.code = ''
   form.name = ''
-  form.faculty_id = null
+  form.department_id = null
   form.description = ''
+  form.duration_period = ''
+  form.duration_interval = 'year'
   formProgramID.value = null
-  facultyOptions.value = []
+  formFacultyID.value = null
+  formFacultyOptions.value = []
+  formDepartmentOptions.value = []
   dialogVisible.value = true
 }
 
 async function openEdit(row) {
-  // backend looks rows up by uuid, not the numeric id
   editingUuid.value = row.uuid
-  dialogTitle.value = 'កែប្រែដេប៉ាតេម៉ង'
+  dialogTitle.value = 'កែប្រែជំនាញ'
   form.code = row.code
   form.name = row.name
-  form.faculty_id = row.faculty_id ?? null
   form.description = row.description
+  form.duration_period = row.duration_period
+  form.duration_interval = row.duration_interval
 
-  // We don't know the row's programme_id from this response, so we can't
-  // preselect the programme dropdown. Seed facultyOptions with just the
-  // department's current faculty so the select shows the right label.
+  // Rebuild the cascade so the selects show the right labels
   formProgramID.value = row.programme_id ?? null
-  facultyOptions.value = await loadFacultyOption(formProgramID.value)
-  form.faculty_id = row.faculty_id ?? null
+  formFacultyOptions.value = await loadFacultyOption(formProgramID.value)
+  formFacultyID.value = row.faculty_id ?? null
+  formDepartmentOptions.value = await loadDepartmentOption(formFacultyID.value)
+  form.department_id = row.department_id ?? null
+
   dialogVisible.value = true
 }
 
@@ -145,24 +183,22 @@ function closeDialog() {
 async function handleSubmit() {
   submitting.value = true
   try {
+    const payload = {
+      code: form.code,
+      name: form.name,
+      department_id: form.department_id,
+      description: form.description,
+      duration_period: form.duration_period,
+      duration_interval: form.duration_interval,
+    }
     if (isEditing.value) {
-      await updateDepartment(editingUuid.value, {
-        code: form.code,
-        name: form.name,
-        faculty_id: form.faculty_id,
-        description: form.description,
-      })
+      await updateMajor(editingUuid.value, payload)
     } else {
-      await createDepartment({
-        code: form.code,
-        name: form.name,
-        faculty_id: form.faculty_id,
-        description: form.description,
-      })
+      await createMajor(payload)
     }
     notify.success('រក្សាទុកបានជោគជ័យ')
     dialogVisible.value = false
-    fetchDepartment()
+    fetchMajor()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to save')
   } finally {
@@ -172,50 +208,72 @@ async function handleSubmit() {
 
 async function toggleStatus(row) {
   try {
-    await toggleDepartment(row.uuid)
+    await toggleMajor(row.uuid)
     notify.success('ធ្វើបច្ចុប្បន្នភាពស្ថានភាពបានជោគជ័យ')
-    fetchDepartment()
+    fetchMajor()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to toggle status')
   }
 }
 
+// ---- filter bar cascade ----
 watch(
   () => filters.programme_id,
   async (newVal) => {
     filters.faculty_id = null
-    facultyOptions.value = await loadFacultyOption(newVal)
+    filters.department_id = null
+    filterDepartmentOptions.value = []
+    filterFacultyOptions.value = await loadFacultyOption(newVal)
     page.value = 1
-    fetchDepartment()
+    fetchMajor()
   }
 )
 
 watch(
   () => filters.faculty_id,
-  () => {
+  async (newVal) => {
+    filters.department_id = null
+    filterDepartmentOptions.value = await loadDepartmentOption(newVal)
     page.value = 1
-    fetchDepartment()
+    fetchMajor()
   }
 )
 
+watch(
+  () => filters.department_id,
+  () => {
+    page.value = 1
+    fetchMajor()
+  }
+)
+
+// ---- form dialog cascade ----
 watch(formProgramID, async (newVal) => {
-  form.faculty_id = null
-  facultyOptions.value = await loadFacultyOption(newVal)
+  formFacultyID.value = null
+  form.department_id = null
+  formDepartmentOptions.value = []
+  formFacultyOptions.value = await loadFacultyOption(newVal)
+})
+
+watch(formFacultyID, async (newVal) => {
+  form.department_id = null
+  formDepartmentOptions.value = await loadDepartmentOption(newVal)
 })
 
 onMounted(() => {
   fetchProgrammeOptions()
-  fetchDepartment()
+  fetchMajor()
 })
 </script>
 
 <template>
-  <div class="department-page">
+  <div class="major-page">
     <AppFilterBar
       :fields="[
-        { slot: 'program', span: 5 },
-        { slot: 'faculty', span: 5 },
-        { slot: 'create', span: 5 },
+        { slot: 'program', span: 4 },
+        { slot: 'faculty', span: 4 },
+        { slot: 'department', span: 4 },
+        { slot: 'create', span: 3 },
       ]"
       :action-span="3"
     >
@@ -230,8 +288,18 @@ onMounted(() => {
       <template #faculty>
         <AppSelect
           v-model="filters.faculty_id"
-          :options="facultyOptions"
+          :options="filterFacultyOptions"
           placeholder="មហាវិទ្យាល័យ"
+          :disabled="!filters.programme_id"
+          clearable
+        />
+      </template>
+      <template #department>
+        <AppSelect
+          v-model="filters.department_id"
+          :options="filterDepartmentOptions"
+          placeholder="ដេប៉ាតេម៉ង"
+          :disabled="!filters.faculty_id"
           clearable
         />
       </template>
@@ -242,22 +310,36 @@ onMounted(() => {
 
     <TableCustom
       show-index
-      :data="department"
+      :data="major"
       :columns="columns"
       :loading="loading"
       :total="total"
       v-model:current-page="page"
       v-model:page-size="pageSize"
-      @page-change="fetchDepartment"
+      @page-change="fetchMajor"
     >
+  <template #duration_period="{ row }">
+       <el-text tag="b" style="color: crimson;">
+         {{ row.duration_period }}
+        {{ { year: 'ឆ្នាំ', month: 'ខែ', week: 'សប្តាហ៍', day: 'ថ្ងៃ' }[row.duration_interval] || row.duration_interval }}
+       </el-text>
+      </template>
+
       <template #programme_name="{ row }">
         <el-text tag="b" style="color: darkcyan">
           {{ row.programme_name }}
         </el-text>
       </template>
+
       <template #faculty_name="{ row }">
         <el-text tag="b" style="color: darkcyan">
           {{ row.faculty_code }} - {{ row.faculty_name }}
+        </el-text>
+      </template>
+
+      <template #department_name="{ row }">
+        <el-text tag="b" style="color: darkcyan">
+          {{ row.department_code }} - {{ row.department_name }}
         </el-text>
       </template>
 
@@ -308,23 +390,46 @@ onMounted(() => {
           placeholder="បញ្ចូលឈ្មោះ"
           clearable
           prop="name"
-          label="ឈ្មោះដេប៉ាតេម៉ង"
+          label="ឈ្មោះជំនាញ"
         />
         <AppSelect
           v-model="formProgramID"
           :options="programmesOptions"
           placeholder="ជ្រើសរើសកម្រិតសិក្សា"
           clearable
-          prop="programme_id"
           label="កម្រិតសិក្សា"
         />
         <AppSelect
-          v-model="form.faculty_id"
-          :options="facultyOptions"
+          v-model="formFacultyID"
+          :options="formFacultyOptions"
           placeholder="ជ្រើសរើសមហាវិទ្យាល័យ"
+          :disabled="!formProgramID"
           clearable
-          prop="faculty_id"
           label="មហាវិទ្យាល័យ"
+        />
+        <AppSelect
+          v-model="form.department_id"
+          :options="formDepartmentOptions"
+          placeholder="ជ្រើសរើសដេប៉ាតេម៉ង"
+          :disabled="!formFacultyID"
+          clearable
+          prop="department_id"
+          label="ដេប៉ាតេម៉ង"
+        />
+        <AppInput
+           v-model.number="form.duration_period"
+          placeholder="បញ្ចូលរយៈពេលសិក្សា"
+          type="number"
+          clearable
+          prop="duration_period"
+          label="រយៈពេលសិក្សា"
+        />
+        <AppSelect
+          v-model="form.duration_interval"
+          :options="durationIntervalOptions"
+          placeholder="ជ្រើសរើសឯកតារយៈពេល"
+          prop="duration_interval"
+          label="ឯកតារយៈពេល"
         />
         <AppInput
           v-model="form.description"
@@ -340,11 +445,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.department-filters {
+.major-page {
   display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
 }
 </style>

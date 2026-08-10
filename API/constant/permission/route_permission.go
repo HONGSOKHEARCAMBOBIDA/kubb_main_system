@@ -33,4 +33,6 @@ const (
 	CRUDFACULTY = "crud.faculty"
 
 	CRUDDEPARTMENT = "crud.department"
+
+	CRUDMAJOR = "crud.major"
 )

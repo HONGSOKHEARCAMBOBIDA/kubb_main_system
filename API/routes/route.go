@@ -25,6 +25,7 @@ func SetupRoutes(r *gin.Engine) {
 	semestercontroller := controller.NewSemesterController()
 	facultycontroller := controller.NewFacultyController()
 	departmentcontroller := controller.NewDepartmentController()
+	majorcontroller := controller.NewMajorController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -105,6 +106,13 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.DepartmentCreate, middleware.PermissionMiddleware(permission.CRUDDEPARTMENT), departmentcontroller.CreateDepartment)
 		auth.PUT(route.DepartmentUpdate, middleware.PermissionMiddleware(permission.CRUDDEPARTMENT), departmentcontroller.UpdateDepartment)
 		auth.PUT(route.DepartmentToggle, middleware.PermissionMiddleware(permission.CRUDDEPARTMENT), departmentcontroller.Toggle)
+
+		// Major
+		auth.GET(route.MajorView, middleware.PermissionMiddleware(permission.CRUDMAJOR), majorcontroller.GetMajor)
+		auth.GET(route.MajorViewByDepartment, middleware.PermissionMiddleware(permission.CRUDMAJOR), majorcontroller.GetMajorByDepartment)
+		auth.POST(route.MajorCreate, middleware.PermissionMiddleware(permission.CRUDMAJOR), majorcontroller.CreateMajor)
+		auth.PUT(route.MajorUpdate, middleware.PermissionMiddleware(permission.CRUDMAJOR), majorcontroller.UpdateMajor)
+		auth.PUT(route.MajorToggle, middleware.PermissionMiddleware(permission.CRUDMAJOR), majorcontroller.Toggle)
 
 	}
 }

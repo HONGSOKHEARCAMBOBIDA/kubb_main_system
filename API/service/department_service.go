@@ -47,6 +47,9 @@ func (s *departmentservice) GetDepartment(ctx context.Context, pf request.Pagina
 	}
 
 	applyFilters := func(tx *gorm.DB) *gorm.DB {
+		if v, ok := filter["programme_id"]; ok && v != "" {
+			tx = tx.Where("p.id = ?", v)
+		}
 		if v, ok := filter["faculty_id"]; ok && v != "" {
 			tx = tx.Where("f.id = ?", v)
 		}
