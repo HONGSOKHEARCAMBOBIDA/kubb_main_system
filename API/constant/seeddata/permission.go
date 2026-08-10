@@ -71,4 +71,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.subject",
 		Group: "subject",
 	},
+	{
+		Name:  "crud.major.term",
+		Group: "major.term",
+	},
 }

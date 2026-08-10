@@ -37,4 +37,6 @@ const (
 	CRUDMAJOR = "crud.major"
 
 	CRUDSUBJECT = "crud.subject"
+
+	CRUDMAJORTERM = "crud.major.term"
 )

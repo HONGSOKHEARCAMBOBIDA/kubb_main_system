@@ -98,4 +98,9 @@ const (
 	SubjectCreate           = "Subject.create"
 	SubjectUpdate           = "Subject.update/:uuid"
 	SubjectToggle           = "Subject.toggle/:uuid"
+
+	// major term
+	MajorTermView   = "major.term.view"
+	MajorTermCreate = "major.term.create"
+	MajorTermUpdate = "major.term.update/:uuid"
 )
