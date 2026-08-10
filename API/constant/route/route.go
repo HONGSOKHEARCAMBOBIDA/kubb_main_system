@@ -91,4 +91,11 @@ const (
 	MajorCreate           = "Major.create"
 	MajorUpdate           = "Major.update/:uuid"
 	MajorToggle           = "Major.toggle/:uuid"
+
+	// subject
+	SubjectView             = "Subject.view"
+	SubjectViewByDepartment = "Subject.view.by.major/:id"
+	SubjectCreate           = "Subject.create"
+	SubjectUpdate           = "Subject.update/:uuid"
+	SubjectToggle           = "Subject.toggle/:uuid"
 )

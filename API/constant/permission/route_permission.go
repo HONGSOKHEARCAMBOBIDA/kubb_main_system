@@ -35,4 +35,6 @@ const (
 	CRUDDEPARTMENT = "crud.department"
 
 	CRUDMAJOR = "crud.major"
+
+	CRUDSUBJECT = "crud.subject"
 )

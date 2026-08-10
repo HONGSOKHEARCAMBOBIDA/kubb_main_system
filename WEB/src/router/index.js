@@ -117,6 +117,12 @@ const routes = [
         meta: { title: 'ជំនាញ', icone: 'Document' },
       },
       {
+        path: 'subject',
+        name: 'មុខវិជ្ជា',
+        component: () => import('@/views/subject/subject.vue'),
+        meta: { title: 'មុខវិជ្ជា', icone: 'Document' },
+      },
+      {
         path: 'school',
         name: 'សាលា',
         component: () => import('@/views/school/school.vue'),
