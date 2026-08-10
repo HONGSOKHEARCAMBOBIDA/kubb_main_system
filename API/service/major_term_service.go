@@ -65,7 +65,7 @@ func (s *majortermservice) GetMajorTerm(ctx context.Context, pf request.Paginati
 	var data []response.MajorTermResponse
 	var total int64
 
-	base := func() *gorm.DB {
+	baseQuery := func() *gorm.DB {
 		return s.db.WithContext(ctx).
 			Table("major_terms mt").
 			Joins("LEFT JOIN majors m ON m.id = mt.major_id").
@@ -87,6 +87,9 @@ func (s *majortermservice) GetMajorTerm(ctx context.Context, pf request.Paginati
 		if v, ok := filter["department_id"]; ok && v != "" {
 			tx = tx.Where("d.id = ?", v)
 		}
+		if v, ok := filter["major_id"]; ok && v != "" {
+			tx = tx.Where("m.id = ?", v)
+		}
 		if v, ok := filter["academic_id"]; ok && v != "" {
 			tx = tx.Where("a.id = ?", v)
 		}
@@ -99,8 +102,8 @@ func (s *majortermservice) GetMajorTerm(ctx context.Context, pf request.Paginati
 		return tx
 	}
 
-	if err := applyFilters(base()).Count(&total).Error; err != nil {
-		return nil, nil, fmt.Errorf("count terms: %w", err)
+	if err := applyFilters(baseQuery()).Count(&total).Error; err != nil {
+		return nil, nil, fmt.Errorf("count major terms: %w", err)
 	}
 
 	if total == 0 {
@@ -109,10 +112,14 @@ func (s *majortermservice) GetMajorTerm(ctx context.Context, pf request.Paginati
 
 	offset := (pf.Page - 1) * pf.PageSize
 
-	dataQuery := applyFilters(base()).Select(`
-		m.id AS id,
-		m.uuid AS uuid,
-		m.code AS code ,
+	// NOTE: id/uuid come from mt (the major_terms junction row), not from the
+	// major itself - UpdateMajorTerm looks records up by major_terms.uuid, so
+	// the identity returned here has to match that table or edits will 404.
+	dataQuery := applyFilters(baseQuery()).Select(`
+		mt.id AS id,
+		mt.uuid AS uuid,
+		m.id AS major_id,
+		m.code AS code,
 		m.name AS name,
 		m.duration_period AS duration_period,
 		m.duration_interval AS duration_interval,
@@ -138,7 +145,7 @@ func (s *majortermservice) GetMajorTerm(ctx context.Context, pf request.Paginati
 	`)
 
 	if err := dataQuery.Offset(offset).Limit(pf.PageSize).Scan(&data).Error; err != nil {
-		return nil, nil, fmt.Errorf("fetch terms: %w", err)
+		return nil, nil, fmt.Errorf("fetch major terms: %w", err)
 	}
 
 	return data, helper.BuildPaginationMeta(pf, total), nil

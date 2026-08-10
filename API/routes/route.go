@@ -27,6 +27,7 @@ func SetupRoutes(r *gin.Engine) {
 	departmentcontroller := controller.NewDepartmentController()
 	majorcontroller := controller.NewMajorController()
 	subjectcontroller := controller.NewSubjectController()
+	majortermcontroller := controller.NewMajorTermController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -121,6 +122,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.SubjectCreate, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.CreateSubject)
 		auth.PUT(route.SubjectUpdate, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.UpdateSubject)
 		auth.PUT(route.SubjectToggle, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.Toggle)
+
+		// MajorTerm
+		auth.POST(route.MajorTermCreate, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.CreateMajorTerm)
+		auth.PUT(route.MajorTermUpdate, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.UpdateMajorTerm)
+		auth.GET(route.MajorTermView, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.GetMajorTerm)
 
 	}
 }

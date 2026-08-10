@@ -36,13 +36,20 @@ func NewTermService() TermService {
 	}
 }
 
-func (s *termservice) GetTerm(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.TermResponse, *model.PaginationMetadata, error) {
+func (s *termservice) GetTerm(
+	ctx context.Context,
+	pf request.Pagination,
+	filter map[string]string,
+) ([]response.TermResponse, *model.PaginationMetadata, error) {
+
 	helper.NormalizePagination(&pf)
 
 	var data []response.TermResponse
 	var total int64
 
-	// Base query WITH joins applied consistently to both count and data queries.
+	// =========================================================
+	// 1. Base Term Query
+	// =========================================================
 	base := func() *gorm.DB {
 		return s.db.WithContext(ctx).
 			Table("terms t").
@@ -50,17 +57,41 @@ func (s *termservice) GetTerm(ctx context.Context, pf request.Pagination, filter
 			Joins("LEFT JOIN academics a ON a.id = g.academic_id")
 	}
 
+	// =========================================================
+	// 2. Apply Filters
+	// =========================================================
 	applyFilters := func(tx *gorm.DB) *gorm.DB {
+
 		if v, ok := filter["generation_id"]; ok && v != "" {
 			tx = tx.Where("g.id = ?", v)
 		}
+
 		if v, ok := filter["academic_id"]; ok && v != "" {
 			tx = tx.Where("a.id = ?", v)
 		}
+
+		if v, ok := filter["active"]; ok && v != "" {
+			tx = tx.Where("t.active = ?", v)
+		}
+
+		if v, ok := filter["search"]; ok && v != "" {
+			search := "%" + v + "%"
+
+			tx = tx.Where(`
+				t.code LIKE ?
+				OR t.name LIKE ?
+			`, search, search)
+		}
+
 		return tx
 	}
 
-	if err := applyFilters(base()).Count(&total).Error; err != nil {
+	// =========================================================
+	// 3. Count Terms
+	// =========================================================
+	if err := applyFilters(base()).
+		Count(&total).Error; err != nil {
+
 		return nil, nil, fmt.Errorf("count terms: %w", err)
 	}
 
@@ -68,30 +99,171 @@ func (s *termservice) GetTerm(ctx context.Context, pf request.Pagination, filter
 		return data, helper.BuildPaginationMeta(pf, total), nil
 	}
 
+	// =========================================================
+	// 4. Get Terms
+	// =========================================================
 	offset := (pf.Page - 1) * pf.PageSize
 
-	dataQuery := applyFilters(base()).Select(`
-		t.id AS id,
-		g.id AS generation_id,
-		g.code AS generation_code,
-		g.name AS generation_name,
-		a.id AS academic_id,
-		a.code AS academic_code,
-		a.name AS academic_name,
-		t.uuid AS uuid,
-		t.code AS code,
-		t.name AS name,
-		t.index AS ` + "`index`" + `,
-		t.start_date AS start_date,
-		t.end_date AS end_date,
-		t.description AS description,
-		t.active AS active
-	`)
+	dataQuery := applyFilters(base()).
+		Select(`
+			t.id AS id,
+			t.uuid AS uuid,
 
-	if err := dataQuery.Offset(offset).Limit(pf.PageSize).Scan(&data).Error; err != nil {
+			g.id AS generation_id,
+			g.code AS generation_code,
+			g.name AS generation_name,
+
+			a.id AS academic_id,
+			a.code AS academic_code,
+			a.name AS academic_name,
+
+			t.code AS code,
+			t.name AS name,
+			t.index AS ` + "`index`" + `,
+			t.start_date AS start_date,
+			t.end_date AS end_date,
+			t.description AS description,
+			t.active AS active,
+
+			t.created_at AS created_at,
+			t.updated_at AS updated_at
+		`).
+		Order("t.index ASC").
+		Offset(offset).
+		Limit(pf.PageSize)
+
+	if err := dataQuery.Scan(&data).Error; err != nil {
 		return nil, nil, fmt.Errorf("fetch terms: %w", err)
 	}
 
+	if len(data) == 0 {
+		return data, helper.BuildPaginationMeta(pf, total), nil
+	}
+
+	// =========================================================
+	// 5. Collect Term IDs
+	// =========================================================
+	termIDs := make([]int, 0, len(data))
+
+	for _, term := range data {
+		termIDs = append(termIDs, term.ID)
+	}
+
+	// =========================================================
+	// 6. Get Majors + Department + Faculty + Programme
+	// =========================================================
+	type majorRow struct {
+		TermID int `gorm:"column:term_id"`
+
+		MajorID          int                    `gorm:"column:major_id"`
+		MajorUUID        string                 `gorm:"column:major_uuid"`
+		MajorCode        string                 `gorm:"column:major_code"`
+		MajorName        string                 `gorm:"column:major_name"`
+		DurationPeriod   int                    `gorm:"column:duration_period"`
+		DurationInterval model.DurationInterval `gorm:"column:duration_interval"`
+		MajorDescription string                 `gorm:"column:major_description"`
+		MajorActive      bool                   `gorm:"column:major_active"`
+
+		DepartmentID   int    `gorm:"column:department_id"`
+		DepartmentName string `gorm:"column:department_name"`
+		DepartmentCode string `gorm:"column:department_code"`
+
+		FacultyID   int    `gorm:"column:faculty_id"`
+		FacultyName string `gorm:"column:faculty_name"`
+		FacultyCode string `gorm:"column:faculty_code"`
+
+		ProgrammeID   int    `gorm:"column:programme_id"`
+		ProgrammeName string `gorm:"column:programme_name"`
+	}
+
+	var majorRows []majorRow
+
+	if err := s.db.WithContext(ctx).
+		Table("major_terms mt").
+		Joins("INNER JOIN majors m ON m.id = mt.major_id").
+		Joins("LEFT JOIN departments d ON d.id = m.department_id").
+		Joins("LEFT JOIN faculties f ON f.id = d.faculty_id").
+		Joins("LEFT JOIN programmes p ON p.id = f.programme_id").
+		Where("mt.term_id IN ?", termIDs).
+		Select(`
+			mt.term_id AS term_id,
+
+			m.id AS major_id,
+			m.uuid AS major_uuid,
+			m.code AS major_code,
+			m.name AS major_name,
+			m.duration_period AS duration_period,
+			m.duration_interval AS duration_interval,
+			m.description AS major_description,
+			m.active AS major_active,
+
+			d.id AS department_id,
+			d.name AS department_name,
+			d.code AS department_code,
+
+			f.id AS faculty_id,
+			f.name AS faculty_name,
+			f.code AS faculty_code,
+
+			p.id AS programme_id,
+			p.name AS programme_name
+		`).
+		Scan(&majorRows).Error; err != nil {
+
+		return nil, nil, fmt.Errorf("fetch term majors: %w", err)
+	}
+
+	// =========================================================
+	// 7. Group Majors by Term
+	// =========================================================
+	majorsByTerm := make(map[int][]response.MajorResponse)
+
+	for _, row := range majorRows {
+
+		major := response.MajorResponse{
+			ID:               row.MajorID,
+			UUID:             row.MajorUUID,
+			Name:             row.MajorName,
+			Code:             row.MajorCode,
+			DurationPeriod:   row.DurationPeriod,
+			DurationInterval: row.DurationInterval,
+			Description:      row.MajorDescription,
+			Active:           row.MajorActive,
+
+			DepartmentID:   row.DepartmentID,
+			DepartmentName: row.DepartmentName,
+			DepartmentCode: row.DepartmentCode,
+
+			FacultyID:   row.FacultyID,
+			FacultyName: row.FacultyName,
+			FacultyCode: row.FacultyCode,
+
+			ProgrammeID:  row.ProgrammeID,
+			ProgrammName: row.ProgrammeName,
+		}
+
+		majorsByTerm[row.TermID] = append(
+			majorsByTerm[row.TermID],
+			major,
+		)
+	}
+
+	// =========================================================
+	// 8. Attach Majors to Terms
+	// =========================================================
+	for i := range data {
+		data[i].MajorResponse = majorsByTerm[data[i].ID]
+
+		// Optional:
+		// Make sure it returns [] instead of null
+		if data[i].MajorResponse == nil {
+			data[i].MajorResponse = []response.MajorResponse{}
+		}
+	}
+
+	// =========================================================
+	// 9. Return
+	// =========================================================
 	return data, helper.BuildPaginationMeta(pf, total), nil
 }
 

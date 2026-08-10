@@ -17,6 +17,10 @@ const props = defineProps({
   total: { type: Number, default: 0 },
   tableProps: { type: Object, default: () => ({}) },
   selectable: { type: Boolean, default: false },
+   expandable: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -100,6 +104,16 @@ watch(
         :label="indexLabel"
         width="70"
       />
+
+<el-table-column
+  v-if="expandable"
+  type="expand"
+  width="50"
+>
+  <template #default="scope">
+    <slot name="expand" v-bind="scope" />
+  </template>
+</el-table-column>
 
       <el-table-column
         v-for="col in columns"

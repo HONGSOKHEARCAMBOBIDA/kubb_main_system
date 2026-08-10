@@ -6,8 +6,8 @@ import (
 )
 
 type MajorResponse struct {
-	base.ModelBase
-	base.UUIDBase
+	ID               int                    `json:"id"`
+	UUID             string                 `json:"uuid"`
 	Name             string                 `json:"name"`
 	Code             string                 `json:"code"`
 	DurationPeriod   int                    `json:"duration_period" gorm:"column:duration_period"`

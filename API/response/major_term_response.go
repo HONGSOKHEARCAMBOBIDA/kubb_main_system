@@ -8,6 +8,7 @@ import (
 type MajorTermResponse struct {
 	base.ModelBase
 	base.UUIDBase
+	MajorID          int                    `json:"major_id" gorm:"column:major_id"`
 	Name             string                 `json:"name"`
 	Code             string                 `json:"code"`
 	DurationPeriod   int                    `json:"duration_period" gorm:"column:duration_period"`

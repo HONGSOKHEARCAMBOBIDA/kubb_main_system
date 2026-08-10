@@ -37,6 +37,7 @@ const columns = [
   { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្តើម', width: 130 },
   {  label: 'ថ្ងៃបញ្ចប់', width: 130,slot: 'enddate' },
   { prop: 'description', label: 'ការពិពណ៌នា' },
+  {label:'ជំនាញកំពុងបើក',slot: 'majors',width: 200},
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
@@ -275,7 +276,7 @@ onMounted(() => {
     </AppFilterBar>
 
     <TableCustom
-      show-index
+      expandable
       :data="terms"
       :columns="columns"
       :loading="loading"
@@ -303,6 +304,62 @@ onMounted(() => {
           {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
         </el-tag>
       </template>
+      <template #majors="{row}">
+        <el-text tag="b" style="color: dodgerblue;">
+            {{ row.majors.length }} ជំនាញ
+        </el-text>
+      </template>
+
+<template #expand="{ row }">
+  <div class="p-4 bg-gray-50">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <el-text tag="b">ជំនាញ</el-text>
+        <el-text type="info" class="ml-2">
+          {{ row.majors?.length || 0 }} កំពុងបើក
+        </el-text>
+      </div>
+    </div>
+
+    <div
+      v-if="row.majors?.length"
+      class="grid grid-cols-1 md:grid-cols-2 gap-3"
+    >
+      <div
+        v-for="major in row.majors"
+        :key="major.id"
+        class="rounded-lg border bg-white p-3"
+      >
+        <div class="flex items-center gap-2">
+          <el-tag size="small">
+            {{ major.code }}
+          </el-tag>
+
+          <el-text tag="b">
+            {{ major.name }}
+          </el-text>
+        </div>
+
+        <div class="mt-2 text-sm text-gray-500">
+          ដេប៉ាតម៉ង.
+          {{ major.department_name }}
+        </div>
+
+        <div class="text-xs text-gray-400 mt-1">
+          {{ major.faculty_name }}
+          ·
+          {{ major.programme_name }}
+        </div>
+      </div>
+    </div>
+
+    <el-empty
+      v-else
+      description="មិនទាន់មានជំនាញ"
+      :image-size="60"
+    />
+  </div>
+</template>
 
       <template #actions="{ row }">
         <el-tooltip content="កែប្រែ" placement="top">
