@@ -47,9 +47,6 @@ func (s *termservice) GetTerm(
 	var data []response.TermResponse
 	var total int64
 
-	// =========================================================
-	// 1. Base Term Query
-	// =========================================================
 	base := func() *gorm.DB {
 		return s.db.WithContext(ctx).
 			Table("terms t").
@@ -57,9 +54,6 @@ func (s *termservice) GetTerm(
 			Joins("LEFT JOIN academics a ON a.id = g.academic_id")
 	}
 
-	// =========================================================
-	// 2. Apply Filters
-	// =========================================================
 	applyFilters := func(tx *gorm.DB) *gorm.DB {
 
 		if v, ok := filter["generation_id"]; ok && v != "" {
@@ -86,9 +80,6 @@ func (s *termservice) GetTerm(
 		return tx
 	}
 
-	// =========================================================
-	// 3. Count Terms
-	// =========================================================
 	if err := applyFilters(base()).
 		Count(&total).Error; err != nil {
 
@@ -99,9 +90,6 @@ func (s *termservice) GetTerm(
 		return data, helper.BuildPaginationMeta(pf, total), nil
 	}
 
-	// =========================================================
-	// 4. Get Terms
-	// =========================================================
 	offset := (pf.Page - 1) * pf.PageSize
 
 	dataQuery := applyFilters(base()).
@@ -119,14 +107,10 @@ func (s *termservice) GetTerm(
 
 			t.code AS code,
 			t.name AS name,
-			t.index AS ` + "`index`" + `,
 			t.start_date AS start_date,
 			t.end_date AS end_date,
 			t.description AS description,
-			t.active AS active,
-
-			t.created_at AS created_at,
-			t.updated_at AS updated_at
+			t.active AS active
 		`).
 		Order("t.index ASC").
 		Offset(offset).
@@ -140,18 +124,12 @@ func (s *termservice) GetTerm(
 		return data, helper.BuildPaginationMeta(pf, total), nil
 	}
 
-	// =========================================================
-	// 5. Collect Term IDs
-	// =========================================================
 	termIDs := make([]int, 0, len(data))
 
 	for _, term := range data {
 		termIDs = append(termIDs, term.ID)
 	}
 
-	// =========================================================
-	// 6. Get Majors + Department + Faculty + Programme
-	// =========================================================
 	type majorRow struct {
 		TermID int `gorm:"column:term_id"`
 
@@ -213,9 +191,6 @@ func (s *termservice) GetTerm(
 		return nil, nil, fmt.Errorf("fetch term majors: %w", err)
 	}
 
-	// =========================================================
-	// 7. Group Majors by Term
-	// =========================================================
 	majorsByTerm := make(map[int][]response.MajorResponse)
 
 	for _, row := range majorRows {
@@ -248,22 +223,13 @@ func (s *termservice) GetTerm(
 		)
 	}
 
-	// =========================================================
-	// 8. Attach Majors to Terms
-	// =========================================================
 	for i := range data {
 		data[i].MajorResponse = majorsByTerm[data[i].ID]
-
-		// Optional:
-		// Make sure it returns [] instead of null
 		if data[i].MajorResponse == nil {
 			data[i].MajorResponse = []response.MajorResponse{}
 		}
 	}
 
-	// =========================================================
-	// 9. Return
-	// =========================================================
 	return data, helper.BuildPaginationMeta(pf, total), nil
 }
 

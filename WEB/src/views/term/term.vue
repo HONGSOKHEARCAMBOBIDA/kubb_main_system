@@ -1,8 +1,13 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { getTerm, createTerm, updateTerm, toggleTerm } from '../../services/term.service'
+import { createMajorTerm } from '../../services/major_term.service.js'
 import { getAcademics } from '../../services/academic.service'
 import { getGenerationByAcademic } from '../../services/generation.service'
+import { getMajorByDepartment } from '../../services/major.service.js'
+import { getprogrammes } from '../../services/programmes.service.js'
+import { getFacultyByProgrammes } from '../../services/faculty.service.js'
+import { getDepartmentByFaculty } from '../../services/department.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'
@@ -13,7 +18,10 @@ import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 
 const notify = useNotification()
-
+const programmesOptions = ref([])
+const filterFacultyOptions = ref([])
+const filterDepartmentOptions = ref([])
+const major = ref([])
 const terms = ref([])
 const loading = ref(false)
 const total = ref(0)
@@ -35,12 +43,13 @@ const columns = [
   { prop: 'generation_name', label: 'ឈ្មោះជំនាន់', slot: 'generationName', width: 150 },
   { prop: 'academic_name', label: 'ឈ្មោះឆ្នាំសិក្សា', slot: 'academicName', width: 150 },
   { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្តើម', width: 130 },
-  {  label: 'ថ្ងៃបញ្ចប់', width: 130,slot: 'enddate' },
+  { label: 'ថ្ងៃបញ្ចប់', width: 130, slot: 'enddate' },
   { prop: 'description', label: 'ការពិពណ៌នា' },
-  {label:'ជំនាញកំពុងបើក',slot: 'majors',width: 200},
+  { label: 'ជំនាញកំពុងបើក', slot: 'majors', width: 200 },
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
+/* ---------------- Term create/edit dialog ---------------- */
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
@@ -66,6 +75,85 @@ const rules = {
   generation_id: [{ required: true, message: 'សូមជ្រើសរើសជំនាន់', trigger: 'change' }],
   start_date: [{ required: true, message: 'សូមជ្រើសរើសថ្ងៃចាប់ផ្តើម', trigger: 'change' }],
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
+}
+
+/* ---------------- Add-major-to-term dialog ---------------- */
+const majorDialogVisible = ref(false)
+const majorSubmitting = ref(false)
+const majorFormRef = ref(null)
+
+// cascading selection state for the "add major" form
+const formProgramID = ref(null)
+const formFacultyID = ref(null)
+const formDepartmentID = ref(null)
+const formFacultyOptions = ref([])
+const formDepartmentOptions = ref([])
+const formMajorOptions = ref([])
+
+// payload sent to createMajorTerm — mirrors request.MajorTermReqeustCreate { term_id, major_id[] }
+const formMajorTerm = reactive({
+  term_id: null,
+  major_id: [],
+})
+
+const majorRules = {
+  major_id: [{ required: true, message: 'សូមជ្រើសរើសជំនាញ', trigger: 'change' }],
+}
+
+async function fetchProgrammeOptions() {
+  try {
+    const res = await getprogrammes()
+    programmesOptions.value = (res.data.data || []).map((a) => ({
+      label: a.name,
+      value: a.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load programmes')
+  }
+}
+
+async function loadFacultyOption(programmeID) {
+  if (!programmeID) return []
+  try {
+    const res = await getFacultyByProgrammes(programmeID)
+    return (res.data.data || []).map((f) => ({
+      label: f.name,
+      value: f.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load faculties')
+    return []
+  }
+}
+
+async function loadDepartmentOption(facultyID) {
+  if (!facultyID) return []
+  try {
+    const res = await getDepartmentByFaculty(facultyID)
+    return (res.data.data || []).map((d) => ({
+      label: d.name,
+      value: d.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load departments')
+    return []
+  }
+}
+
+// FIX: previously referenced an undefined `facultyID` and never passed the
+// department id through to the service call.
+async function loadMajorOption(departmentID) {
+  if (!departmentID) return []
+  try {
+    const res = await getMajorByDepartment(departmentID)
+    return (res.data.data || []).map((m) => ({
+      label: m.name,
+      value: m.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load majors')
+    return []
+  }
 }
 
 async function fetchAcademicOptions() {
@@ -143,10 +231,32 @@ watch(
   }
 )
 
-// ---- form cascading ----
+// ---- term form cascading ----
 watch(formAcademicId, async (newVal) => {
   form.generation_id = null
   formGenerationOptions.value = await loadGenerationOptions(newVal)
+})
+
+// ---- add-major form cascading: programme -> faculty -> department -> major ----
+watch(formProgramID, async (newVal) => {
+  formFacultyID.value = null
+  formDepartmentID.value = null
+  formDepartmentOptions.value = []
+  formMajorOptions.value = []
+  formMajorTerm.major_id = []
+  formFacultyOptions.value = await loadFacultyOption(newVal)
+})
+
+watch(formFacultyID, async (newVal) => {
+  formDepartmentID.value = null
+  formMajorOptions.value = []
+  formMajorTerm.major_id = []
+  formDepartmentOptions.value = await loadDepartmentOption(newVal)
+})
+
+watch(formDepartmentID, async (newVal) => {
+  formMajorTerm.major_id = []
+  formMajorOptions.value = await loadMajorOption(newVal)
 })
 
 function openCreate() {
@@ -225,7 +335,51 @@ async function toggleStatus(row) {
   }
 }
 
+// row.id must be the term's numeric primary key — MajorTermReqeustCreate.TermID is an int,
+// while `row.uuid` (used by updateTerm/toggleTerm) is a separate string identifier.
+function openAddMajor(row) {
+  formMajorTerm.term_id = row.id
+  formMajorTerm.major_id = []
+  formProgramID.value = null
+  formFacultyID.value = null
+  formDepartmentID.value = null
+  formFacultyOptions.value = []
+  formDepartmentOptions.value = []
+  formMajorOptions.value = []
+  majorDialogVisible.value = true
+}
+
+function closeMajorDialog() {
+  majorDialogVisible.value = false
+}
+
+async function handleSubmitMajorTerm() {
+  if (!formMajorTerm.term_id) {
+    notify.error('មិនមានលេខសម្គាល់វគ្គ')
+    return
+  }
+  if (!formMajorTerm.major_id.length) {
+    notify.error('សូមជ្រើសរើសជំនាញយ៉ាងតិចមួយ')
+    return
+  }
+  majorSubmitting.value = true
+  try {
+    await createMajorTerm({
+      term_id: formMajorTerm.term_id,
+      major_id: formMajorTerm.major_id,
+    })
+    notify.success('បន្ថែមជំនាញបានជោគជ័យ')
+    majorDialogVisible.value = false
+    fetchTerm()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to add majors')
+  } finally {
+    majorSubmitting.value = false
+  }
+}
+
 onMounted(() => {
+  fetchProgrammeOptions()
   fetchAcademicOptions()
   fetchTerm()
 })
@@ -248,7 +402,6 @@ onMounted(() => {
           :options="academicOptions"
           placeholder="ឆ្នាំសិក្សា"
           clearable
-          @change="onFilterAcademicChange"
         />
       </template>
       <template #generation>
@@ -258,7 +411,6 @@ onMounted(() => {
           placeholder="ជំនាន់"
           clearable
           :disabled="!filters.academic_id"
-          @change="onFilterGenerationChange"
         />
       </template>
       <template #active>
@@ -267,7 +419,6 @@ onMounted(() => {
           :options="statusOptions"
           placeholder="ស្ថានភាព"
           clearable
-          @change="debouncedFetch"
         />
       </template>
       <template #create>
@@ -295,8 +446,8 @@ onMounted(() => {
         <el-text>{{ row.academic_name || '-' }}</el-text>
       </template>
 
-      <template #enddate="{row}">
-         <el-text tag="b" style="color: crimson;">{{ row.end_date || '-' }}</el-text>
+      <template #enddate="{ row }">
+        <el-text tag="b" style="color: crimson;">{{ row.end_date || '-' }}</el-text>
       </template>
 
       <template #isActive="{ row }">
@@ -304,64 +455,60 @@ onMounted(() => {
           {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
         </el-tag>
       </template>
-      <template #majors="{row}">
+      <template #majors="{ row }">
         <el-text tag="b" style="color: dodgerblue;">
-            {{ row.majors.length }} ជំនាញ
+          {{ row.majors.length }} ជំនាញ
         </el-text>
       </template>
 
-<template #expand="{ row }">
-  <div class="p-4 bg-gray-50">
-    <div class="flex items-center justify-between mb-3">
-      <div>
-        <el-text tag="b">ជំនាញ</el-text>
-        <el-text type="info" class="ml-2">
-          {{ row.majors?.length || 0 }} កំពុងបើក
-        </el-text>
-      </div>
-    </div>
+      <template #expand="{ row }">
+        <div class="p-4 bg-gray-50">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <el-text tag="b">ជំនាញ</el-text>
+              <el-text type="info" class="ml-2">
+                {{ row.majors?.length || 0 }} កំពុងបើក
+              </el-text>
+            </div>
+          </div>
 
-    <div
-      v-if="row.majors?.length"
-      class="grid grid-cols-1 md:grid-cols-2 gap-3"
-    >
-      <div
-        v-for="major in row.majors"
-        :key="major.id"
-        class="rounded-lg border bg-white p-3"
-      >
-        <div class="flex items-center gap-2">
-          <el-tag size="small">
-            {{ major.code }}
-          </el-tag>
+          <div v-if="row.majors?.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div
+              v-for="major in row.majors"
+              :key="major.id"
+              class="rounded-lg border bg-white p-3"
+            >
+              <div class="flex items-center gap-2">
+                <el-tag size="small">
+                  {{ major.code }}
+                </el-tag>
 
-          <el-text tag="b">
-            {{ major.name }}
-          </el-text>
+                <el-text tag="b">
+                  {{ major.name }}
+                </el-text>
+              </div>
+
+              <div class="mt-2 text-sm text-gray-500">
+                ដេប៉ាតម៉ង.
+                {{ major.department_name }}
+              </div>
+
+              <div class="text-xs text-gray-400 mt-1">
+                {{ major.faculty_name }}
+                ·
+                {{ major.programme_name }}
+              </div>
+            </div>
+          </div>
+
+          <el-empty v-else description="មិនទាន់មានជំនាញ" :image-size="60" />
         </div>
-
-        <div class="mt-2 text-sm text-gray-500">
-          ដេប៉ាតម៉ង.
-          {{ major.department_name }}
-        </div>
-
-        <div class="text-xs text-gray-400 mt-1">
-          {{ major.faculty_name }}
-          ·
-          {{ major.programme_name }}
-        </div>
-      </div>
-    </div>
-
-    <el-empty
-      v-else
-      description="មិនទាន់មានជំនាញ"
-      :image-size="60"
-    />
-  </div>
-</template>
+      </template>
 
       <template #actions="{ row }">
+        <el-tooltip content="ថែមទំនាញ" placement="top">
+          <AppButton icon="Plus" circle size="small" type="default" plain @click="openAddMajor(row)" />
+        </el-tooltip>
         <el-tooltip content="កែប្រែ" placement="top">
           <AppButton icon="Edit" circle size="small" type="default" plain @click="openEdit(row)" />
         </el-tooltip>
@@ -378,6 +525,7 @@ onMounted(() => {
       </template>
     </TableCustom>
 
+    <!-- Create / edit term -->
     <AppDialog v-model:visible="dialogVisible" :title="dialogTitle" :showDefaultFooter="false">
       <AppForm
         ref="formRef"
@@ -390,27 +538,14 @@ onMounted(() => {
         submitText="រក្សាទុក"
         resetText="ចាកចេញ"
       >
-        <AppInput
-          v-model="form.code"
-          placeholder="បញ្ចូលលេខកូដ"
-          clearable
-          prop="code"
-          label="លេខកូដ"
-        />
-        <AppInput
-          v-model="form.name"
-          placeholder="បញ្ចូលឈ្មោះ"
-          clearable
-          prop="name"
-          label="ឈ្មោះវគ្គ"
-        />
+        <AppInput v-model="form.code" placeholder="បញ្ចូលលេខកូដ" clearable prop="code" label="លេខកូដ" />
+        <AppInput v-model="form.name" placeholder="បញ្ចូលឈ្មោះ" clearable prop="name" label="ឈ្មោះវគ្គ" />
         <AppSelect
           v-model="formAcademicId"
           :options="academicOptions"
           placeholder="ជ្រើសរើសឆ្នាំសិក្សា"
           clearable
           label="ឆ្នាំសិក្សា"
-          @change="onFormAcademicChange"
         />
         <AppSelect
           v-model="form.generation_id"
@@ -444,6 +579,55 @@ onMounted(() => {
           prop="description"
           label="ការពិពណ៌នា"
           type="textarea"
+        />
+      </AppForm>
+    </AppDialog>
+
+    <!-- Add majors to term -->
+    <AppDialog v-model:visible="majorDialogVisible" title="ថែមជំនាញទៅក្នុងវគ្គ" :showDefaultFooter="false">
+      <AppForm
+        ref="majorFormRef"
+        :model="formMajorTerm"
+        :rules="majorRules"
+        :loading="majorSubmitting"
+        :show-actions="true"
+        @submit="handleSubmitMajorTerm"
+        @reset="closeMajorDialog"
+        submitText="រក្សាទុក"
+        resetText="ចាកចេញ"
+      >
+        <AppSelect
+          v-model="formProgramID"
+          :options="programmesOptions"
+          placeholder="ជ្រើសរើសកម្មវិធីសិក្សា"
+          clearable
+          label="កម្មវិធីសិក្សា"
+        />
+        <AppSelect
+          v-model="formFacultyID"
+          :options="formFacultyOptions"
+          placeholder="ជ្រើសរើសមហាវិទ្យាល័យ"
+          clearable
+          label="មហាវិទ្យាល័យ"
+          :disabled="!formProgramID"
+        />
+        <AppSelect
+          v-model="formDepartmentID"
+          :options="formDepartmentOptions"
+          placeholder="ជ្រើសរើសដេប៉ាតឺម៉ង់"
+          clearable
+          label="ដេប៉ាតឺម៉ង់"
+          :disabled="!formFacultyID"
+        />
+        <AppSelect
+          v-model="formMajorTerm.major_id"
+          :options="formMajorOptions"
+          placeholder="ជ្រើសរើសជំនាញ"
+          clearable
+          multiple
+          prop="major_id"
+          label="ជំនាញ"
+          :disabled="!formDepartmentID"
         />
       </AppForm>
     </AppDialog>
