@@ -75,4 +75,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.major.term",
 		Group: "major.term",
 	},
+	{
+		Name:  "crud.academic.shift",
+		Group: "academic.shift",
+	},
 }

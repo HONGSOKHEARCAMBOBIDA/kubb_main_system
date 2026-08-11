@@ -28,6 +28,7 @@ export const menuConfig = [
       { title: 'ឆ្នាំសិក្សា', icon: 'Document', path: '/academic' },
       { title: 'ឆមាស', icon: 'Document', path: '/semester' },
       { title: 'ជំនាន់', icon: 'Document', path: '/generation' },
+      { title: 'វេនសិក្សា', icon: 'Document', path: '/academicshift' },
       { title: 'វគ្គ', icon: 'Document', path: '/term' },
       { title: 'មហាវិទ្យាល័យ', icon: 'Document', path: '/faculty' },
       { title: 'ដេប៉ាតេម៉ង', icon: 'Document', path: '/department' },

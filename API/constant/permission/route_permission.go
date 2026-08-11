@@ -39,4 +39,6 @@ const (
 	CRUDSUBJECT = "crud.subject"
 
 	CRUDMAJORTERM = "crud.major.term"
+
+	CRUDACADEMICSHIFT = "crud.academic.shift"
 )

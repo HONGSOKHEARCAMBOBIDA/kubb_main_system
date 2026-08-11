@@ -8,6 +8,7 @@ import { getMajorByDepartment } from '../../services/major.service.js'
 import { getprogrammes } from '../../services/programmes.service.js'
 import { getFacultyByProgrammes } from '../../services/faculty.service.js'
 import { getDepartmentByFaculty } from '../../services/department.service.js'
+import { toggleMajorTerm } from '../../services/major_term.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'
@@ -33,6 +34,7 @@ const statusOptions = [
   { label: 'អសកម្ម', value: 0 },
 ]
 
+const expandFilterProgramID = reactive({})
 const academicOptions = ref([])
 const filterGenerationOptions = ref([])
 const filters = reactive({ academic_id: null, generation_id: null, active: null })
@@ -49,7 +51,7 @@ const columns = [
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
-/* ---------------- Term create/edit dialog ---------------- */
+
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
@@ -77,12 +79,12 @@ const rules = {
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
 }
 
-/* ---------------- Add-major-to-term dialog ---------------- */
+
 const majorDialogVisible = ref(false)
 const majorSubmitting = ref(false)
 const majorFormRef = ref(null)
 
-// cascading selection state for the "add major" form
+
 const formProgramID = ref(null)
 const formFacultyID = ref(null)
 const formDepartmentID = ref(null)
@@ -90,7 +92,7 @@ const formFacultyOptions = ref([])
 const formDepartmentOptions = ref([])
 const formMajorOptions = ref([])
 
-// payload sent to createMajorTerm — mirrors request.MajorTermReqeustCreate { term_id, major_id[] }
+
 const formMajorTerm = reactive({
   term_id: null,
   major_id: [],
@@ -98,6 +100,18 @@ const formMajorTerm = reactive({
 
 const majorRules = {
   major_id: [{ required: true, message: 'សូមជ្រើសរើសជំនាញ', trigger: 'change' }],
+}
+
+function filteredMajors(row) {
+  const selected = expandFilterProgramID[row.id]
+  if (!selected) return row.majors || []
+  return (row.majors || []).filter((m) => {
+    if (m.programme_id !== undefined && m.programme_id !== null) {
+      return m.programme_id === selected
+    }
+    const opt = programmesOptions.value.find((p) => p.value === selected)
+    return opt ? m.programme_name === opt.label : true
+  })
 }
 
 async function fetchProgrammeOptions() {
@@ -140,8 +154,7 @@ async function loadDepartmentOption(facultyID) {
   }
 }
 
-// FIX: previously referenced an undefined `facultyID` and never passed the
-// department id through to the service call.
+
 async function loadMajorOption(departmentID) {
   if (!departmentID) return []
   try {
@@ -168,7 +181,7 @@ async function fetchAcademicOptions() {
   }
 }
 
-// uses the dedicated by-academic endpoint, not the paginated list endpoint
+
 async function loadGenerationOptions(academicId) {
   if (!academicId) return []
   try {
@@ -204,7 +217,6 @@ async function fetchTerm() {
   }
 }
 
-// ---- filter bar cascading via watchers (robust to clear/×) ----
 watch(
   () => filters.academic_id,
   async (newVal) => {
@@ -231,13 +243,13 @@ watch(
   }
 )
 
-// ---- term form cascading ----
+
 watch(formAcademicId, async (newVal) => {
   form.generation_id = null
   formGenerationOptions.value = await loadGenerationOptions(newVal)
 })
 
-// ---- add-major form cascading: programme -> faculty -> department -> major ----
+
 watch(formProgramID, async (newVal) => {
   formFacultyID.value = null
   formDepartmentID.value = null
@@ -335,8 +347,16 @@ async function toggleStatus(row) {
   }
 }
 
-// row.id must be the term's numeric primary key — MajorTermReqeustCreate.TermID is an int,
-// while `row.uuid` (used by updateTerm/toggleTerm) is a separate string identifier.
+async function toggleStatusMajorTerm(row) {
+  try {
+    await toggleMajorTerm(row.major_term_uuid)
+    notify.success('ធ្វើបច្ចុប្បន្នភាពស្ថានភាពបានជោគជ័យ')
+    fetchTerm()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to toggle status')
+  }
+}
+
 function openAddMajor(row) {
   formMajorTerm.term_id = row.id
   formMajorTerm.major_id = []
@@ -391,7 +411,6 @@ onMounted(() => {
       :fields="[
         { slot: 'academic', span: 5 },
         { slot: 'generation', span: 5 },
-        { slot: 'active', span: 5 },
         { slot: 'create', span: 5 },
       ]"
       :action-span="3"
@@ -411,14 +430,6 @@ onMounted(() => {
           placeholder="ជំនាន់"
           clearable
           :disabled="!filters.academic_id"
-        />
-      </template>
-      <template #active>
-        <AppSelect
-          v-model="filters.active"
-          :options="statusOptions"
-          placeholder="ស្ថានភាព"
-          clearable
         />
       </template>
       <template #create>
@@ -461,49 +472,78 @@ onMounted(() => {
         </el-text>
       </template>
 
-      <template #expand="{ row }">
-        <div class="p-4 bg-gray-50">
-          <div class="flex items-center justify-between mb-3">
-            <div>
-              <el-text tag="b">ជំនាញ</el-text>
-              <el-text type="info" class="ml-2">
-                {{ row.majors?.length || 0 }} កំពុងបើក
-              </el-text>
-            </div>
+<template #expand="{ row }">
+  <div class="p-4 bg-gray-50">
+    <div class="flex justify-between mb-3">
+      <div>
+        <el-text tag="b">ជំនាញ </el-text>
+        <el-text tag="b" type="info" class="ml-2">
+          {{ filteredMajors(row).length }} / {{ row.majors?.length || 0 }} កំពុងបើក
+        </el-text>
+      </div>
+      <div class="w-80">
+        <AppSelect
+          v-model="expandFilterProgramID[row.id]"
+          :options="programmesOptions"
+          placeholder="ជ្រើសរើសកម្មវិធីសិក្សា"
+          clearable
+          label="កម្មវិធីសិក្សា"
+        />
+      </div>
+    </div>
+
+    <div
+      v-if="filteredMajors(row).length"
+      class="grid grid-cols-1 md:grid-cols-2 gap-3"
+    >
+      <div
+        v-for="major in filteredMajors(row)"
+        :key="major.id"
+        class="rounded-sm border bg-white p-3"
+      >
+        <!-- Major header -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-2">
+            <el-tag size="small">{{ major.code }}</el-tag>
+            <el-text tag="b" class="truncate">{{ major.name }}</el-text>
           </div>
 
-          <div v-if="row.majors?.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div
-              v-for="major in row.majors"
-              :key="major.id"
-              class="rounded-lg border bg-white p-3"
-            >
-              <div class="flex items-center gap-2">
-                <el-tag size="small">
-                  {{ major.code }}
-                </el-tag>
-
-                <el-text tag="b">
-                  {{ major.name }}
-                </el-text>
-              </div>
-
-              <div class="mt-2 text-sm text-gray-500">
-                ដេប៉ាតម៉ង.
-                {{ major.department_name }}
-              </div>
-
-              <div class="text-xs text-gray-400 mt-1">
-                {{ major.faculty_name }}
-                ·
-                {{ major.programme_name }}
-              </div>
-            </div>
-          </div>
-
-          <el-empty v-else description="មិនទាន់មានជំនាញ" :image-size="60" />
+          <el-tooltip content="បិទ/បើក" placement="top">
+            <AppButton
+              :icon="major.major_term_active ? 'CircleClose' : 'CircleCheck'"
+              circle
+              size="small"
+              type="default"
+              plain
+              @click="toggleStatusMajorTerm(major)"
+            />
+          </el-tooltip>
         </div>
-      </template>
+
+        <div class="mt-2 text-sm text-gray-500">
+          ដេប៉ាតឺម៉ង់. {{ major.department_name }}
+        </div>
+
+        <div class="mt-1 text-xs text-gray-400">
+          {{ major.faculty_name }}
+          ·
+          <el-text
+            tag="b"
+            :style="{ color: major.major_term_active ? 'darkcyan' : 'red' }"
+          >
+            {{ major.programme_name }}
+          </el-text>
+        </div>
+      </div>
+    </div>
+
+    <el-empty
+      v-else
+      description="មិនទាន់មានជំនាញ"
+      :image-size="60"
+    />
+  </div>
+</template>
 
       <template #actions="{ row }">
         <el-tooltip content="ថែមទំនាញ" placement="top">
@@ -538,16 +578,26 @@ onMounted(() => {
         submitText="រក្សាទុក"
         resetText="ចាកចេញ"
       >
-        <AppInput v-model="form.code" placeholder="បញ្ចូលលេខកូដ" clearable prop="code" label="លេខកូដ" />
-        <AppInput v-model="form.name" placeholder="បញ្ចូលឈ្មោះ" clearable prop="name" label="ឈ្មោះវគ្គ" />
-        <AppSelect
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <AppInput v-model="form.code" placeholder="បញ្ចូលលេខកូដ" clearable prop="code" label="លេខកូដ" />
+        </el-col>
+        <el-col :span="12">
+          <AppInput v-model="form.name" placeholder="បញ្ចូលឈ្មោះ" clearable prop="name" label="ឈ្មោះវគ្គ" />
+        </el-col>
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="12">
+                  <AppSelect
           v-model="formAcademicId"
           :options="academicOptions"
           placeholder="ជ្រើសរើសឆ្នាំសិក្សា"
           clearable
           label="ឆ្នាំសិក្សា"
         />
-        <AppSelect
+        </el-col>
+        <el-col :span="12">
+                 <AppSelect
           v-model="form.generation_id"
           :options="formGenerationOptions"
           placeholder="ជ្រើសរើសជំនាន់"
@@ -556,6 +606,13 @@ onMounted(() => {
           label="ជំនាន់"
           :disabled="!formAcademicId"
         />
+        </el-col>
+      </el-row>
+        
+        
+      <el-row :gutter="20">
+        <el-col :span="12">
+         
         <AppInput
           v-model="form.start_date"
           type="date"
@@ -564,7 +621,9 @@ onMounted(() => {
           prop="start_date"
           label="ថ្ងៃចាប់ផ្តើម"
         />
-        <AppInput
+        </el-col>
+        <el-col :span="12">
+                <AppInput
           v-model="form.end_date"
           type="date"
           placeholder="ជ្រើសរើសថ្ងៃបញ្ចប់"
@@ -572,6 +631,10 @@ onMounted(() => {
           prop="end_date"
           label="ថ្ងៃបញ្ចប់"
         />
+        </el-col>
+      </el-row>
+
+
         <AppInput
           v-model="form.description"
           placeholder="បញ្ចូលការពិពណ៌នា"
@@ -596,6 +659,8 @@ onMounted(() => {
         submitText="រក្សាទុក"
         resetText="ចាកចេញ"
       >
+      <el-row :gutter="20">
+        <el-col :span="12">
         <AppSelect
           v-model="formProgramID"
           :options="programmesOptions"
@@ -603,6 +668,9 @@ onMounted(() => {
           clearable
           label="កម្មវិធីសិក្សា"
         />
+        </el-col>
+
+        <el-col :span="12">
         <AppSelect
           v-model="formFacultyID"
           :options="formFacultyOptions"
@@ -611,6 +679,10 @@ onMounted(() => {
           label="មហាវិទ្យាល័យ"
           :disabled="!formProgramID"
         />
+        </el-col>
+      </el-row>
+
+
         <AppSelect
           v-model="formDepartmentID"
           :options="formDepartmentOptions"
@@ -627,6 +699,7 @@ onMounted(() => {
           multiple
           prop="major_id"
           label="ជំនាញ"
+          size="large"
           :disabled="!formDepartmentID"
         />
       </AppForm>

@@ -13,29 +13,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type MajorTermController struct {
-	service service.MajorTermService
+type AcademicShiftController struct {
+	service service.AcademicShiftService
 }
 
-func NewMajorTermController() MajorTermController {
-	return MajorTermController{
-		service: service.NewMajorTermService(),
+func NewAcademicShiftController() AcademicShiftController {
+	return AcademicShiftController{
+		service: service.NewAcademicShiftService(),
 	}
 }
 
-func (cr *MajorTermController) GetMajorTerm(c *gin.Context) {
+func (cr *AcademicShiftController) GetAcademicShift(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 
 	filter := map[string]string{
-		"programme_id":  c.Query("programme_id"),
-		"faculty_id":    c.Query("faculty_id"),
-		"department_id": c.Query("department_id"),
-		"academic_id":   c.Query("academic_id"),
-		"generation_id": c.Query("generation_id"),
-		"term_id":       c.Query("term_id"),
+		"academic_id": c.Query("academic_id"),
 	}
 
-	data, meta, err := cr.service.GetMajorTerm(c.Request.Context(), request.Pagination{
+	data, meta, err := cr.service.GetAcademicShift(c.Request.Context(), request.Pagination{
 		Page:     page,
 		PageSize: pageSize,
 	}, filter)
@@ -51,37 +46,50 @@ func (cr *MajorTermController) GetMajorTerm(c *gin.Context) {
 	share.ResponsePagination(c, 200, data, meta)
 }
 
-func (cr *MajorTermController) CreateMajorTerm(c *gin.Context) {
-	var input request.MajorTermReqeustCreate
+func (cr *AcademicShiftController) GetAcademicShiftByAcademic(c *gin.Context) {
+	academicID, ok := utils.GetParamID(c)
+	if !ok {
+		return
+	}
+	data, err := cr.service.GetAcademicShiftByAcademic(c, academicID)
+	if err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
+func (cr *AcademicShiftController) CreateAcademicShift(c *gin.Context) {
+	var input request.AcademicShiftRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := cr.service.CreateMajorTerm(c.Request.Context(), input); err != nil {
+	if err := cr.service.CreateAcademicShift(c.Request.Context(), input); err != nil {
 		share.RespondServiceError(c, err)
 		return
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
 }
 
-func (cr *MajorTermController) UpdateMajorTerm(c *gin.Context) {
+func (cr *AcademicShiftController) UpdateAcademicShift(c *gin.Context) {
 	id, ok := utils.GetParamUUID(c)
 	if !ok {
 		return
 	}
-	var input request.MajorTermReqeustUpdate
+	var input request.AcademicShiftRequestUpdate
 	if err := c.ShouldBindJSON(&input); err != nil {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := cr.service.UpdateMajorTerm(c.Request.Context(), id, input); err != nil {
+	if err := cr.service.UpdateAcademicShift(c.Request.Context(), id, input); err != nil {
 		share.RespondServiceError(c, err)
 		return
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Updated)
 }
 
-func (cr *MajorTermController) Toggle(c *gin.Context) {
+func (cr *AcademicShiftController) Toggle(c *gin.Context) {
 	id, ok := utils.GetParamUUID(c)
 	if !ok {
 		share.ResponseError(c, http.StatusBadRequest, "Invalid ID")

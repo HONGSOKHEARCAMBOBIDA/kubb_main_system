@@ -28,6 +28,7 @@ func SetupRoutes(r *gin.Engine) {
 	majorcontroller := controller.NewMajorController()
 	subjectcontroller := controller.NewSubjectController()
 	majortermcontroller := controller.NewMajorTermController()
+	academicshiftcontroller := controller.NewAcademicShiftController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -127,6 +128,14 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.MajorTermCreate, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.CreateMajorTerm)
 		auth.PUT(route.MajorTermUpdate, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.UpdateMajorTerm)
 		auth.GET(route.MajorTermView, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.GetMajorTerm)
+		auth.PUT(route.MajorTermToggle, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.Toggle)
+
+		// AcademicShift
+		auth.GET(route.AcademicShiftView, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.GetAcademicShift)
+		auth.GET(route.AcademicShiftViewByAcademic, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.GetAcademicShiftByAcademic)
+		auth.POST(route.AcademicShiftCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.CreateAcademicShift)
+		auth.PUT(route.AcademicShiftUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.UpdateAcademicShift)
+		auth.PUT(route.AcademicShiftToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.Toggle)
 
 	}
 }

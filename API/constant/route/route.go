@@ -103,4 +103,12 @@ const (
 	MajorTermView   = "major.term.view"
 	MajorTermCreate = "major.term.create"
 	MajorTermUpdate = "major.term.update/:uuid"
+	MajorTermToggle = "major.term.toggle/:uuid"
+
+	// Academicshift
+	AcademicShiftView           = "AcademicShift.view"
+	AcademicShiftViewByAcademic = "AcademicShift.view.academic/:id"
+	AcademicShiftCreate         = "AcademicShift.create"
+	AcademicShiftUpdate         = "AcademicShift.update/:uuid"
+	AcademicShiftToggle         = "AcademicShift.toggle/:uuid"
 )

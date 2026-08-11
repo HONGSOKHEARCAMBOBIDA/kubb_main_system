@@ -19,6 +19,7 @@ type MajorTermService interface {
 	CreateMajorTerm(ctx context.Context, input request.MajorTermReqeustCreate) error
 	GetMajorTerm(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.MajorTermResponse, *model.PaginationMetadata, error)
 	UpdateMajorTerm(ctx context.Context, id string, input request.MajorTermReqeustUpdate) error
+	Toggle(ctx context.Context, id string) error
 }
 
 type majortermservice struct {
@@ -50,6 +51,7 @@ func (s *majortermservice) CreateMajorTerm(ctx context.Context, input request.Ma
 			},
 			MajorID: majorID,
 			TermID:  input.TermID,
+			Active:  true,
 		})
 	}
 
@@ -181,4 +183,8 @@ func (s *majortermservice) UpdateMajorTerm(ctx context.Context, id string, input
 	}
 
 	return nil
+}
+
+func (s *majortermservice) Toggle(ctx context.Context, id string) error {
+	return utils.ToggleStatus[model.MajorTerm](ctx, s.db, id)
 }

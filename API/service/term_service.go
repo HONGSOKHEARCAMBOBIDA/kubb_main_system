@@ -131,7 +131,9 @@ func (s *termservice) GetTerm(
 	}
 
 	type majorRow struct {
-		TermID int `gorm:"column:term_id"`
+		MajorTermUUID   string `gorm:"column:major_term_uuid"`
+		MajorTermActive bool   `gorm:"column:major_term_active"`
+		TermID          int    `gorm:"column:term_id"`
 
 		MajorID          int                    `gorm:"column:major_id"`
 		MajorUUID        string                 `gorm:"column:major_uuid"`
@@ -165,7 +167,8 @@ func (s *termservice) GetTerm(
 		Where("mt.term_id IN ?", termIDs).
 		Select(`
 			mt.term_id AS term_id,
-
+			mt.uuid AS major_term_uuid,
+			mt.active AS major_term_active,
 			m.id AS major_id,
 			m.uuid AS major_uuid,
 			m.code AS major_code,
@@ -196,6 +199,8 @@ func (s *termservice) GetTerm(
 	for _, row := range majorRows {
 
 		major := response.MajorResponse{
+			MajorTermUUID:    row.MajorTermUUID,
+			MajorTermActive:  row.MajorTermActive,
 			ID:               row.MajorID,
 			UUID:             row.MajorUUID,
 			Name:             row.MajorName,

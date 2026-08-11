@@ -6,6 +6,8 @@ import (
 )
 
 type MajorResponse struct {
+	MajorTermUUID    string                 `json:"major_term_uuid"`
+	MajorTermActive  bool                   `json:"major_term_active"`
 	ID               int                    `json:"id"`
 	UUID             string                 `json:"uuid"`
 	Name             string                 `json:"name"`
