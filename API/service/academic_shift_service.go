@@ -91,12 +91,12 @@ func (s *academicshiftservice) GetAcademicShiftByAcademic(ctx context.Context, a
 	var data []response.AcademicShiftResponseByAcademic
 
 	err := s.db.WithContext(ctx).
-		Table("academic_shifts as").
+		Table("academic_shifts ash").
 		Select(`
-			as.id AS id,
-			as.name AS name
+			ash.id AS id,
+			ash.name AS name
 		`).
-		Where("as.academic_id = ?", academicID).
+		Where("ash.academic_id = ?", academicID).
 		Find(&data).Error
 
 	if err != nil {

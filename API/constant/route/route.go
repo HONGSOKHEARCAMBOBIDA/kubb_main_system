@@ -111,4 +111,11 @@ const (
 	AcademicShiftCreate         = "AcademicShift.create"
 	AcademicShiftUpdate         = "AcademicShift.update/:uuid"
 	AcademicShiftToggle         = "AcademicShift.toggle/:uuid"
+
+	// AcademicSection
+	AcademicSectionView           = "AcademicSection.view"
+	AcademicSectionViewByAcademic = "AcademicSection.view.academic/:id"
+	AcademicSectionCreate         = "AcademicSection.create"
+	AcademicSectionUpdate         = "AcademicSection.update/:uuid"
+	AcademicSectionToggle         = "AcademicSection.toggle/:uuid"
 )

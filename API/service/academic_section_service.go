@@ -122,10 +122,12 @@ func (s *academicsectionservice) GetAcademicSection(ctx context.Context, pf requ
 		m.name AS major_name,
 		p.id AS programme_id,
 		p.name AS programme_name,
+		d.id AS department_id,
+		f.id AS faculty_id,
 		asf.id AS shift_id,
 		asf.name AS shift_name,
 		a.id AS academic_id,
-		a.name AS academic_name
+		a.code AS academic_code
 	`)
 
 	if err := dataQuery.Offset(offset).Limit(pf.PageSize).Scan(&data).Error; err != nil {
@@ -136,7 +138,7 @@ func (s *academicsectionservice) GetAcademicSection(ctx context.Context, pf requ
 }
 
 func (s *academicsectionservice) Toggle(ctx context.Context, id string) error {
-	return utils.ToggleStatus[model.AcademicShift](ctx, s.db, id)
+	return utils.ToggleStatus[model.AcademicSection](ctx, s.db, id)
 }
 
 func (s *academicsectionservice) UpdateAcademicSection(ctx context.Context, id string, input request.AcademicSectionRequestUpdate) error {
@@ -160,7 +162,7 @@ func (s *academicsectionservice) UpdateAcademicSection(ctx context.Context, id s
 		if *input.ShiftID == 0 {
 			return apperror.New(apperror.CodeInvalidInput, "major_id cannot be zero", nil)
 		}
-		updates["shift_id"] = *input.MajorID
+		updates["shift_id"] = *input.ShiftID
 	}
 
 	if input.Name != nil {

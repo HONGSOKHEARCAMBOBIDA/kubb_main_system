@@ -41,4 +41,6 @@ const (
 	CRUDMAJORTERM = "crud.major.term"
 
 	CRUDACADEMICSHIFT = "crud.academic.shift"
+
+	CRUDACADEMICSECTION = "crud.academic.section"
 )

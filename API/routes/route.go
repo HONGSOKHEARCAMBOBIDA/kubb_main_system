@@ -29,6 +29,7 @@ func SetupRoutes(r *gin.Engine) {
 	subjectcontroller := controller.NewSubjectController()
 	majortermcontroller := controller.NewMajorTermController()
 	academicshiftcontroller := controller.NewAcademicShiftController()
+	academicsectioncontroller := controller.NewAcademicSectionController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -136,6 +137,12 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AcademicShiftCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.CreateAcademicShift)
 		auth.PUT(route.AcademicShiftUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.UpdateAcademicShift)
 		auth.PUT(route.AcademicShiftToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICSHIFT), academicshiftcontroller.Toggle)
+
+		// AcademicSection
+		auth.GET(route.AcademicSectionView, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.GetAcademicSection)
+		auth.POST(route.AcademicSectionCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.CreateAcademicSection)
+		auth.PUT(route.AcademicSectionUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.UpdateAcademicSection)
+		auth.PUT(route.AcademicSectionToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.Toggle)
 
 	}
 }

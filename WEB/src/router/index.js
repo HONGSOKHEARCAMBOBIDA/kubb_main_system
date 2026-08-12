@@ -99,6 +99,12 @@ const routes = [
         meta: { title: 'វេនសិក្សា', icone: 'Document' },
       },
       {
+        path: 'academicsection',
+        name: 'ក្រុម',
+        component: () => import('@/views/academicsection/academicsection.vue'),
+        meta: { title: 'ក្រុម', icone: 'Document' },
+      },
+      {
         path: 'term',
         name: 'វគ្គ',
         component: () => import('@/views/term/term.vue'),
