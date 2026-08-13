@@ -31,6 +31,7 @@ func SetupRoutes(r *gin.Engine) {
 	academicshiftcontroller := controller.NewAcademicShiftController()
 	academicsectioncontroller := controller.NewAcademicSectionController()
 	academicdegreecontroller := controller.NewAcademicDegreeController()
+	feediscountgroup := controller.NewFeeDiscountGroupController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -150,6 +151,12 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AcademicDegreeCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.CreateAcademicDegree)
 		auth.PUT(route.AcademicDegreeUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.UpdateAcademicDegree)
 		auth.PUT(route.AcademicDegreeToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.Toggle)
+
+		// FeediscountGroup
+		auth.GET(route.FeediscountGroupView, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.GetFeeDiscountGroup)
+		auth.POST(route.FeediscountGroupCreate, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.CreateFeeDiscountGroup)
+		auth.PUT(route.FeediscountGroupUpdate, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.UpdateFeeDiscountGroup)
+		auth.PUT(route.FeediscountGroupToggle, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.Toggle)
 
 	}
 }

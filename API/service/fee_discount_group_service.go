@@ -122,3 +122,108 @@ func (s *feediscountgroupservice) CreateFeeDiscountGroup(ctx context.Context, in
 
 	return nil
 }
+
+func (s *feediscountgroupservice) UpdateFeeDiscountGroup(ctx context.Context, id string, input request.FeeDiscountGroupRequestUpdate) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return apperror.New(apperror.CodeInvalidInput, "id is required", nil)
+	}
+
+	if input.Code != nil {
+		trimmed := strings.TrimSpace(*input.Code)
+		input.Code = &trimmed
+	}
+
+	if input.Name != nil {
+		trimmed := strings.TrimSpace(*input.Name)
+		input.Name = &trimmed
+	}
+
+	if input.Description != nil {
+		trimmed := strings.TrimSpace(*input.Description)
+		input.Description = &trimmed
+	}
+
+	if err := validatefeediscountgroup.Struct(input); err != nil {
+		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
+	}
+
+	updates := map[string]interface{}{}
+
+	if input.Code != nil {
+		if *input.Code == "" {
+			return apperror.New(apperror.CodeInvalidInput, "code is required", nil)
+		}
+		updates["code"] = *input.Code
+	}
+
+	if input.Name != nil {
+		if *input.Name == "" {
+			return apperror.New(apperror.CodeInvalidInput, "name is required", nil)
+		}
+		updates["name"] = *input.Name
+	}
+
+	if input.DiscountType != nil {
+		switch *input.DiscountType {
+		case model.DiscountPercentage, model.DiscountAmount:
+			updates["discount_type"] = *input.DiscountType
+		default:
+			return apperror.New(apperror.CodeInvalidInput, "invalid discount_type", nil)
+		}
+	}
+
+	// Guard against inconsistent state: percentage + amount set together
+	// in a way that contradicts the (new or unspecified) discount type.
+	if input.DiscountType != nil {
+		switch *input.DiscountType {
+		case model.DiscountPercentage:
+			if input.DiscountAmount != nil && *input.DiscountAmount != 0 {
+				return apperror.New(apperror.CodeInvalidInput,
+					"discount_amount must not be set when discount_type is percentage", nil)
+			}
+		case model.DiscountAmount:
+			if input.DiscountPercentage != nil && *input.DiscountPercentage != 0 {
+				return apperror.New(apperror.CodeInvalidInput,
+					"discount_percentage must not be set when discount_type is amount", nil)
+			}
+		}
+	}
+
+	if input.DiscountPercentage != nil {
+		updates["discount_percentage"] = *input.DiscountPercentage
+	}
+
+	if input.DiscountAmount != nil {
+		updates["discount_amount"] = *input.DiscountAmount
+	}
+
+	if input.Description != nil {
+		updates["description"] = *input.Description
+	}
+
+	if len(updates) == 0 {
+		return apperror.New(apperror.CodeInvalidInput, "no fields provided to update", nil)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	result := s.db.WithContext(ctx).
+		Model(&model.FeeDiscountGroup{}).
+		Where("uuid = ?", id).
+		Updates(updates)
+
+	if result.Error != nil {
+		return helper.MapAcademicError(result.Error, "UPDATE")
+	}
+	if result.RowsAffected == 0 {
+		return apperror.New(apperror.CodeNotFound, "fee discount group not found", nil)
+	}
+
+	return nil
+}
+
+func (s *feediscountgroupservice) Toggle(ctx context.Context, id string) error {
+	return utils.ToggleStatus[model.FeeDiscountGroup](ctx, s.db, id)
+}

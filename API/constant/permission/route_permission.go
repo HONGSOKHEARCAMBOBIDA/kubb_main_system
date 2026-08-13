@@ -45,4 +45,6 @@ const (
 	CRUDACADEMICSECTION = "crud.academic.section"
 
 	CRUDACADEMICDEGREE = "crud.academic.degree"
+
+	CRUDFEEDISCOUNTGROUP = "crud.fee.discount.group"
 )

@@ -124,4 +124,10 @@ const (
 	AcademicDegreeCreate = "AcademicDegree.create"
 	AcademicDegreeUpdate = "AcademicDegree.update/:uuid"
 	AcademicDegreeToggle = "AcademicDegree.toggle/:uuid"
+
+	// FeediscountGroup
+	FeediscountGroupView   = "FeediscountGroup.view"
+	FeediscountGroupCreate = "FeediscountGroup.create"
+	FeediscountGroupUpdate = "FeediscountGroup.update/:uuid"
+	FeediscountGroupToggle = "FeediscountGroup.toggle/:uuid"
 )
