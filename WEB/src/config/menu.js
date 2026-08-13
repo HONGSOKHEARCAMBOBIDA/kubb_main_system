@@ -34,6 +34,7 @@ export const menuConfig = [
       { title: 'មហាវិទ្យាល័យ', icon: 'Document', path: '/faculty' },
       { title: 'ដេប៉ាតេម៉ង', icon: 'Document', path: '/department' },
       { title: 'ជំនាញ', icon: 'Document', path: '/major' },
+      { title: 'ថ្លៃសិក្សា', icon: 'Document', path: '/academicdegree' },
       { title: 'មុខវិជ្ជា', icon: 'Document', path: '/subject' },
       { title: 'សាលា', icon: 'Document', path: '/school' },
       { title: 'សាខាសាលា', icon: 'Document', path: '/campuse' },

@@ -49,7 +49,7 @@ func (s *academicdegreeservice) GetAcademicDegree(ctx context.Context, pf reques
 			Joins("LEFT JOIN departments d ON d.id = m.department_id").
 			Joins("LEFT JOIN faculties f ON f.id = d.faculty_id").
 			Joins("LEFT JOIN programmes p ON p.id = f.programme_id").
-			Joins("LEFT JOIN academics a ON a.id = asf.academic_id")
+			Joins("LEFT JOIN academics a ON a.id = ad.academic_id")
 	}
 
 	applyFilters := func(tx *gorm.DB) *gorm.DB {
@@ -138,4 +138,79 @@ func (s *academicdegreeservice) CreateAcademicDegree(ctx context.Context, input 
 		return helper.MapAcademicError(err, "CREATE")
 	}
 	return nil
+}
+
+func (s *academicdegreeservice) UpdateAcademicDegree(ctx context.Context, id string, input request.AcademicDegreeRequestUpdate) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return apperror.New(apperror.CodeInvalidInput, "academic degree id is required", nil)
+	}
+
+	if err := validate.Struct(input); err != nil {
+		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
+	}
+
+	updates := map[string]interface{}{}
+
+	if input.AcademicID != nil {
+		updates["academic_id"] = *input.AcademicID
+	}
+
+	if input.MajorID != nil {
+		updates["major_id"] = *input.MajorID
+	}
+
+	if input.Name != nil {
+		name := strings.TrimSpace(*input.Name)
+		if name == "" {
+			return apperror.New(apperror.CodeInvalidInput, "academic degree name cannot be empty", nil)
+		}
+		updates["name"] = name
+	}
+
+	if input.Description != nil {
+		updates["description"] = strings.TrimSpace(*input.Description)
+	}
+
+	if input.MonthlyFee != nil {
+		updates["monthly_fee"] = *input.MonthlyFee
+	}
+
+	if input.QuarterlyFee != nil {
+		updates["quarterly_fee"] = *input.QuarterlyFee
+	}
+
+	if input.SemesterlyFee != nil {
+		updates["semesterly_fee"] = *input.SemesterlyFee
+	}
+
+	if input.YearlyFee != nil {
+		updates["yearly_fee"] = *input.YearlyFee
+	}
+
+	if len(updates) == 0 {
+		return apperror.New(apperror.CodeInvalidInput, "no fields provided to update", nil)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	result := s.db.WithContext(ctx).
+		Model(&model.AcademicDegree{}).
+		Where("uuid = ?", id).
+		Updates(updates)
+
+	if result.Error != nil {
+		return helper.MapAcademicError(result.Error, "update")
+	}
+
+	if result.RowsAffected == 0 {
+		return apperror.NotFound("academic degree not found", nil)
+	}
+
+	return nil
+}
+
+func (s *academicdegreeservice) Toggle(ctx context.Context, id string) error {
+	return utils.ToggleStatus[model.AcademicDegree](ctx, s.db, id)
 }

@@ -129,6 +129,12 @@ const routes = [
         meta: { title: 'ជំនាញ', icone: 'Document' },
       },
       {
+        path: 'academicdegree',
+        name: 'ថ្លៃសិក្សា',
+        component: () => import('@/views/academicdegree/academicdegree.vue'),
+        meta: { title: 'ថ្លៃសិក្សា', icone: 'Document' },
+      },
+      {
         path: 'subject',
         name: 'មុខវិជ្ជា',
         component: () => import('@/views/subject/subject.vue'),

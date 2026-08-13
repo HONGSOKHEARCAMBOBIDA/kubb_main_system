@@ -118,4 +118,10 @@ const (
 	AcademicSectionCreate         = "AcademicSection.create"
 	AcademicSectionUpdate         = "AcademicSection.update/:uuid"
 	AcademicSectionToggle         = "AcademicSection.toggle/:uuid"
+
+	// AcademicDegree
+	AcademicDegreeView   = "AcademicDegree.view"
+	AcademicDegreeCreate = "AcademicDegree.create"
+	AcademicDegreeUpdate = "AcademicDegree.update/:uuid"
+	AcademicDegreeToggle = "AcademicDegree.toggle/:uuid"
 )

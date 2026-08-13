@@ -30,6 +30,7 @@ func SetupRoutes(r *gin.Engine) {
 	majortermcontroller := controller.NewMajorTermController()
 	academicshiftcontroller := controller.NewAcademicShiftController()
 	academicsectioncontroller := controller.NewAcademicSectionController()
+	academicdegreecontroller := controller.NewAcademicDegreeController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -143,6 +144,12 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AcademicSectionCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.CreateAcademicSection)
 		auth.PUT(route.AcademicSectionUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.UpdateAcademicSection)
 		auth.PUT(route.AcademicSectionToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.Toggle)
+
+		// AcademicDegree
+		auth.GET(route.AcademicDegreeView, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.GetAcademicDegree)
+		auth.POST(route.AcademicDegreeCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.CreateAcademicDegree)
+		auth.PUT(route.AcademicDegreeUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.UpdateAcademicDegree)
+		auth.PUT(route.AcademicDegreeToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.Toggle)
 
 	}
 }

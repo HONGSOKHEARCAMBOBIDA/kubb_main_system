@@ -83,4 +83,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.academic.section",
 		Group: "academic.section",
 	},
+	{
+		Name:  "crud.academic.degree",
+		Group: "academic.degree",
+	},
 }

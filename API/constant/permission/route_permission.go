@@ -43,4 +43,6 @@ const (
 	CRUDACADEMICSHIFT = "crud.academic.shift"
 
 	CRUDACADEMICSECTION = "crud.academic.section"
+
+	CRUDACADEMICDEGREE = "crud.academic.degree"
 )
