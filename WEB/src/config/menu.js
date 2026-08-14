@@ -42,6 +42,7 @@ export const menuConfig = [
       { title: 'ជាន់', icon: 'Document', path: '/floor' },
       { title: 'ការិយាល័យ', icon: 'Document', path: '/school_office' },
       { title: 'បន្ទប់', icon: 'Document', path: '/school_room' },
+      { title: 'ប្រភេទនិស្សិត', icon: 'Document', path: '/feediscountgroup' },
     ],
   },
 ]

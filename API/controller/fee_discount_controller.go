@@ -51,6 +51,8 @@ func (cr *FeeDiscountGroupController) CreateFeeDiscountGroup(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	// fmt.Printf("CreateFeeDiscountGroup request: %+v\n", input)
+
 	if err := cr.service.CreateFeeDiscountGroup(c.Request.Context(), input); err != nil {
 		share.RespondServiceError(c, err)
 		return

@@ -176,6 +176,12 @@ const routes = [
         component: () => import('@/views/school_room/school_room.vue'),
         meta: { title: 'បន្ទប់', icone: 'Document' },
       },
+      {
+        path: 'feediscountgroup',
+        name: 'ប្រភេទនិស្សិត',
+        component: () => import('@/views/feediscountgroup/feediscountgroup.vue'),
+        meta: { title: 'ប្រភេទនិស្សិត', icone: 'Document' },
+      },
     ],
   },
   {
