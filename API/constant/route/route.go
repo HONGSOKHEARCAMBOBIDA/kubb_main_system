@@ -130,4 +130,7 @@ const (
 	FeediscountGroupCreate = "FeediscountGroup.create"
 	FeediscountGroupUpdate = "FeediscountGroup.update/:uuid"
 	FeediscountGroupToggle = "FeediscountGroup.toggle/:uuid"
+
+	// Documenttype
+	DocumentTypeView = "document.type.viewj"
 )

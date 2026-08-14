@@ -47,4 +47,6 @@ const (
 	CRUDACADEMICDEGREE = "crud.academic.degree"
 
 	CRUDFEEDISCOUNTGROUP = "crud.fee.discount.group"
+
+	CRUDDOCUMENTTYPE = "crud.document.type"
 )

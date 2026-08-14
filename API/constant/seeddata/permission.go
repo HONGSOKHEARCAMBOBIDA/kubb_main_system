@@ -91,4 +91,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.fee.discount.group",
 		Group: "fee.discount.group",
 	},
+	{
+		Name:  "crud.document.type",
+		Group: "document.type",
+	},
 }

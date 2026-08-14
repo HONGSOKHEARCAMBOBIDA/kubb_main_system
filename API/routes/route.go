@@ -32,6 +32,7 @@ func SetupRoutes(r *gin.Engine) {
 	academicsectioncontroller := controller.NewAcademicSectionController()
 	academicdegreecontroller := controller.NewAcademicDegreeController()
 	feediscountgroup := controller.NewFeeDiscountGroupController()
+	documenttypecontroller := controller.NewDocumentTypeController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -157,6 +158,9 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.FeediscountGroupCreate, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.CreateFeeDiscountGroup)
 		auth.PUT(route.FeediscountGroupUpdate, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.UpdateFeeDiscountGroup)
 		auth.PUT(route.FeediscountGroupToggle, middleware.PermissionMiddleware(permission.CRUDFEEDISCOUNTGROUP), feediscountgroup.Toggle)
+
+		// DocumentType
+		auth.GET(route.DocumentTypeView, middleware.PermissionMiddleware(permission.CRUDDOCUMENTTYPE), documenttypecontroller.GetDocumentType)
 
 	}
 }
