@@ -53,4 +53,6 @@ const (
 	CRUDLOCATION = "crud.location"
 
 	CRUDACADEMICSTREAM = "crud.academic.stream"
+
+	CRUDSTUDENT = "crud.student"
 )

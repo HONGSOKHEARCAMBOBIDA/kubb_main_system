@@ -103,4 +103,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.academic.stream",
 		Group: "academic.stream",
 	},
+	{
+		Name:  "crud.student",
+		Group: "student",
+	},
 }

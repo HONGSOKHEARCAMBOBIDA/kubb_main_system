@@ -142,4 +142,7 @@ const (
 
 	// Academic Stream
 	AcademicStreamView = "academic.stream.view"
+
+	// Student
+	StudentCreate = "student.create"
 )

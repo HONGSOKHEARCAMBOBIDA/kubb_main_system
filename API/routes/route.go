@@ -35,6 +35,7 @@ func SetupRoutes(r *gin.Engine) {
 	documenttypecontroller := controller.NewDocumentTypeController()
 	locationcontroller := controller.NewLocationController()
 	academicstreamcontroller := controller.NewAcademicStreamController()
+	studentcontroller := controller.NewStudentController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -172,5 +173,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// AcademicStream
 		auth.GET(route.AcademicStreamView, middleware.PermissionMiddleware(permission.CRUDACADEMICSTREAM), academicstreamcontroller.GetAcademicStream)
+
+		// Student
+		auth.POST(route.StudentCreate, middleware.PermissionMiddleware(permission.CRUDSTUDENT), studentcontroller.CreateStudent)
 	}
 }

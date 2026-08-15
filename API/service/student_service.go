@@ -6,6 +6,8 @@ import (
 
 	"mysql/config"
 	"mysql/constant/apperror"
+	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/utils"
@@ -17,7 +19,7 @@ import (
 var studentValidator = validator.New()
 
 type StudentService interface {
-	CreateStudentService(ctx context.Context, input request.StudentRequestCreate) error
+	CreateStudent(ctx context.Context, input request.StudentRequestCreate) error
 }
 
 type studentService struct {
@@ -30,12 +32,13 @@ func NewStudentService() StudentService {
 	}
 }
 
-func (s *studentService) CreateStudentService(ctx context.Context, input request.StudentRequestCreate) error {
+func (s *studentService) CreateStudent(ctx context.Context, input request.StudentRequestCreate) error {
 	input.NameKh = strings.TrimSpace(input.NameKh)
 	input.NameEn = strings.TrimSpace(input.NameEn)
 	input.Phone = strings.TrimSpace(input.Phone)
 	input.Nationality = strings.TrimSpace(input.Nationality)
-
+	username := strings.ToLower(input.NameEn)
+	email := helper.GenerateEmail(username, 168)
 	if err := studentValidator.Struct(input); err != nil {
 		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
 	}
@@ -45,15 +48,20 @@ func (s *studentService) CreateStudentService(ctx context.Context, input request
 
 	student := model.Student{
 		GroupID:          input.GroupID,
+		UserName:         username,
+		Email:            email,
+		Password:         utils.HasPassword("KUBB"),
 		NameKh:           input.NameKh,
 		NameEn:           input.NameEn,
 		DateOfBirth:      input.DateOfBirth,
 		Gender:           input.Gender,
 		Nationality:      input.Nationality,
 		Phone:            input.Phone,
+		Status:           share.Created,
 		VillageID:        input.VillageID,
 		Occupation:       input.Occupation,
 		AcademicStreamID: input.AcademicStreamID,
+		TelegramUsername: nil,
 	}
 
 	family := model.StudentFamily{
@@ -76,6 +84,12 @@ func (s *studentService) CreateStudentService(ctx context.Context, input request
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&student).Error; err != nil {
 			return apperror.New(apperror.CodeInternal, "failed to create student", nil)
+		}
+
+		student.Code = helper.GenerateCode("STU", uint(student.ID))
+
+		if err := tx.Save(&student).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "faild to update code", nil)
 		}
 
 		family.StudentID = student.ID

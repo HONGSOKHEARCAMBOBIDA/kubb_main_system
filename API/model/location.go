@@ -28,3 +28,7 @@ type Village struct {
 	NameEn     string `json:"name_en" gorm:"column:name_en"`
 	CommunceID int    `json:"commune_id" gorm:"column:commune_id"`
 }
+
+func (Communce) TableName() string {
+	return "communes"
+}

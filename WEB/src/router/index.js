@@ -182,6 +182,12 @@ const routes = [
         component: () => import('@/views/feediscountgroup/feediscountgroup.vue'),
         meta: { title: 'ប្រភេទនិស្សិត', icone: 'Document' },
       },
+      {
+        path: 'student',
+        name: 'និស្សិត',
+        component: () => import('@/views/student/student.vue'),
+        meta: { title: 'និស្សិត', icone: 'Document' },
+      },
     ],
   },
   {
