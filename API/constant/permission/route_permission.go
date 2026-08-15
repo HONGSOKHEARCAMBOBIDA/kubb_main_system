@@ -49,4 +49,8 @@ const (
 	CRUDFEEDISCOUNTGROUP = "crud.fee.discount.group"
 
 	CRUDDOCUMENTTYPE = "crud.document.type"
+
+	CRUDLOCATION = "crud.location"
+
+	CRUDACADEMICSTREAM = "crud.academic.stream"
 )

@@ -33,6 +33,8 @@ func SetupRoutes(r *gin.Engine) {
 	academicdegreecontroller := controller.NewAcademicDegreeController()
 	feediscountgroup := controller.NewFeeDiscountGroupController()
 	documenttypecontroller := controller.NewDocumentTypeController()
+	locationcontroller := controller.NewLocationController()
+	academicstreamcontroller := controller.NewAcademicStreamController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -162,5 +164,13 @@ func SetupRoutes(r *gin.Engine) {
 		// DocumentType
 		auth.GET(route.DocumentTypeView, middleware.PermissionMiddleware(permission.CRUDDOCUMENTTYPE), documenttypecontroller.GetDocumentType)
 
+		// Location
+		auth.GET(route.ProvinceView, middleware.PermissionMiddleware(permission.CRUDLOCATION), locationcontroller.GetProvince)
+		auth.GET(route.DistrictView, middleware.PermissionMiddleware(permission.CRUDLOCATION), locationcontroller.GetDistrict)
+		auth.GET(route.CommunceView, middleware.PermissionMiddleware(permission.CRUDLOCATION), locationcontroller.GetCommunce)
+		auth.GET(route.VillageView, middleware.PermissionMiddleware(permission.CRUDLOCATION), locationcontroller.GetVillage)
+
+		// AcademicStream
+		auth.GET(route.AcademicStreamView, middleware.PermissionMiddleware(permission.CRUDACADEMICSTREAM), academicstreamcontroller.GetAcademicStream)
 	}
 }

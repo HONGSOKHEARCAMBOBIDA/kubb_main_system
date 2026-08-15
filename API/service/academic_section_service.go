@@ -54,6 +54,7 @@ func (s *academicsectionservice) CreateAcademicSection(ctx context.Context, inpu
 		ShiftID:     input.ShiftID,
 		Name:        name,
 		Description: input.Description,
+		Type:        input.Type,
 		Active:      true,
 	}
 	if err := s.db.WithContext(ctx).Create(&newdata).Error; err != nil {
@@ -116,6 +117,7 @@ func (s *academicsectionservice) GetAcademicSection(ctx context.Context, pf requ
 		ash.uuid AS uuid,
 		ash.name AS name,
 		ash.description AS description,
+		ash.type AS type,
 		ash.active AS active,
 		m.id AS major_id,
 		m.code AS major_code,
@@ -175,6 +177,10 @@ func (s *academicsectionservice) UpdateAcademicSection(ctx context.Context, id s
 
 	if input.Description != nil {
 		updates["description"] = strings.TrimSpace(*input.Description)
+	}
+
+	if input.Type != nil {
+		updates["type"] = *input.Type
 	}
 
 	if len(updates) == 0 {

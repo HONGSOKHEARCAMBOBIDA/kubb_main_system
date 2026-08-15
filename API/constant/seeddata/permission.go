@@ -95,4 +95,12 @@ var Permissions = []model.Permission{
 		Name:  "crud.document.type",
 		Group: "document.type",
 	},
+	{
+		Name:  "crud.location",
+		Group: "location",
+	},
+	{
+		Name:  "crud.academic.stream",
+		Group: "academic.stream",
+	},
 }

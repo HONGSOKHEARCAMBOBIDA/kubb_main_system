@@ -5,6 +5,7 @@ type AcademicSectionRequestCreate struct {
 	ShiftID     int    `json:"shift_id" gorm:"column:shift_id"`
 	Name        string `json:"name" gorm:"column:name"`
 	Description string `json:"description" gorm:"column:description"`
+	Type        int    `json:"type" gorm:"column:type"`
 }
 
 type AcademicSectionRequestUpdate struct {
@@ -12,4 +13,5 @@ type AcademicSectionRequestUpdate struct {
 	ShiftID     *int    `json:"shift_id" gorm:"column:shift_id"`
 	Name        *string `json:"name" gorm:"column:name"`
 	Description *string `json:"description" gorm:"column:description"`
+	Type        *int    `json:"type" gorm:"column:type"`
 }

@@ -29,12 +29,19 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 
+const typeOptions = [
+  { label: 'សិក្សាផ្ទាល់', value: 1 },
+  { label: 'សិក្សាអនឡាញ', value: 2 },
+]
+
+
 const columns = [
   { prop: 'name', label: 'ឈ្មោះក្រុម', minwidth: 140, slot: 'name' },
   { prop: 'shift_name', label: 'វេន', minwidth: 100 },
   { prop: 'major_name', label: 'ជំនាញ', minwidth: 160, slot: 'major_name' },
   { prop: 'programme_name', label: 'កម្រិត', minwidth: 120 },
   { slot: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 120 },
+  { slot: 'type', label: 'ប្រភេទថ្នាក់', minwidth: 120 },
   { prop: 'active', label: 'ស្ថានភាព', minwidth: 100, slot: 'isActive' },
 ]
 
@@ -66,6 +73,7 @@ const form = reactive({
   shift_id: null,
   name: '',
   description: '',
+  type: null
 })
 
 const formProgramID = ref(null)
@@ -182,6 +190,7 @@ function resetForm() {
   form.shift_id = null
   form.name = ''
   form.description = ''
+  form.type = null
   formProgramID.value = null
   formFacultyID.value = null
   formDepartmentID.value = null
@@ -208,7 +217,7 @@ async function openEdit(row) {
   try {
     form.name = row.name
     form.description = row.description
-
+    form.type = row.type
     // Academic -> Shift
     formAcademicID.value = row.academic_id ?? null
     formShiftOptions.value = await loadShiftOption(formAcademicID.value)
@@ -260,6 +269,7 @@ async function handleSubmit() {
       shift_id: form.shift_id,
       name: form.name,
       description: form.description,
+      type: form.type
     }
     if (isEditing.value) {
       await updateAcademicSection(editingUuid.value, payload)
@@ -480,6 +490,11 @@ onMounted(() => {
           {{ row.major_code }} - {{ row.major_name }}
         </el-text>
       </template>
+      <template #type="{row}">
+<el-text tag="b" style="color: crimson">
+          {{ typeOptions.find(item => item.value === row.type)?.label }}
+        </el-text>
+      </template>
 
       <template #isActive="{ row }">
         <el-tag :type="row.active ? 'success' : 'danger'">
@@ -605,6 +620,12 @@ onMounted(() => {
           label="ការពិពណ៌នា"
           type="textarea"
         />
+        <AppSelect
+        v-model="form.type"
+        :options="typeOptions"
+        placeholder="ប្រភេទថ្នាក់"
+        clearable
+      />
       </AppForm>
     </AppDialog>
   </div>

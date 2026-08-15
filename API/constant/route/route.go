@@ -132,5 +132,14 @@ const (
 	FeediscountGroupToggle = "FeediscountGroup.toggle/:uuid"
 
 	// Documenttype
-	DocumentTypeView = "document.type.viewj"
+	DocumentTypeView = "document.type.view"
+
+	// Location
+	ProvinceView = "province.view"
+	DistrictView = "district.view/:id"
+	CommunceView = "communce.view/:id"
+	VillageView  = "village.view/:id"
+
+	// Academic Stream
+	AcademicStreamView = "academic.stream.view"
 )

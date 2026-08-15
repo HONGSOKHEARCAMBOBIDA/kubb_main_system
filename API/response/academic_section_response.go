@@ -18,5 +18,6 @@ type AcademicSectionResponse struct {
 	AcademicCode  string `json:"academic_code"`
 	Name          string `json:"name" gorm:"column:name"`
 	Description   string `json:"description" gorm:"column:description"`
+	Type          int    `json:"type" gorm:"column:type"`
 	Active        bool   `json:"active" gorm:"column:active"`
 }
