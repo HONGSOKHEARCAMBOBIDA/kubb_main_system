@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { createStudent } from '../../services/student.service'
+import { createStudent, getStudent } from '../../services/student.service'
 import { getFeediscountGroup } from '../../services/feediscountgroup.service'
 import { getProvince, getDistrict, getCommunce, getVillage } from '../../services/location.service'
 import { getAcademicStream } from '../../services/academic_stream'
@@ -12,6 +12,100 @@ import AppSelect from '../../components/common/AppSelect.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppTabs from '../../components/tap/AppTabs.vue'
+import TableCustom from '../../components/tables/TableCustom.vue'
+import AppFilterBar from '../../components/common/AppFilterBar.vue'
+
+// List state
+const students = ref([])
+const loading = ref(false)
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(10)
+const filters = reactive({ name: '' })
+let searchTimer = null
+
+// Detail
+
+const detailVisible = ref(false)
+const detailStudent = ref(null)
+const detailLoading = ref(false)
+
+async function openDetail(row) {
+  detailVisible.value = true
+  detailLoading.value = true
+  detailStudent.value = row
+  detailLoading.value = false
+}
+
+function closeDetail() {
+  detailVisible.value = false
+  detailStudent.value = null
+}
+
+function printDetail() {
+  window.print()
+}
+
+const statusOptions = [
+  { label: 'សកម្ម', value: 'active' },
+  { label: 'អសកម្ម', value: 'inactive' },
+]
+
+const columns = [
+  { prop: 'code', label: 'លេខកូដ', width: 120 },
+  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ' },
+  { prop: 'name_en', label: 'ឈ្មោះឡាតាំង' },
+  { prop: 'gender', label: 'ភេទ', slot: 'gender', width: 90 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', width: 130 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', width: 130 },
+  { prop: 'group_name', label: 'ក្រុមបញ្ចុះតម្លៃ', width: 150 },
+  { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', width: 130 },
+  { prop: 'status', label: 'ស្ថានភាព', width: 100 },
+]
+
+const columneducationdetail = [
+  { prop: 'school_name', label: 'សាលារៀន', width: 120 },
+  { prop: 'level', label: 'កម្រិត', width: 120 },
+  { prop: 'start_date', label: 'ចាប់ផ្ដេីម', width: 120 },
+  { prop: 'end_date', label: 'បញ្ជប់', width: 120 },
+  { prop: 'cerificate_date', label: 'ទទួលសញ្ញាបត្រ', width: 120 },
+  { prop: 'score', label: 'Score', width: 120 },
+  { prop: 'gpa', label: 'GPA', width: 120 },
+  { prop: 'grade', label: 'GRADE', width: 120 },
+  { prop: 'villlage_name_kh', label: 'ភូមិ', width: 120 },
+  { prop: 'communce_name', label: 'ឃុំ', width: 120 },
+  { prop: 'distirct_name', label: 'ស្រុក', width: 120 },
+  { prop: 'province_name', label: 'ខេត្ត', width: 120 },
+]
+const dialogVisible = ref(false)
+
+function openCreate() {
+  resetForm()
+  dialogVisible.value = true
+}
+
+function closeDialog() {
+  dialogVisible.value = false
+}
+
+async function fetchStudent() {
+  loading.value = true
+  try {
+    const params = {
+      page: page.value,
+      page_size: pageSize.value,
+    }
+    if (filters.name) params.name = filters.name
+
+    const res = await getStudent(params)
+    students.value = res.data.data || []
+    total.value = res.data.total || 0
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load students')
+  } finally {
+    loading.value = false
+  }
+}
 
 const notify = useNotification()
 const submitting = ref(false)
@@ -22,7 +116,6 @@ const genderOption = [
   { label: 'ស្រី', value: 'Female' },
   { label: 'ប្រុស', value: 'Male' },
 ]
-
 
 const groupOptions = ref([])
 const academicStreamOptions = ref([])
@@ -58,7 +151,6 @@ async function fetchDocumentTypeOptions() {
   }
 }
 
-
 async function loadDistrictOption(provinceID) {
   if (!provinceID) return []
   try {
@@ -91,7 +183,6 @@ async function loadVillageOption(communceID) {
     return []
   }
 }
-
 
 const formProvinceID = ref(null)
 const formDistrictID = ref(null)
@@ -317,13 +408,26 @@ async function handleSubmit() {
   try {
     await createStudent(form)
     notify.success('Student created successfully')
+    dialogVisible.value = false
     resetForm()
+    fetchStudent()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to create student')
   } finally {
     submitting.value = false
   }
 }
+
+watch(
+  () => filters.name,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      fetchStudent()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
 
 onMounted(() => {
   fetchProvinceOption()
@@ -332,12 +436,65 @@ onMounted(() => {
   fetchDocumentTypeOptions()
   newEducationRow()
   newDocumentRow()
+  fetchStudent()
 })
 </script>
 
 <template>
-  <div>
-    <AppDialog :visible="true" title="បង្កេីតនិស្សិតថ្មី" :showDefaultFooter="false" width="50%">
+  <div class="student-page">
+    <AppFilterBar
+      :fields="[
+        { slot: 'name', span: 8 },
+        { slot: 'create', span: 4 },
+      ]"
+    >
+      <template #name>
+        <AppInput v-model="filters.name" placeholder="ស្វែងរកតាមឈ្មោះខ្មែរ" clearable />
+      </template>
+      <template #create>
+        <AppButton type="default" icon="Plus" @click="openCreate">បង្កើតនិស្សិតថ្មី</AppButton>
+      </template>
+    </AppFilterBar>
+
+    <TableCustom
+      :data="students"
+      :columns="columns"
+      :loading="loading"
+      :total="total"
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      @page-change="fetchStudent"
+    >
+      <template #gender="{ row }">
+        {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+      </template>
+
+      <template #status="{ row }">
+        <el-tag :type="row.status === 'active' ? 'success' : 'danger'">
+          {{ row.status === 'active' ? 'សកម្ម' : 'អសកម្ម' }}
+        </el-tag>
+      </template>
+
+      <template #actions="{ row }">
+        <el-tooltip content="មើលព័ត៌មានលម្អិត" placement="top">
+          <AppButton
+            icon="Document"
+            circle
+            size="small"
+            type="default"
+            plain
+            @click="openDetail(row)"
+          />
+        </el-tooltip>
+      </template>
+    </TableCustom>
+    <AppDialog
+      v-if="dialogVisible"
+      v-model:visible="dialogVisible"
+      title="បង្កេីតនិស្សិតថ្មី"
+      :showDefaultFooter="false"
+      width="50%"
+    >
       <AppForm
         ref="formRef"
         :model="form"
@@ -543,7 +700,6 @@ onMounted(() => {
                 </template>
 
                 <el-row :gutter="20">
-
                   <el-col :span="12">
                     <AppInput
                       v-model="edu.school_name"
@@ -563,12 +719,12 @@ onMounted(() => {
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                   <AppInput v-model="edu.gpa" label="GPA" placeholder="GPA" clearable />
+                    <AppInput v-model="edu.gpa" label="GPA" placeholder="GPA" clearable />
                   </el-col>
                   <el-col :span="8">
                     <AppInput v-model="edu.score" label="ពន្ទុ" placeholder="ពន្ទុ" clearable />
                   </el-col>
-                      <el-col :span="8">
+                  <el-col :span="8">
                     <AppInput v-model="edu.grade" label="Grade" placeholder="Grade" clearable />
                   </el-col>
                 </el-row>
@@ -876,6 +1032,125 @@ onMounted(() => {
         </AppTabs>
       </AppForm>
     </AppDialog>
+    <AppDialog
+      v-if="detailVisible"
+      v-model:visible="detailVisible"
+      :showDefaultFooter="false"
+      width="75%"
+    >
+      <div v-loading="detailLoading">
+        <div v-if="detailStudent">
+          <div class="a4-header">
+            <h2>ព័ត៌មានលម្អិតនិស្សិត</h2>
+            <el-text tag="b" style="color: black">លេខកូដ: {{ detailStudent.code }}</el-text>
+          </div>
+
+          <section class="a4-section">
+                   <el-text tag="b" style="color: darkcyan" class="pb-5">ព័ត៌មានទូទៅ
+        </el-text> 
+            <div class="a4-grid">
+              <div><span class="a4-label">ឈ្មោះខ្មែរ</span> {{ detailStudent.name_kh }}</div>
+              <div><span class="a4-label">ឈ្មោះឡាតាំង</span> {{ detailStudent.name_en }}</div>
+              <div>
+                <span class="a4-label">ភេទ</span>
+                {{ detailStudent.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+              </div>
+              <div>
+                <span class="a4-label">ថ្ងៃខែឆ្នាំកំណើត</span> {{ detailStudent.date_of_birth }}
+              </div>
+              <div><span class="a4-label">សញ្ជាតិ</span> {{ detailStudent.nationality }}</div>
+              <div><span class="a4-label">លេខទូរសព្ទ</span> {{ detailStudent.phone }}</div>
+              <div><span class="a4-label">មុខរបរ</span> {{ detailStudent.occupation || '-' }}</div>
+              <div>
+                <span class="a4-label">សញ្ញាបត្រ</span>
+                {{ detailStudent.academic_stream_name || '-' }}
+              </div>
+              <div>
+                <span class="a4-label">ស្ថិតក្នុងប្រភេទ</span>
+                {{ detailStudent.group_name || '-' }}, បញ្ចុះតម្លៃ
+                <el-text tag="b" style="color: crimson">
+                  {{
+                    detailStudent.discount_type === 'percentage'
+                      ? `${detailStudent.discount_percentage}%`
+                      : `${detailStudent.discount_amount}$`
+                  }}
+                </el-text>
+              </div>
+              <div><span class="a4-label">ស្ថានភាព</span> {{ detailStudent.status }}</div>
+            </div>
+            <div class="a4-address">
+              <span class="a4-label">អាសយដ្ឋាន</span>
+              ភូមិ{{ detailStudent.villlage_name_kh }}, ឃុំ{{ detailStudent.communce_name }},
+              ស្រុក{{ detailStudent.distirct_name }}, ខេត្ត{{ detailStudent.province_name }}
+            </div>
+          </section>
+
+          <section class="a4-section">
+            <el-text tag="b" style="color: darkcyan" class="pb-5">
+         ព័ត៌មានឪពុកម្ដាយ
+        </el-text>
+            <div v-for="fam in detailStudent.student_family" :key="fam.id" class="a4-grid">
+              <div><span class="a4-label">ឈ្មោះឪពុក</span> {{ fam.father_name || '-' }}</div>
+              <div><span class="a4-label">អាយុឪពុក</span> {{ fam.father_age || '-' }}</div>
+              <div><span class="a4-label">មុខរបរឪពុក</span> {{ fam.father_occupation || '-' }}</div>
+              <div>
+                <span class="a4-label">ទូរសព្ទឪពុក</span> {{ fam.father_phone_number || '-' }}
+              </div>
+              <div><span class="a4-label">ឈ្មោះម្ដាយ</span> {{ fam.mother_name || '-' }}</div>
+              <div><span class="a4-label">អាយុម្ដាយ</span> {{ fam.mother_age || '-' }}</div>
+              <div>
+                <span class="a4-label">មុខរបរម្ដាយ</span> {{ fam.mother_occupation || '-' }}
+              </div>
+              <div>
+                <span class="a4-label">ទូរសព្ទម្ដាយ</span> {{ fam.mother_phone_number || '-' }}
+              </div>
+            </div>
+            <el-empty
+              v-if="!detailStudent.student_family?.length"
+              description="គ្មានទិន្នន័យ"
+              :image-size="40"
+            />
+          </section>
+
+          <section class="a4-section">
+              <el-text tag="b" style="color: darkcyan" class="pb-5">ការសិក្សា
+        </el-text>
+           
+            <TableCustom :data="detailStudent.student_educations" :columns="columneducationdetail" :show-pagination="false">
+
+            </TableCustom>
+          </section>
+
+          <section class="a4-section">
+                 <el-text tag="b" style="color: darkcyan">ឯកសារប្រគល់ជូន
+        </el-text>
+            <table class="a4-table">
+              <thead>
+                <tr>
+                  <th>ប្រភេទឯកសារ</th>
+                  <th>ត្រូវការ</th>
+                  <th>ទទួលបាន</th>
+                  <th>សម្គាល់</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="doc in detailStudent.student_documents" :key="doc.id">
+                  <td>{{ doc.document_type_name_kh }}</td>
+                  <td>{{ doc.required_qty }}</td>
+                  <td>{{ doc.received_qty }}</td>
+                  <td>{{ doc.remark || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <el-empty
+              v-if="!detailStudent.student_documents?.length"
+              description="គ្មានទិន្នន័យ"
+              :image-size="40"
+            />
+          </section>
+        </div>
+      </div>
+    </AppDialog>
   </div>
 </template>
 
@@ -913,5 +1188,75 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 12px;
   padding: 12px 0 24px;
+}
+.a4-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 15mm;
+  box-sizing: border-box;
+}
+.a4-header {
+  text-align: center;
+  border-bottom: 2px solid #333;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.a4-header h2 {
+  margin: 0;
+}
+.a4-code {
+  color: #888;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.a4-section {
+  margin-bottom: 20px;
+}
+.a4-section h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+.a4-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 13px;
+}
+.a4-label {
+  color: #888;
+  margin-right: 6px;
+}
+.a4-address {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.a4-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.a4-table th,
+.a4-table td {
+  border: 1px solid #e5e5e5;
+  padding: 6px 8px;
+  text-align: left;
+}
+.a4-table th {
+  background: #fafafa;
+}
+
+@media print {
+  .a4-toolbar {
+    display: none;
+  }
+  .a4-page {
+    box-shadow: none;
+    margin: 0;
+  }
 }
 </style>

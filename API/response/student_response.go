@@ -29,7 +29,7 @@ type StudentResponse struct {
 	CommunceID         int                `json:"communce_id"`
 	CommunceName       string             `json:"communce_name"`
 	DistrictID         int                `json:"district_id"`
-	DistrictName       string             `json:"distirct_name"`
+	DistrictName       string             `json:"distirct_name" gorm:"column:distirct_name"`
 	ProvinceID         int                `json:"province_id"`
 	ProvinceName       string             `json:"province_name"`
 	Occupation         string             `json:"occupation" gorm:"column:occupation"`

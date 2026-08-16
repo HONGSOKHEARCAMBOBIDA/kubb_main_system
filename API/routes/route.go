@@ -176,5 +176,6 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Student
 		auth.POST(route.StudentCreate, middleware.PermissionMiddleware(permission.CRUDSTUDENT), studentcontroller.CreateStudent)
+		auth.GET(route.StudentView, middleware.PermissionMiddleware(permission.CRUDSTUDENT), studentcontroller.GetStudent)
 	}
 }

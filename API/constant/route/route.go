@@ -145,4 +145,5 @@ const (
 
 	// Student
 	StudentCreate = "student.create"
+	StudentView   = "student.view"
 )

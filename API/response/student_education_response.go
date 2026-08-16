@@ -11,9 +11,9 @@ type StudentEducationResponse struct {
 	VillageID       int    `json:"village_id" gorm:"column:village_id"`
 	VillageNameKh   string `json:"villlage_name_kh" gorm:"column:villlage_name_kh"`
 	CommunceID      int    `json:"communce_id"`
-	CommunceName    string `json:"communce_name"`
+	CommunceName    string `json:"communce_name" gorm:"column:communce_name"`
 	DistrictID      int    `json:"district_id"`
-	DistrictName    string `json:"distirct_name"`
+	DistrictName    string `json:"distirct_name" gorm:"column:distirct_name"`
 	ProvinceID      int    `json:"province_id"`
 	ProvinceName    string `json:"province_name"`
 	StartDate       string `json:"start_date" gorm:"column:start_date"`
