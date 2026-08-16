@@ -12,18 +12,18 @@ import AppSelect from '../../components/common/AppSelect.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppTabs from '../../components/tap/AppTabs.vue'
+
 const notify = useNotification()
 const submitting = ref(false)
 const formRef = ref(null)
-const activeTab = ref("general")
+const activeTab = ref('general')
+
 const genderOption = [
   { label: 'ស្រី', value: 'Female' },
   { label: 'ប្រុស', value: 'Male' },
 ]
 
-// ---------------------------------------------------------------------------
-// Static / lookup options
-// ---------------------------------------------------------------------------
+
 const groupOptions = ref([])
 const academicStreamOptions = ref([])
 const documentTypeOptions = ref([])
@@ -58,9 +58,7 @@ async function fetchDocumentTypeOptions() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Generic address cascade helpers (Province -> District -> Commune -> Village)
-// ---------------------------------------------------------------------------
+
 async function loadDistrictOption(provinceID) {
   if (!provinceID) return []
   try {
@@ -94,9 +92,7 @@ async function loadVillageOption(communceID) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Student's own address cascade
-// ---------------------------------------------------------------------------
+
 const formProvinceID = ref(null)
 const formDistrictID = ref(null)
 const formCommunceID = ref(null)
@@ -334,7 +330,6 @@ onMounted(() => {
   fetchGroupOptions()
   fetchAcademicStreamOptions()
   fetchDocumentTypeOptions()
-  // start with one blank education / document row so the form isn't empty
   newEducationRow()
   newDocumentRow()
 })
@@ -343,790 +338,544 @@ onMounted(() => {
 <template>
   <div>
     <AppDialog :visible="true" title="បង្កេីតនិស្សិតថ្មី" :showDefaultFooter="false" width="50%">
-        <AppForm
-      ref="formRef"
-      :model="form"
-      :rules="rules"
-      :loading="submitting"
-      :show-actions="true"
-      @submit="handleSubmit"
-      @reset="resetForm"
-      submitText="រក្សាទុក"
-      resetText="ចាកចេញ"
-    >
-<AppTabs v-model="activeTap" :tabs="[
-    {name: 'general',label: 'ព័ត៏មានទូទៅ'},
-    {name: 'education',label: 'ការសិក្សា'}
-]" tab-position="top" stretch="true" :lazy="true">
-
-<template #general>
-      <el-card class="section-card" shadow="never">
-        <template #header>ព័ត៏មានទូទៅ</template>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <AppSelect
-              v-model="form.group_id"
-              :options="groupOptions"
-              placeholder="ប្រភេទនិស្សិត"
-              prop="group_id"
-              label="ប្រភេទនិស្សិត"
-              clearable
-            />
-          </el-col>
-          <el-col :span="12">
-            <AppInput
-              v-model="form.name_kh"
-              prop="name_kh"
-              label="ឈ្មោះខែ្មរ"
-              placeholder="ឈ្មោះខែ្មរ"
-              clearable
-            />
-          </el-col>
-
-        </el-row>
-        <el-row :gutter="20">
-                      <el-col :span="12">
-            <AppInput
-              v-model="form.name_en"
-              prop="name_en"
-              label="ឈ្មោះឡាតាំង"
-              placeholder="ឈ្មោះឡាតាំង"
-              clearable
-            />
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="ថ្ងៃខែឆ្នាំកំណេីត" prop="date_of_birth">
-              <el-date-picker
-                v-model="form.date_of_birth"
-                type="date"
-                value-format="YYYY-MM-DD"
-                placeholder="ថ្ងៃខែឆ្នាំកំណេីត"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-       
-        </el-row>
-        <el-row :gutter="20">
-               <el-col :span="12">
-        <AppSelect
-              label="ភេទ"
-              v-model="form.gender"
-              :options="genderOption"
-              placeholder="រេីសភេទ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="12">
-           <AppInput
-              v-model="form.nationality"
-              prop="nationality"
-              label="សញ្ជាតិ"
-              placeholder="សញ្ជាតិ"
-              clearable
-            />
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="8">
-           <AppInput
-              v-model="form.phone"
-              prop="phone"
-              label="លេខទូរសព្ទ"
-              placeholder="លេខទូរសព្ទ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-     <AppInput
-              v-model="form.occupation"
-              prop="occupation"
-              label="មុខរបរ"
-              placeholder="មុខរបរ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-        <AppSelect
-              v-model="form.academic_stream_id"
-              :options="academicStreamOptions"
-              placeholder="សញ្ញាបត្រ"
-              clearable
-              label="សញ្ញាបត្រ"
-              prop="academic_stream_id"
-            />
-          </el-col>
-        </el-row>
-         <el-divider content-position="left">ទីកន្លែងរស់នៅ</el-divider>
-        <el-row :gutter="20">
-            <el-col :span="12">
-            <AppSelect
-              v-model="formProvinceID"
-              :options="formProvinceOptions"
-              placeholder="រេីសខេត្ត"
-              label="រេីសខេត្ត"
-              clearable
-              @change="onProvinceChange"
-            />
-            </el-col>
-            <el-col :span="12">
-             <AppSelect
-              v-model="formDistrictID"
-              :options="formDistrictOptions"
-              placeholder="រេីសស្រុក"
-              :disabled="!formProvinceID"
-              clearable
-              label="រេីសស្រុក"
-              @change="onDistrictChange"
-            />               
-            </el-col>
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :span="12">
-            <AppSelect
-              v-model="formCommunceID"
-              :options="formCommunceOptions"
-              placeholder="រេីសឃុំ"
-              :disabled="!formDistrictID"
-              clearable
-              label="រេីសឃុំ"
-              @change="onCommunceChange"
-            />
-            </el-col>
-            <el-col :span="12">
-             <AppSelect
-              v-model="form.village_id"
-              :options="formVillageOptions"
-              placeholder="រេីសភូមិ"
-              label="រេីសភូមិ"
-              :disabled="!formCommunceID"
-              clearable
-            />               
-            </el-col>
-        </el-row>
-      </el-card>
-</template>
-
-<template #education>
-      <el-card class="section-card" shadow="never">
- <template #header>
-          <div class="section-header">
-            <span>ការសិក្សា</span>
-            <AppButton type="warning" plain icon="Plus" size="small" @click="newEducationRow"
-              >បន្ថែមការសិក្សា</AppButton
-            >
-          </div>
-        </template>
-
-        <el-card 
-                  v-for="(edu, index) in form.student_educations"
-          :key="index"
-          class="sub-card"
-          shadow="never"
+      <AppForm
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        :loading="submitting"
+        :show-actions="true"
+        @submit="handleSubmit"
+        @reset="resetForm"
+        submitText="រក្សាទុក"
+        resetText="ចាកចេញ"
+      >
+        <AppTabs
+          v-model="activeTap"
+          :tabs="[
+            { name: 'general', label: 'ព័ត៏មានទូទៅ' },
+            { name: 'education', label: 'ការសិក្សា' },
+            { name: 'document', label: 'ឯកសារប្រគល់ជួន' },
+            { name: 'fother', label: 'ព័ត៏មានឪពុក' },
+            { name: 'mother', label: 'ព័ត៏មានម្ដាយ' },
+          ]"
+          tab-position="top"
+          stretch="true"
+          :lazy="true"
         >
-          <template #header>
-            <div class="section-header">
-              <span>ការសិក្សា -{{ index + 1 }}</span>
-              <AppButton
-                type="danger"
-                icon="Delete"
-                size="small"
-                plain
-                :disabled="form.student_educations.length === 1"
-                @click="removeEducationRow(index)"
-              >
-                លុប
-              </AppButton>
-            </div>
+          <template #general>
+            <el-card class="section-card" shadow="never">
+              <template #header>ព័ត៏មានទូទៅ</template>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.group_id"
+                    :options="groupOptions"
+                    placeholder="ប្រភេទនិស្សិត"
+                    prop="group_id"
+                    label="ប្រភេទនិស្សិត"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.name_kh"
+                    prop="name_kh"
+                    label="ឈ្មោះខែ្មរ"
+                    placeholder="ឈ្មោះខែ្មរ"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.name_en"
+                    prop="name_en"
+                    label="ឈ្មោះឡាតាំង"
+                    placeholder="ឈ្មោះឡាតាំង"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="ថ្ងៃខែឆ្នាំកំណេីត" prop="date_of_birth">
+                    <el-date-picker
+                      v-model="form.date_of_birth"
+                      type="date"
+                      value-format="YYYY-MM-DD"
+                      placeholder="ថ្ងៃខែឆ្នាំកំណេីត"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    label="ភេទ"
+                    v-model="form.gender"
+                    :options="genderOption"
+                    placeholder="រេីសភេទ"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.nationality"
+                    prop="nationality"
+                    label="សញ្ជាតិ"
+                    placeholder="សញ្ជាតិ"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="8">
+                  <AppInput
+                    v-model="form.phone"
+                    prop="phone"
+                    label="លេខទូរសព្ទ"
+                    placeholder="លេខទូរសព្ទ"
+                    type="number"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="8">
+                  <AppInput
+                    v-model="form.occupation"
+                    prop="occupation"
+                    label="មុខរបរ"
+                    placeholder="មុខរបរ"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="8">
+                  <AppSelect
+                    v-model="form.academic_stream_id"
+                    :options="academicStreamOptions"
+                    placeholder="សញ្ញាបត្រ"
+                    clearable
+                    label="សញ្ញាបត្រ"
+                    prop="academic_stream_id"
+                  />
+                </el-col>
+              </el-row>
+              <el-divider content-position="left">ទីកន្លែងរស់នៅ</el-divider>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="formProvinceID"
+                    :options="formProvinceOptions"
+                    placeholder="រេីសខេត្ត"
+                    label="រេីសខេត្ត"
+                    clearable
+                    @change="onProvinceChange"
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="formDistrictID"
+                    :options="formDistrictOptions"
+                    placeholder="រេីសស្រុក"
+                    :disabled="!formProvinceID"
+                    clearable
+                    label="រេីសស្រុក"
+                    @change="onDistrictChange"
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="formCommunceID"
+                    :options="formCommunceOptions"
+                    placeholder="រេីសឃុំ"
+                    :disabled="!formDistrictID"
+                    clearable
+                    label="រេីសឃុំ"
+                    @change="onCommunceChange"
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.village_id"
+                    :options="formVillageOptions"
+                    placeholder="រេីសភូមិ"
+                    label="រេីសភូមិ"
+                    :disabled="!formCommunceID"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+            </el-card>
           </template>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-              <AppInput
-                v-model="edu.level"
-                label="កម្រិតសិក្សា"
-                placeholder="កម្រិតសិក្សា"
-                clearable
-              />
-          </el-col>
-          <el-col :span="12">
-               <AppInput
-                v-model="edu.school_name"
-                label="ឈ្មោះសាលារៀន"
-                placeholder="ឈ្មោះសាលារៀនe"
-                clearable
-              />
-          </el-col>
 
-        </el-row>
-        <el-row :gutter="20">
-                      <el-col :span="12">
-            <AppInput
-              v-model="form.name_en"
-              prop="name_en"
-              label="ឈ្មោះឡាតាំង"
-              placeholder="ឈ្មោះឡាតាំង"
-              clearable
-            />
-          </el-col>
-          <el-col :span="12">
-            <AppInput v-model="edu.score" label="ពន្ទុ" placeholder="ពន្ទុ" clearable />
-          </el-col>
-       
-        </el-row>
-        <el-row :gutter="20">
-               <el-col :span="12">
-       <AppInput v-model="edu.gpa" label="GPA" placeholder="GPA" clearable />
-          </el-col>
-          <el-col :span="12">
-            <AppInput v-model="edu.grade" label="Grade" placeholder="Grade" clearable />
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="8">
-              <el-form-item label="ថ្ងៃចេញសញ្ញាបត្រ">
-                <el-date-picker
-                  v-model="edu.cerificate_date"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="ថ្ងៃចេញសញ្ញាបត្រ"
-                  style="width: 100%"
-                />
-              </el-form-item>
-          </el-col>
-          <el-col :span="8">
-     <el-form-item label="ថ្ងៃខែឆ្នាំចាប់ផ្ដេីមសិក្សា">
-                <el-date-picker
-                  v-model="edu.start_date"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="ថ្ងៃខែឆ្នាំចាប់ផ្ដេីមសិក្សា"
-                  style="width: 100%"
-                />
-              </el-form-item>
-          </el-col>
-          <el-col :span="8">
-           <el-form-item label="ថ្ងៃខែឆ្នាំបញ្ចប់សិក្សា">
-                <el-date-picker
-                  v-model="edu.end_date"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="ថ្ងៃខែឆ្នាំបញ្ចប់សិក្សា"
-                  style="width: 100%"
-                />
-              </el-form-item>
-          </el-col>
-        </el-row>
-        <el-divider content-position="left">ទីកន្លែងសាលារៀន</el-divider>
-        <el-row :gutter="20">
-            <el-col :span="12">
-             <AppSelect
-                v-model="eduLocations[index].province_id"
-                :options="formProvinceOptions"
-                placeholder="រេីសខេត្ត"
-                label="រេីសខេត្ត"
-                clearable
-                @change="onEduProvinceChange(index)"
-              />
-            </el-col>
-            <el-col :span="12">
-          <AppSelect
-                v-model="eduLocations[index].district_id"
-                :options="eduLocations[index].districtOptions"
-                placeholder="រេីសស្រុក"
-                label="រេីសស្រុក"
-                :disabled="!eduLocations[index].province_id"
-                clearable
-                @change="onEduDistrictChange(index)"
-              />
-            </el-col>
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :span="12">
-     <AppSelect
-                v-model="eduLocations[index].commune_id"
-                :options="eduLocations[index].communeOptions"
-                placeholder="រេីសឃុំ"
-                label="រេីសឃុំ"
-                :disabled="!eduLocations[index].district_id"
-                clearable
-                @change="onEduCommunceChange(index)"
-              />
-            </el-col>
-            <el-col :span="12">
-      <AppSelect
-                v-model="edu.village_id"
-                :options="eduLocations[index].villageOptions"
-                placeholder="រេីសភូមិ"
-                label="រេីសភូមិ"
-                :disabled="!eduLocations[index].commune_id"
-                clearable
-              />
-            </el-col>
-        </el-row>
-       
-       
-      </el-card>
-      </el-card>
-</template>
+          <template #education>
+            <el-card class="section-card" shadow="never">
+              <template #header>
+                <div class="section-header">
+                  <span>ការសិក្សា</span>
+                  <AppButton type="warning" plain icon="Plus" size="small" @click="newEducationRow"
+                    >បន្ថែមការសិក្សា</AppButton
+                  >
+                </div>
+              </template>
 
-</AppTabs>
-    </AppForm>
+              <el-card
+                v-for="(edu, index) in form.student_educations"
+                :key="index"
+                class="sub-card"
+                shadow="never"
+              >
+                <template #header>
+                  <div class="section-header">
+                    <span>ការសិក្សា -{{ index + 1 }}</span>
+                    <AppButton
+                      type="danger"
+                      icon="Delete"
+                      size="small"
+                      plain
+                      :disabled="form.student_educations.length === 1"
+                      @click="removeEducationRow(index)"
+                    >
+                      លុប
+                    </AppButton>
+                  </div>
+                </template>
+
+                <el-row :gutter="20">
+
+                  <el-col :span="12">
+                    <AppInput
+                      v-model="edu.school_name"
+                      label="ឈ្មោះសាលារៀន"
+                      placeholder="ឈ្មោះសាលារៀន"
+                      clearable
+                    />
+                  </el-col>
+                  <el-col :span="12">
+                    <AppInput
+                      v-model="edu.level"
+                      label="កម្រិតសិក្សា"
+                      placeholder="កម្រិតសិក្សា"
+                      clearable
+                    />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                   <AppInput v-model="edu.gpa" label="GPA" placeholder="GPA" clearable />
+                  </el-col>
+                  <el-col :span="8">
+                    <AppInput v-model="edu.score" label="ពន្ទុ" placeholder="ពន្ទុ" clearable />
+                  </el-col>
+                      <el-col :span="8">
+                    <AppInput v-model="edu.grade" label="Grade" placeholder="Grade" clearable />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="ថ្ងៃខែឆ្នាំចាប់ផ្ដេីមសិក្សា">
+                      <el-date-picker
+                        v-model="edu.start_date"
+                        type="date"
+                        value-format="YYYY-MM-DD"
+                        placeholder="ថ្ងៃខែឆ្នាំចាប់ផ្ដេីមសិក្សា"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="ថ្ងៃខែឆ្នាំបញ្ចប់សិក្សា">
+                      <el-date-picker
+                        v-model="edu.end_date"
+                        type="date"
+                        value-format="YYYY-MM-DD"
+                        placeholder="ថ្ងៃខែឆ្នាំបញ្ចប់សិក្សា"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+
+                  <el-col :span="8">
+                    <el-form-item label="ថ្ងៃចេញសញ្ញាបត្រ">
+                      <el-date-picker
+                        v-model="edu.cerificate_date"
+                        type="date"
+                        value-format="YYYY-MM-DD"
+                        placeholder="ថ្ងៃចេញសញ្ញាបត្រ"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-divider content-position="left">ទីកន្លែងសាលារៀន</el-divider>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <AppSelect
+                      v-model="eduLocations[index].province_id"
+                      :options="formProvinceOptions"
+                      placeholder="រេីសខេត្ត"
+                      label="រេីសខេត្ត"
+                      clearable
+                      @change="onEduProvinceChange(index)"
+                    />
+                  </el-col>
+                  <el-col :span="12">
+                    <AppSelect
+                      v-model="eduLocations[index].district_id"
+                      :options="eduLocations[index].districtOptions"
+                      placeholder="រេីសស្រុក"
+                      label="រេីសស្រុក"
+                      :disabled="!eduLocations[index].province_id"
+                      clearable
+                      @change="onEduDistrictChange(index)"
+                    />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <AppSelect
+                      v-model="eduLocations[index].commune_id"
+                      :options="eduLocations[index].communeOptions"
+                      placeholder="រេីសឃុំ"
+                      label="រេីសឃុំ"
+                      :disabled="!eduLocations[index].district_id"
+                      clearable
+                      @change="onEduCommunceChange(index)"
+                    />
+                  </el-col>
+                  <el-col :span="12">
+                    <AppSelect
+                      v-model="edu.village_id"
+                      :options="eduLocations[index].villageOptions"
+                      placeholder="រេីសភូមិ"
+                      label="រេីសភូមិ"
+                      :disabled="!eduLocations[index].commune_id"
+                      clearable
+                    />
+                  </el-col>
+                </el-row>
+              </el-card>
+            </el-card>
+          </template>
+
+          <template #document>
+            <el-card class="section-card" shadow="never">
+              <template #header>
+                <div class="section-header">
+                  <span>ឯកសារនិស្សិតប្រគល់ជួន</span>
+                  <AppButton type="warning" plain icon="Plus" size="small" @click="newDocumentRow"
+                    >បន្ថែមឯកសារនិស្សិត</AppButton
+                  >
+                </div>
+              </template>
+
+              <el-card
+                v-for="(doc, index) in form.student_documents"
+                :key="index"
+                :gutter="16"
+                class="sub-card"
+              >
+                <template #header>
+                  <div class="section-header">
+                    <span>ឯកសារ -{{ index + 1 }}</span>
+                    <AppButton
+                      type="danger"
+                      icon="Delete"
+                      size="small"
+                      plain
+                      :disabled="form.student_documents.length === 1"
+                      @click="removeDocumentRow(index)"
+                    >
+                      លុប
+                    </AppButton>
+                  </div>
+                </template>
+
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <AppSelect
+                      v-model="doc.document_type_id"
+                      :options="documentTypeOptions"
+                      placeholder="ប្រភេទឯកសារ"
+                      label="ប្រភេទឯកសារ"
+                      clearable
+                    />
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="ចំនួនត្រូវប្រគល់ជួន">
+                      <el-input-number
+                        v-model="doc.required_qty"
+                        :min="1"
+                        :max="20"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="ចំនួនទទួលបាន">
+                      <el-input-number
+                        v-model="doc.received_qty"
+                        :min="1"
+                        :max="20"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="សម្គាល់">
+                      <el-input v-model="doc.remark" placeholder="សម្គាល់បេីមានបញ្ហា" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+            </el-card>
+          </template>
+
+          <template #fother>
+            <el-card class="section-card" shadow="never">
+              <template #header>ព័ត៏មានឪពុក</template>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.father_name"
+                    label="ឈ្មោះខ្មែរ"
+                    placeholder="ឈ្មោះខ្មែរ"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.father_english_name"
+                    label="ឈ្មោះឡាតាំង"
+                    placeholder="ឈ្មោះឡាតាំង"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="អាយុៈ">
+                    <el-input-number
+                      v-model="form.father_age"
+                      :min="1"
+                      :max="200"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.father_phone_number"
+                    label="លេខទូរសព្ទ"
+                    placeholder="លេខទូរសព្ទ"
+                    type="number"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.father_occupation"
+                    label="មុខរបរ"
+                    placeholder="មុខរបរ"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.father_workplace"
+                    label="កន្លែងធ្វេីការ"
+                    placeholder="កន្លែងធ្វេីការ"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="នៅមានជីវិត">
+                    <el-switch v-model="form.father_is_alive" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-card>
+          </template>
+
+          <template #mother>
+            <el-card class="section-card" shadow="never">
+              <template #header>ព័ត៏មានឪពុក</template>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_name"
+                    label="ឈ្មោះខ្មែរ"
+                    placeholder="ឈ្មោះខ្មែរ"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_english_name"
+                    label="ឈ្មោះឡាតាំង"
+                    placeholder="ឈ្មោះឡាតាំង"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="អាយុៈ">
+                    <el-input-number
+                      v-model="form.mother_age"
+                      :min="1"
+                      :max="200"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_phone_number"
+                    label="លេខទូរសព្ទ"
+                    placeholder="លេខទូរសព្ទ"
+                    type="number"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_occupation"
+                    label="មុខរបរ"
+                    placeholder="មុខរបរ"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_workplace"
+                    label="កន្លែងធ្វេីការ"
+                    placeholder="កន្លែងធ្វេីការ"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="នៅមានជីវិត">
+                    <el-switch v-model="form.mother_is_alive" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-card>
+          </template>
+        </AppTabs>
+      </AppForm>
     </AppDialog>
-  </div>
-  <div class="student-page">
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent>
-      <!-- ================= Basic Info ================= -->
-      <el-card class="section-card" shadow="never">
-        <template #header>Basic Information</template>
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <AppSelect
-              v-model="form.group_id"
-              :options="groupOptions"
-              placeholder="ប្រភេទនិស្សិត"
-              prop="group_id"
-              label="ប្រភេទនិស្សិត"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-            <AppInput
-              v-model="form.name_kh"
-              prop="name_kh"
-              label="ឈ្មោះខែ្មរ"
-              placeholder="ឈ្មោះខែ្មរ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-            <AppInput
-              v-model="form.name_en"
-              prop="name_en"
-              label="ឈ្មោះឡាតាំង"
-              placeholder="ឈ្មោះឡាតាំង"
-              clearable
-            />
-          </el-col>
-
-          <el-col :span="8">
-            <el-form-item label="ថ្ងៃខែឆ្នាំកំណេីត" prop="date_of_birth">
-              <el-date-picker
-                v-model="form.date_of_birth"
-                type="date"
-                value-format="YYYY-MM-DD"
-                placeholder="ថ្ងៃខែឆ្នាំកំណេីត"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <AppSelect
-              label="ភេទ"
-              v-model="form.gender"
-              :options="genderOption"
-              placeholder="រេីសភេទ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-            <AppInput
-              v-model="form.nationality"
-              prop="nationality"
-              label="សញ្ជាតិ"
-              placeholder="សញ្ជាតិ"
-              clearable
-            />
-          </el-col>
-
-          <el-col :span="8">
-            <AppInput
-              v-model="form.phone"
-              prop="phone"
-              label="លេខទូរសព្ទ"
-              placeholder="លេខទូរសព្ទ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-            <AppInput
-              v-model="form.occupation"
-              prop="occupation"
-              label="មុខរបរ"
-              placeholder="មុខរបរ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="8">
-            <AppSelect
-              v-model="form.academic_stream_id"
-              :options="academicStreamOptions"
-              placeholder="ប្រភេទសញ្ញាបត្រ"
-              clearable
-              label="ប្រភេទសញ្ញាបត្រ"
-              prop="academic_stream_id"
-            />
-          </el-col>
-        </el-row>
-
-        <el-divider content-position="left">ទីកន្លែងរស់នៅ</el-divider>
-        <el-row :gutter="16">
-          <el-col :span="6">
-            <AppSelect
-              v-model="formProvinceID"
-              :options="formProvinceOptions"
-              placeholder="រេីសខេត្ត"
-              label="រេីសខេត្ត"
-              clearable
-              @change="onProvinceChange"
-            />
-          </el-col>
-          <el-col :span="6">
-            <AppSelect
-              v-model="formDistrictID"
-              :options="formDistrictOptions"
-              placeholder="រេីសស្រុក"
-              :disabled="!formProvinceID"
-              clearable
-              label="រេីសស្រុក"
-              @change="onDistrictChange"
-            />
-          </el-col>
-          <el-col :span="6">
-            <AppSelect
-              v-model="formCommunceID"
-              :options="formCommunceOptions"
-              placeholder="រេីសឃុំ"
-              :disabled="!formDistrictID"
-              clearable
-              label="រេីសឃុំ"
-              @change="onCommunceChange"
-            />
-          </el-col>
-          <el-col :span="6">
-            <AppSelect
-              v-model="form.village_id"
-              :options="formVillageOptions"
-              placeholder="រេីសភូមិ"
-              label="រេីសភូមិ"
-              :disabled="!formCommunceID"
-              clearable
-            />
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- ================= Student Educations ================= -->
-      <el-card class="section-card" shadow="never">
-        <template #header>
-          <div class="section-header">
-            <span>ការសិក្សា</span>
-            <AppButton type="warning" plain icon="Plus" size="small" @click="newEducationRow"
-              >បន្ថែមការសិក្សា</AppButton
-            >
-          </div>
-        </template>
-
-        <el-card
-          v-for="(edu, index) in form.student_educations"
-          :key="index"
-          class="sub-card"
-          shadow="never"
-        >
-          <template #header>
-            <div class="section-header">
-              <span>ការសិក្សា -{{ index + 1 }}</span>
-              <AppButton
-                type="danger"
-                icon="Delete"
-                size="small"
-                plain
-                :disabled="form.student_educations.length === 1"
-                @click="removeEducationRow(index)"
-              >
-                លុប
-              </AppButton>
-            </div>
-          </template>
-
-          <el-row :gutter="16">
-            <el-col :span="8">
-              <AppInput
-                v-model="edu.level"
-                label="កម្រិតសិក្សា"
-                placeholder="កម្រិតសិក្សា"
-                clearable
-              />
-            </el-col>
-            <el-col :span="8">
-              <AppInput
-                v-model="edu.school_name"
-                label="ឈ្មោះសាលារៀន"
-                placeholder="ឈ្មោះសាលារៀនe"
-                clearable
-              />
-            </el-col>
-            <el-col :span="8">
-              <AppInput v-model="edu.score" label="ពន្ទុ" placeholder="ពន្ទុ" clearable />
-            </el-col>
-
-            <el-col :span="8">
-              <AppInput v-model="edu.gpa" label="GPA" placeholder="GPA" clearable />
-            </el-col>
-            <el-col :span="8">
-              <AppInput v-model="edu.grade" label="Grade" placeholder="Grade" clearable />
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="ថ្ងៃចេញសញ្ញាបត្រ">
-                <el-date-picker
-                  v-model="edu.cerificate_date"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="ថ្ងៃចេញសញ្ញាបត្រ"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-
-            <el-col :span="8">
-              <el-form-item label="ថ្ងៃខែឆ្នាំចាប់ផ្ដេីមសិក្សា">
-                <el-date-picker
-                  v-model="edu.start_date"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="ថ្ងៃខែឆ្នាំចាប់ផ្ដេីមសិក្សា"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="ថ្ងៃខែឆ្នាំបញ្ចប់សិក្សា">
-                <el-date-picker
-                  v-model="edu.end_date"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="ថ្ងៃខែឆ្នាំបញ្ចប់សិក្សា"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-divider content-position="left">ទីកន្លែងសាលារៀន</el-divider>
-          <el-row :gutter="16">
-            <el-col :span="6">
-              <AppSelect
-                v-model="eduLocations[index].province_id"
-                :options="formProvinceOptions"
-                placeholder="រេីសខេត្ត"
-                label="រេីសខេត្ត"
-                clearable
-                @change="onEduProvinceChange(index)"
-              />
-            </el-col>
-            <el-col :span="6">
-              <AppSelect
-                v-model="eduLocations[index].district_id"
-                :options="eduLocations[index].districtOptions"
-                placeholder="រេីសស្រុក"
-                label="រេីសស្រុក"
-                :disabled="!eduLocations[index].province_id"
-                clearable
-                @change="onEduDistrictChange(index)"
-              />
-            </el-col>
-            <el-col :span="6">
-              <AppSelect
-                v-model="eduLocations[index].commune_id"
-                :options="eduLocations[index].communeOptions"
-                placeholder="រេីសឃុំ"
-                label="រេីសឃុំ"
-                :disabled="!eduLocations[index].district_id"
-                clearable
-                @change="onEduCommunceChange(index)"
-              />
-            </el-col>
-            <el-col :span="6">
-              <AppSelect
-                v-model="edu.village_id"
-                :options="eduLocations[index].villageOptions"
-                placeholder="រេីសភូមិ"
-                label="រេីសភូមិ"
-                :disabled="!eduLocations[index].commune_id"
-                clearable
-              />
-            </el-col>
-          </el-row>
-        </el-card>
-      </el-card>
-
-      <!-- ================= Student Documents ================= -->
-      <el-card class="section-card" shadow="never">
-        <template #header>
-          <div class="section-header">
-            <span>ឯកសារនិស្សិតប្រគល់ជួន</span>
-            <AppButton type="warning" plain icon="Plus" size="small" @click="newDocumentRow"
-              >បន្ថែមឯកសារនិស្សិត</AppButton
-            >
-          </div>
-        </template>
-
-        <el-row
-          v-for="(doc, index) in form.student_documents"
-          :key="index"
-          :gutter="16"
-          class="doc-row"
-        >
-          <el-col :span="7">
-            <AppSelect
-              v-model="doc.document_type_id"
-              :options="documentTypeOptions"
-              placeholder="ប្រភេទឯកសារ"
-              label="ប្រភេទឯកសារ"
-              clearable
-            />
-          </el-col>
-          <el-col :span="5">
-            <el-form-item label="ចំនួនត្រូវប្រគល់ជួន">
-              <el-input-number v-model="doc.required_qty" :min="1" :max="20" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="5">
-            <el-form-item label="ចំនួនទទួលបាន">
-              <el-input-number v-model="doc.received_qty" :min="1" :max="20" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="5">
-            <el-form-item label="សម្គាល់">
-              <el-input v-model="doc.remark" placeholder="សម្គាល់បេីមានបញ្ហា" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="2" class="doc-remove">
-            <AppButton
-              type="danger"
-              icon="Delete"
-              circle
-              plain
-              size="small"
-              :disabled="form.student_documents.length === 1"
-              @click="removeDocumentRow(index)"
-            />
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- ================= Father Info ================= -->
-      <el-card class="section-card" shadow="never">
-        <template #header>ព័ត៏មានឪពុក</template>
-        <el-row :gutter="16">
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.father_name"
-              label="ឈ្មោះខ្មែរ"
-              placeholder="ឈ្មោះខ្មែរ"
-              clearable
-          /></el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.father_english_name"
-              label="ឈ្មោះឡាតាំង"
-              placeholder="ឈ្មោះឡាតាំង"
-              clearable
-          /></el-col>
-          <el-col :span="8">
-            <el-form-item label="អាយុៈ">
-              <el-input-number v-model="form.father_age" :min="1" :max="200" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.father_phone_number"
-              label="លេខទូរសព្ទ"
-              placeholder="លេខទូរសព្ទ"
-              clearable
-          /></el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.father_occupation"
-              label="មុខរបរ"
-              placeholder="មុខរបរ"
-              clearable
-          /></el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.father_workplace"
-              label="កន្លែងធ្វេីការ"
-              placeholder="កន្លែងធ្វេីការ"
-              clearable
-          /></el-col>
-          <el-col :span="8">
-            <el-form-item label="នៅមានជីវិត">
-              <el-switch v-model="form.father_is_alive" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- ================= Mother Info ================= -->
-      <el-card class="section-card" shadow="never">
-        <template #header>ព័ត៏មានម្ដាយ</template>
-        <el-row :gutter="16">
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.mother_name"
-              label="ឈ្មោះខ្មែរ"
-              placeholder="ឈ្មោះខ្មែរ"
-              clearable
-          /></el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.mother_english_name"
-              label="ឈ្មោះឡាតាំង"
-              placeholder="ឈ្មោះឡាតាំង"
-              clearable
-          /></el-col>
-          <el-col :span="8">
-            <el-form-item label="អាយុៈ">
-              <el-input-number v-model="form.mother_age" :min="1" :max="200" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.mother_phone_number"
-              label="លេខទូរសព្ទ"
-              placeholder="លេខទូរសព្ទ"
-              clearable
-          /></el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.mother_occupation"
-              label="មុខរបរ"
-              placeholder="មុខរបរ"
-              clearable
-          /></el-col>
-          <el-col :span="8"
-            ><AppInput
-              v-model="form.mother_workplace"
-              label="កន្លែងធ្វេីការ"
-              placeholder="កន្លែងធ្វេីការ"
-              clearable
-          /></el-col>
-          <el-col :span="8">
-            <el-form-item label="នៅមានជីវិត">
-              <el-switch v-model="form.mother_is_alive" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- ================= Actions ================= -->
-      <div class="form-actions">
-        <AppButton type="default" plain @click="resetForm">Reset</AppButton>
-        <AppButton type="primary" :loading="submitting" @click="handleSubmit"
-          >Create Student</AppButton
-        >
-      </div>
-    </el-form>
   </div>
 </template>
 

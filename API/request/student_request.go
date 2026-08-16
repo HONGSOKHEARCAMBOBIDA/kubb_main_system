@@ -39,9 +39,9 @@ type StudentEducationRequestCreate struct {
 	StartDate       string `json:"start_date" validate:"required,datetime=2006-01-02"`
 	EndDate         string `json:"end_date" validate:"required,datetime=2006-01-02,gtefield=StartDate"`
 	CertificateDate string `json:"cerificate_date" validate:"omitempty,datetime=2006-01-02"`
-	Score           string `json:"score" validate:"omitempty,min=2,max=150"`
-	Gpa             string `json:"gpa" validate:"omitempty,min=2,max=150"`
-	Grade           string `json:"grade" validate:"omitempty,min=2,max=150"`
+	Score           string `json:"score" validate:"omitempty,max=150"`
+	Gpa             string `json:"gpa" validate:"omitempty,max=150"`
+	Grade           string `json:"grade" validate:"omitempty,max=150"`
 }
 
 type StudentDocumentRequestCreate struct {

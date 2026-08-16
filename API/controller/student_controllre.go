@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"mysql/constant/share"
 	"mysql/request"
 	"mysql/service"
@@ -25,6 +26,7 @@ func (cr *StudentController) CreateStudent(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	log.Printf("CreateStudent request: %+v", input)
 	if err := cr.service.CreateStudent(c.Request.Context(), input); err != nil {
 		share.RespondServiceError(c, err)
 		return

@@ -6,7 +6,6 @@ import (
 
 type StudentFamily struct {
 	base.ModelBase
-	base.UUIDBase
 
 	StudentID int `json:"student_id" gorm:"column:student_id"`
 
