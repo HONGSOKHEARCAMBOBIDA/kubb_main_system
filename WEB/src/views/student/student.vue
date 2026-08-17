@@ -166,23 +166,32 @@ async function openEdit(row) {
     formVillageOptions.value = await loadVillageOption(formCommunceID.value)
   }
 
-  // --- Father / Mother (student_family) ---
-  const fam = (row.student_family && row.student_family[0]) || {}
-  form.father_name = fam.father_name || ''
-  form.father_english_name = fam.father_english_name || ''
-  form.father_age = fam.father_age ?? null
-  form.father_is_alive = fam.father_is_alive ?? true
-  form.father_phone_number = fam.father_phone_number || ''
-  form.father_occupation = fam.father_occupation || ''
-  form.father_workplace = fam.father_workplace || ''
 
-  form.mother_name = fam.mother_name || ''
-  form.mother_english_name = fam.mother_english_name || ''
-  form.mother_age = fam.mother_age ?? null
-  form.mother_is_alive = fam.mother_is_alive ?? true
-  form.mother_phone_number = fam.mother_phone_number || ''
-  form.mother_occupation = fam.mother_occupation || ''
-  form.mother_workplace = fam.mother_workplace || ''
+
+  // Family
+form.student_family = []
+
+const family = row.student_family || []
+
+for (const f of family) {
+  form.student_family.push({
+    father_name: f.father_name || '',
+    father_english_name: f.father_english_name || '',
+    father_age: f.father_age || null,
+    father_is_alive: f.father_is_alive ?? true,
+    father_phone_number: f.father_phone_number || '',
+    father_occupation: f.father_occupation || '',
+    father_workplace: f.father_workplace || '',
+
+    mother_name: f.mother_name || '',
+    mother_english_name: f.mother_english_name || '',
+    mother_age: f.mother_age || null,
+    mother_is_alive: f.mother_is_alive ?? true,
+    mother_phone_number: f.mother_phone_number || '',
+    mother_occupation: f.mother_occupation || '',
+    mother_workplace: f.mother_workplace || ''
+  })
+}
 
   // --- Educations ---
   form.student_educations = []
@@ -1066,7 +1075,7 @@ onMounted(() => {
               </template>
 
               <el-card
-                v-for="(doc, index) in form.student_family"
+                v-for="(fmy, index) in form.student_family"
                 :key="index"
                 :gutter="16"
                 class="sub-card"
@@ -1090,26 +1099,26 @@ onMounted(() => {
                 <el-row :gutter="20">
                   <el-col :span="12">
                   <AppInput
-                    v-model="form.father_name"
-                    label="ឈ្មោះខ្មែរ"
-                    placeholder="ឈ្មោះខ្មែរ"
+                    v-model="fmy.father_name"
+                    label="ឈ្មោះខ្មែរឪពុក"
+                    placeholder="ឈ្មោះខ្មែរឪពុក"
                     clearable
                   />
                   </el-col>
                   <el-col :span="12">
                     <AppInput
-                    v-model="form.father_english_name"
-                    label="ឈ្មោះឡាតាំង"
-                    placeholder="ឈ្មោះឡាតាំង"
+                    v-model="fmy.father_english_name"
+                    label="ឈ្មោះឡាតាំងឪពុក"
+                    placeholder="ឈ្មោះឡាតាំងឪពុក"
                     clearable
                   />
                   </el-col>
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="12">
-                   <el-form-item label="អាយុៈ">
+                   <el-form-item label="អាយុៈឪពុក">
                     <el-input-number
-                      v-model="form.father_age"
+                      v-model="fmy.father_age"
                       :min="1"
                       :max="200"
                       style="width: 100%"
@@ -1118,8 +1127,8 @@ onMounted(() => {
                   </el-col>
                   <el-col :span="12">
                <AppInput
-                    v-model="form.father_phone_number"
-                    label="លេខទូរសព្ទ"
+                    v-model="fmy.father_phone_number"
+                    label="លេខទូរសព្ទឪពុក"
                     placeholder="លេខទូរសព្ទ"
                     type="number"
                     clearable
@@ -1129,49 +1138,49 @@ onMounted(() => {
                 <el-row :gutter="20">
                   <el-col :span="8">
                   <AppInput
-                    v-model="form.father_occupation"
-                    label="មុខរបរ"
-                    placeholder="មុខរបរ"
+                    v-model="fmy.father_occupation"
+                    label="មុខរបរឪពុក"
+                    placeholder="មុខរបរឪពុក"
                     clearable
                   />
                   </el-col>
                   <el-col :span="8">
                   <AppInput
-                    v-model="form.father_workplace"
-                    label="កន្លែងធ្វេីការ"
-                    placeholder="កន្លែងធ្វេីការ"
+                    v-model="fmy.father_workplace"
+                    label="កន្លែងធ្វេីការឪពុក"
+                    placeholder="កន្លែងធ្វេីការឪពុក"
                     clearable
                   />
                   </el-col>
                   <el-col :span="8">
                   <el-form-item label="នៅមានជីវិត">
-                    <el-switch v-model="form.father_is_alive" />
+                    <el-switch v-model="fmy.father_is_alive" />
                   </el-form-item>
                   </el-col>
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="12">
                   <AppInput
-                    v-model="form.mother_name"
-                    label="ឈ្មោះខ្មែរ"
-                    placeholder="ឈ្មោះខ្មែរ"
+                    v-model="fmy.mother_name"
+                    label="ឈ្មោះខ្មែរម្ដាយ"
+                    placeholder="ឈ្មោះខ្មែរម្ដាយ"
                     clearable
                   />
                   </el-col>
                   <el-col :span="12">
                   <AppInput
-                    v-model="form.mother_english_name"
-                    label="ឈ្មោះឡាតាំង"
-                    placeholder="ឈ្មោះឡាតាំង"
+                    v-model="fmy.mother_english_name"
+                    label="ឈ្មោះឡាតាំងម្ដាយ"
+                    placeholder="ឈ្មោះឡាតាំងម្ដាយ"
                     clearable
                   />
                   </el-col>
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="12">
-                  <el-form-item label="អាយុៈ">
+                  <el-form-item label="អាយុៈម្ដាយ">
                     <el-input-number
-                      v-model="form.mother_age"
+                      v-model="fmy.mother_age"
                       :min="1"
                       :max="200"
                       style="width: 100%"
@@ -1180,9 +1189,9 @@ onMounted(() => {
                   </el-col>
                   <el-col :span="12">
                   <AppInput
-                    v-model="form.mother_phone_number"
-                    label="លេខទូរសព្ទ"
-                    placeholder="លេខទូរសព្ទ"
+                    v-model="fmy.mother_phone_number"
+                    label="លេខទូរសព្ទម្ដាយ"
+                    placeholder="លេខទូរសព្ទម្ដាយ"
                     type="number"
                     clearable
                   />
@@ -1191,167 +1200,27 @@ onMounted(() => {
                 <el-row :gutter="20">
                   <el-col :span="8">
                   <AppInput
-                    v-model="form.mother_occupation"
-                    label="មុខរបរ"
-                    placeholder="មុខរបរ"
+                    v-model="fmy.mother_occupation"
+                    label="មុខរបរម្ដាយ"
+                    placeholder="មុខរបរម្ដាយ"
                     clearable
                   />
                   </el-col>
                   <el-col :span="8">
                   <AppInput
-                    v-model="form.mother_workplace"
-                    label="កន្លែងធ្វេីការ"
-                    placeholder="កន្លែងធ្វេីការ"
+                    v-model="fmy.mother_workplace"
+                    label="កន្លែងធ្វេីការម្ដាយ"
+                    placeholder="កន្លែងធ្វេីការម្ដាយ"
                     clearable
                   />
                   </el-col>
                   <el-col :span="8">
                       <el-form-item label="នៅមានជីវិត">
-                    <el-switch v-model="form.mother_is_alive" />
+                    <el-switch v-model="fmy.mother_is_alive" />
                   </el-form-item>
                   </el-col>
                 </el-row>
               </el-card>
-            </el-card>
-          </template>
-
-          <template #fother>
-            <el-card class="section-card" shadow="never">
-              <template #header>ព័ត៏មានឪពុក</template>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.father_name"
-                    label="ឈ្មោះខ្មែរ"
-                    placeholder="ឈ្មោះខ្មែរ"
-                    clearable
-                  />
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.father_english_name"
-                    label="ឈ្មោះឡាតាំង"
-                    placeholder="ឈ្មោះឡាតាំង"
-                    clearable
-                  />
-                </el-col>
-              </el-row>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="អាយុៈ">
-                    <el-input-number
-                      v-model="form.father_age"
-                      :min="1"
-                      :max="200"
-                      style="width: 100%"
-                    />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.father_phone_number"
-                    label="លេខទូរសព្ទ"
-                    placeholder="លេខទូរសព្ទ"
-                    type="number"
-                    clearable
-                  />
-                </el-col>
-              </el-row>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.father_occupation"
-                    label="មុខរបរ"
-                    placeholder="មុខរបរ"
-                    clearable
-                  />
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.father_workplace"
-                    label="កន្លែងធ្វេីការ"
-                    placeholder="កន្លែងធ្វេីការ"
-                    clearable
-                  />
-                </el-col>
-              </el-row>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="នៅមានជីវិត">
-                    <el-switch v-model="form.father_is_alive" />
-                  </el-form-item>
-                </el-col>
-              </el-row>
-            </el-card>
-          </template>
-
-          <template #mother>
-            <el-card class="section-card" shadow="never">
-              <template #header>ព័ត៏មានឪពុក</template>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.mother_name"
-                    label="ឈ្មោះខ្មែរ"
-                    placeholder="ឈ្មោះខ្មែរ"
-                    clearable
-                  />
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.mother_english_name"
-                    label="ឈ្មោះឡាតាំង"
-                    placeholder="ឈ្មោះឡាតាំង"
-                    clearable
-                  />
-                </el-col>
-              </el-row>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="អាយុៈ">
-                    <el-input-number
-                      v-model="form.mother_age"
-                      :min="1"
-                      :max="200"
-                      style="width: 100%"
-                    />
-                  </el-form-item>
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.mother_phone_number"
-                    label="លេខទូរសព្ទ"
-                    placeholder="លេខទូរសព្ទ"
-                    type="number"
-                    clearable
-                  />
-                </el-col>
-              </el-row>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.mother_occupation"
-                    label="មុខរបរ"
-                    placeholder="មុខរបរ"
-                    clearable
-                  />
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
-                    v-model="form.mother_workplace"
-                    label="កន្លែងធ្វេីការ"
-                    placeholder="កន្លែងធ្វេីការ"
-                    clearable
-                  />
-                </el-col>
-              </el-row>
-              <el-row :gutter="20">
-                <el-col :span="12">
-                  <el-form-item label="នៅមានជីវិត">
-                    <el-switch v-model="form.mother_is_alive" />
-                  </el-form-item>
-                </el-col>
-              </el-row>
             </el-card>
           </template>
         </AppTabs>

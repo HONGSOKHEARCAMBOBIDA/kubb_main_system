@@ -68,20 +68,5 @@ type StudentRequestUpdate struct {
 
 	StudentEducationRequestUpdate []StudentEducationRequestCreate `json:"student_educations" validate:"omitempty,dive"`
 	StudentDocumentRequestUpdate  []StudentDocumentRequestCreate  `json:"student_documents" validate:"omitempty,dive"`
-
-	FatherName        string `json:"father_name" validate:"omitempty,min=2,max=150"`
-	FatherEnglishName string `json:"father_english_name" validate:"omitempty,min=2,max=150"`
-	FatherAge         int    `json:"father_age" validate:"omitempty,gt=0,lte=200"`
-	FatherIsAlive     bool   `json:"father_is_alive"`
-	FatherPhoneNumber string `json:"father_phone_number" validate:"omitempty,min=2,max=150"`
-	FatherOccupation  string `json:"father_occupation" validate:"omitempty,min=2,max=150"`
-	FatherWorkplace   string `json:"father_workplace" validate:"omitempty,min=2,max=150"`
-
-	MotherName        string `json:"mother_name" validate:"omitempty,min=2,max=150"`
-	MotherEnglishName string `json:"mother_english_name" validate:"omitempty,min=2,max=150"`
-	MotherAge         int    `json:"mother_age" validate:"omitempty,gt=0,lte=200"`
-	MotherIsAlive     bool   `json:"mother_is_alive"`
-	MotherPhoneNumber string `json:"mother_phone_number" validate:"omitempty,min=2,max=150"`
-	MotherOccupation  string `json:"mother_occupation" validate:"omitempty,min=2,max=150"`
-	MotherWorkplace   string `json:"mother_workplace" validate:"omitempty,min=2,max=150"`
+	StudentFamilyRequestUpdate    []StudentFamilyRequestCreate    `json:"student_family" validate:"omitempty,dive"`
 }

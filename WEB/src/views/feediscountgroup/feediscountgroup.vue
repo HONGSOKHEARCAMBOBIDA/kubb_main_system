@@ -1,11 +1,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import {
-  getFeediscountGroup,
+import { getFeediscountGroup,
+
   createFeediscountGroup,
   updateFeediscountGroup,
-  toggleFeediscountGroup,
-} from '../../services/feeDiscountGroup.service.js'
+  toggleFeediscountGroup
+ } from '../../services/feediscountgroup.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppButton from '../../components/button/AppButton.vue'

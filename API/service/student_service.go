@@ -80,28 +80,35 @@ func (s *studentService) UpdateStudent(ctx context.Context, studentID int, input
 			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
 		}
 
-		family := model.StudentFamily{
-			FatherName:        input.FatherName,
-			FatherEnglishName: input.FatherEnglishName,
-			FatherAge:         input.FatherAge,
-			FatherIsAlive:     input.FatherIsAlive,
-			FatherPhoneNumber: input.FatherPhoneNumber,
-			FatherOccupation:  input.FatherOccupation,
-			FatherWorkplace:   input.FatherWorkplace,
-			MotherName:        input.MotherName,
-			MotherEnglishName: input.MotherEnglishName,
-			MotherAge:         input.MotherAge,
-			MotherIsAlive:     input.MotherIsAlive,
-			MotherPhoneNumber: input.MotherPhoneNumber,
-			MotherOccupation:  input.MotherOccupation,
-			MotherWorkplace:   input.MotherWorkplace,
+		if err := tx.Where("student_id = ?", student.ID).
+			Delete(&model.StudentFamily{}).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to clear student educations", nil)
 		}
 
-		if err := tx.Model(&model.StudentFamily{}).
-			Where("student_id = ?", student.ID).
-			Assign(family).
-			FirstOrCreate(&model.StudentFamily{StudentID: student.ID}).Error; err != nil {
-			return apperror.New(apperror.CodeInternal, "failed to update student family", nil)
+		if len(input.StudentFamilyRequestUpdate) > 0 {
+			family := make([]model.StudentFamily, 0, len(input.StudentFamilyRequestUpdate))
+			for _, f := range input.StudentFamilyRequestUpdate {
+				family = append(family, model.StudentFamily{
+					StudentID:         student.ID,
+					FatherName:        f.FatherName,
+					FatherEnglishName: f.FatherEnglishName,
+					FatherAge:         f.FatherAge,
+					FatherIsAlive:     f.FatherIsAlive,
+					FatherPhoneNumber: f.FatherPhoneNumber,
+					FatherOccupation:  f.FatherOccupation,
+					FatherWorkplace:   f.FatherWorkplace,
+					MotherName:        f.MotherName,
+					MotherEnglishName: f.MotherEnglishName,
+					MotherAge:         f.MotherAge,
+					MotherIsAlive:     f.MotherIsAlive,
+					MotherPhoneNumber: f.MotherPhoneNumber,
+					MotherOccupation:  f.MotherOccupation,
+					MotherWorkplace:   f.MotherWorkplace,
+				})
+			}
+			if err := tx.Save(&family).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to update student family", nil)
+			}
 		}
 
 		// Replace educations

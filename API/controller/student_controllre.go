@@ -99,7 +99,7 @@ func (cr *StudentController) UpdateStudent(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	log.Printf("Update request: %+v", input)
+	//log.Printf("Update request: %+v", input)
 	if err := cr.service.UpdateStudent(c.Request.Context(), id, input, userID); err != nil {
 		share.RespondServiceError(c, err)
 		return
