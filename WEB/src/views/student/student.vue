@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { createStudent, getStudent } from '../../services/student.service'
+import { createStudent, getStudent, updateStudent } from '../../services/student.service'
 import { getFeediscountGroup } from '../../services/feediscountgroup.service'
 import { getProvince, getDistrict, getCommunce, getVillage } from '../../services/location.service'
 import { getAcademicStream } from '../../services/academic_stream'
@@ -14,6 +14,10 @@ import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppTabs from '../../components/tap/AppTabs.vue'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppFilterBar from '../../components/common/AppFilterBar.vue'
+
+// Update state
+const isEditMode = ref(false)
+const editingId = ref(null)
 
 // List state
 const students = ref([])
@@ -52,15 +56,15 @@ const statusOptions = [
 ]
 
 const columns = [
-  { prop: 'code', label: 'លេខកូដ', width: 120 },
-  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ' },
-  { prop: 'name_en', label: 'ឈ្មោះឡាតាំង' },
-  { prop: 'gender', label: 'ភេទ', slot: 'gender', width: 90 },
-  { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', width: 130 },
-  { prop: 'phone', label: 'លេខទូរសព្ទ', width: 130 },
-  { prop: 'group_name', label: 'ក្រុមបញ្ចុះតម្លៃ', width: 150 },
-  { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', width: 130 },
-  { prop: 'status', label: 'ស្ថានភាព', width: 100 },
+  { prop: 'code', label: 'លេខកូដ', minwidth: 120 },
+  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ',minwidth: 200 },
+  { prop: 'name_en', label: 'ឈ្មោះឡាតាំង',minwidth: 200  },
+  { prop: 'gender', label: 'ភេទ', slot: 'gender', minwidth: 90 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', minwidth: 130 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 130 },
+  { prop: 'group_name', label: 'ក្រុមបញ្ចុះតម្លៃ', minwidth: 150 },
+  { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', minwidth: 130 },
+  { prop: 'status', label: 'ស្ថានភាព', minwidth: 350,slot:'status' },
 ]
 
 const columneducationdetail = [
@@ -77,15 +81,167 @@ const columneducationdetail = [
   { prop: 'distirct_name', label: 'ស្រុក', width: 120 },
   { prop: 'province_name', label: 'ខេត្ត', width: 120 },
 ]
+
+const columndocumentdetail = [
+  {prop: 'document_type_name_kh',label: 'ប្រភេទឯកសារ',minwidth:200},
+  {prop: 'required_qty',label: 'ចំនួនត្រូវការ',minwidth:200},
+  {prop: 'received_qty',label: 'ចំនួនបានប្រគល់ជួន',minwidth:200},
+  {prop: 'remark',label: 'កត់ចំណាំផ្សេងៗ',minwidth:200},
+]
+
+function resetForm() {
+  form.group_id = null
+  form.name_kh = ''
+  form.name_en = ''
+  form.date_of_birth = null
+  form.gender = null
+  form.nationality = ''
+  form.phone = ''
+  form.occupation = ''
+  form.academic_stream_id = null
+  form.father_name = ''
+  form.father_english_name = ''
+  form.father_age = ''
+  form.father_phone_number = ''
+  form.father_occupation = ''
+  form.father_workplace = ''
+  form.father_is_alive = null
+  form.mother_name = ''
+  form.mother_english_name = ''
+  form.mother_age = ''
+  form.mother_phone_number = ''
+  form.mother_occupation = ''
+  form.mother_workplace = ''
+  form.mother_is_alive = null
+  formRef.value?.resetFields()
+  form.village_id = null
+  form.student_educations = []
+  form.student_documents = []
+  eduLocations.splice(0, eduLocations.length)
+  formProvinceID.value = null
+  formDistrictID.value = null
+  formCommunceID.value = null
+  formDistrictOptions.value = []
+  formCommunceOptions.value = []
+  formVillageOptions.value = []
+}
+
 const dialogVisible = ref(false)
 
 function openCreate() {
+  isEditMode.value = false
+  editingId.value = null
   resetForm()
+  dialogVisible.value = true
+}
+
+async function openEdit(row) {
+  isEditMode.value = true
+  editingId.value = row.id
+  resetForm()
+
+  // --- General info ---
+  form.group_id = row.group_id
+  form.name_kh = row.name_kh
+  form.name_en = row.name_en
+  form.date_of_birth = row.date_of_birth
+  form.gender = row.gender
+  form.nationality = row.nationality
+  form.phone = row.phone
+  form.village_id = row.village_id
+  form.occupation = row.occupation
+  form.academic_stream_id = row.academic_stream_id
+
+  // --- Address cascade prefill ---
+  formProvinceID.value = row.province_id ?? null
+  formDistrictID.value = row.district_id ?? null
+  formCommunceID.value = row.communce_id ?? null
+  if (formProvinceID.value) {
+    formDistrictOptions.value = await loadDistrictOption(formProvinceID.value)
+  }
+  if (formDistrictID.value) {
+    formCommunceOptions.value = await loadCommunceOption(formDistrictID.value)
+  }
+  if (formCommunceID.value) {
+    formVillageOptions.value = await loadVillageOption(formCommunceID.value)
+  }
+
+  // --- Father / Mother (student_family) ---
+  const fam = (row.student_family && row.student_family[0]) || {}
+  form.father_name = fam.father_name || ''
+  form.father_english_name = fam.father_english_name || ''
+  form.father_age = fam.father_age ?? null
+  form.father_is_alive = fam.father_is_alive ?? true
+  form.father_phone_number = fam.father_phone_number || ''
+  form.father_occupation = fam.father_occupation || ''
+  form.father_workplace = fam.father_workplace || ''
+
+  form.mother_name = fam.mother_name || ''
+  form.mother_english_name = fam.mother_english_name || ''
+  form.mother_age = fam.mother_age ?? null
+  form.mother_is_alive = fam.mother_is_alive ?? true
+  form.mother_phone_number = fam.mother_phone_number || ''
+  form.mother_occupation = fam.mother_occupation || ''
+  form.mother_workplace = fam.mother_workplace || ''
+
+  // --- Educations ---
+  form.student_educations = []
+  eduLocations.splice(0, eduLocations.length)
+  const educations = row.student_educations || []
+  for (const e of educations) {
+    form.student_educations.push({
+      level: e.level || '',
+      school_name: e.school_name || '',
+      village_id: e.village_id ?? null,
+      start_date: e.start_date || '',
+      end_date: e.end_date || '',
+      cerificate_date: e.cerificate_date || '',
+      score: e.score || '',
+      gpa: e.gpa || '',
+      grade: e.grade || '',
+    })
+
+    const loc = {
+      province_id: e.province_id ?? null,
+      district_id: e.district_id ?? null,
+      commune_id: e.communce_id ?? null,
+      provinceOptions: formProvinceOptions.value,
+      districtOptions: [],
+      communeOptions: [],
+      villageOptions: [],
+    }
+    if (loc.province_id) loc.districtOptions = await loadDistrictOption(loc.province_id)
+    if (loc.district_id) loc.communeOptions = await loadCommunceOption(loc.district_id)
+    if (loc.commune_id) loc.villageOptions = await loadVillageOption(loc.commune_id)
+    eduLocations.push(loc)
+  }
+  // if (educations.length === 0) {
+  //   newEducationRow()
+  // }
+
+  // --- Documents ---
+  form.student_documents = []
+  const documents = row.student_documents || []
+  for (const d of documents) {
+    form.student_documents.push({
+      document_type_id: d.document_type_id ?? null,
+      required_qty: d.required_qty ?? 1,
+      received_qty: d.received_qty ?? 1,
+      remark: d.remark || '',
+    })
+  }
+  // if (documents.length === 0) {
+  //   newDocumentRow()
+  // }
+
+  activeTab.value = 'general'
   dialogVisible.value = true
 }
 
 function closeDialog() {
   dialogVisible.value = false
+  isEditMode.value = false
+  editingId.value = null
 }
 
 async function fetchStudent() {
@@ -382,23 +538,6 @@ function removeDocumentRow(index) {
   form.student_documents.splice(index, 1)
 }
 
-// ---------------------------------------------------------------------------
-// Submit
-// ---------------------------------------------------------------------------
-function resetForm() {
-  formRef.value?.resetFields()
-  form.village_id = null
-  form.student_educations = []
-  form.student_documents = []
-  eduLocations.splice(0, eduLocations.length)
-  formProvinceID.value = null
-  formDistrictID.value = null
-  formCommunceID.value = null
-  formDistrictOptions.value = []
-  formCommunceOptions.value = []
-  formVillageOptions.value = []
-}
-
 async function handleSubmit() {
   if (!formRef.value) return
   const valid = await formRef.value.validate().catch(() => false)
@@ -406,13 +545,24 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    await createStudent(form)
-    notify.success('Student created successfully')
+    if (isEditMode.value) {
+      await updateStudent(editingId.value, form)
+      //notify.success('Student updated successfully')
+    } else {
+      await createStudent(form)
+      //notify.success('Student created successfully')
+    }
     dialogVisible.value = false
     resetForm()
+    isEditMode.value = false
+    editingId.value = null
     fetchStudent()
   } catch (e) {
-    notify.error(e?.response?.data?.message || e.message || 'Failed to create student')
+    notify.error(
+      e?.response?.data?.message ||
+        e.message ||
+        (isEditMode.value ? 'Failed to update student' : 'Failed to create student')
+    )
   } finally {
     submitting.value = false
   }
@@ -434,8 +584,8 @@ onMounted(() => {
   fetchGroupOptions()
   fetchAcademicStreamOptions()
   fetchDocumentTypeOptions()
-  newEducationRow()
-  newDocumentRow()
+  // newEducationRow()
+  // newDocumentRow()
   fetchStudent()
 })
 </script>
@@ -470,30 +620,34 @@ onMounted(() => {
       </template>
 
       <template #status="{ row }">
-        <el-tag :type="row.status === 'active' ? 'success' : 'danger'">
-          {{ row.status === 'active' ? 'សកម្ម' : 'អសកម្ម' }}
-        </el-tag>
+        <el-text tag="b" style="color: darkcyan;">
+          {{ row.status }}
+        </el-text>
       </template>
 
       <template #actions="{ row }">
         <el-tooltip content="មើលព័ត៌មានលម្អិត" placement="top">
           <AppButton
-            icon="Document"
+            icon="View"
             circle
             size="small"
-            type="default"
+            type="success"
             plain
             @click="openDetail(row)"
           />
+        </el-tooltip>
+        <el-tooltip content="កែប្រែ" placement="top">
+          <AppButton icon="Edit" circle size="small" type="warning" plain @click="openEdit(row)" />
         </el-tooltip>
       </template>
     </TableCustom>
     <AppDialog
       v-if="dialogVisible"
       v-model:visible="dialogVisible"
-      title="បង្កេីតនិស្សិតថ្មី"
+      :title="isEditMode ? 'កែប្រែព័ត៌មាននិស្សិត' : 'បង្កេីតនិស្សិតថ្មី'"
       :showDefaultFooter="false"
       width="50%"
+      @close="closeDialog"
     >
       <AppForm
         ref="formRef"
@@ -502,9 +656,7 @@ onMounted(() => {
         :loading="submitting"
         :show-actions="true"
         @submit="handleSubmit"
-        @reset="resetForm"
         submitText="រក្សាទុក"
-        resetText="ចាកចេញ"
       >
         <AppTabs
           v-model="activeTap"
@@ -1046,8 +1198,7 @@ onMounted(() => {
           </div>
 
           <section class="a4-section">
-                   <el-text tag="b" style="color: darkcyan" class="pb-5">ព័ត៌មានទូទៅ
-        </el-text> 
+            <el-text tag="b" style="color: darkcyan" class="pb-5">ព័ត៌មានទូទៅ </el-text>
             <div class="a4-grid">
               <div><span class="a4-label">ឈ្មោះខ្មែរ</span> {{ detailStudent.name_kh }}</div>
               <div><span class="a4-label">ឈ្មោះឡាតាំង</span> {{ detailStudent.name_en }}</div>
@@ -1086,9 +1237,7 @@ onMounted(() => {
           </section>
 
           <section class="a4-section">
-            <el-text tag="b" style="color: darkcyan" class="pb-5">
-         ព័ត៌មានឪពុកម្ដាយ
-        </el-text>
+            <el-text tag="b" style="color: darkcyan" class="pb-5"> ព័ត៌មានឪពុកម្ដាយ </el-text>
             <div v-for="fam in detailStudent.student_family" :key="fam.id" class="a4-grid">
               <div><span class="a4-label">ឈ្មោះឪពុក</span> {{ fam.father_name || '-' }}</div>
               <div><span class="a4-label">អាយុឪពុក</span> {{ fam.father_age || '-' }}</div>
@@ -1113,40 +1262,25 @@ onMounted(() => {
           </section>
 
           <section class="a4-section">
-              <el-text tag="b" style="color: darkcyan" class="pb-5">ការសិក្សា
-        </el-text>
-           
-            <TableCustom :data="detailStudent.student_educations" :columns="columneducationdetail" :show-pagination="false">
+            <el-text tag="b" style="color: darkcyan" class="pb-5">ការសិក្សា </el-text>
 
+            <TableCustom
+              :data="detailStudent.student_educations"
+              :columns="columneducationdetail"
+              :show-pagination="false"
+            >
             </TableCustom>
           </section>
 
           <section class="a4-section">
-                 <el-text tag="b" style="color: darkcyan">ឯកសារប្រគល់ជូន
-        </el-text>
-            <table class="a4-table">
-              <thead>
-                <tr>
-                  <th>ប្រភេទឯកសារ</th>
-                  <th>ត្រូវការ</th>
-                  <th>ទទួលបាន</th>
-                  <th>សម្គាល់</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="doc in detailStudent.student_documents" :key="doc.id">
-                  <td>{{ doc.document_type_name_kh }}</td>
-                  <td>{{ doc.required_qty }}</td>
-                  <td>{{ doc.received_qty }}</td>
-                  <td>{{ doc.remark || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <el-empty
-              v-if="!detailStudent.student_documents?.length"
-              description="គ្មានទិន្នន័យ"
-              :image-size="40"
-            />
+            <el-text tag="b" style="color: darkcyan">ឯកសារប្រគល់ជូន </el-text>
+            <TableCustom
+              :data="detailStudent.student_documents"
+              :columns="columndocumentdetail"
+              :show-pagination="false"
+            >
+            </TableCustom>            
+            
           </section>
         </div>
       </div>

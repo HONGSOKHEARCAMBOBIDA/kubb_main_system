@@ -4,7 +4,7 @@ import "mysql/model/base"
 
 type Student struct {
 	base.ModelBase
-	base.UUIDBase
+	//	base.UUIDBase
 	GroupID          int     `json:"group_id" gorm:"column:group_id"`
 	Code             string  `json:"code" gorm:"column:code"`
 	UserName         string  `json:"username" gorm:"column:username"`

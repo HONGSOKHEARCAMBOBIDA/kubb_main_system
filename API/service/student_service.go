@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"mysql/config"
@@ -23,6 +25,7 @@ var studentValidator = validator.New()
 type StudentService interface {
 	CreateStudent(ctx context.Context, input request.StudentRequestCreate) error
 	GetStudent(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.StudentResponse, *model.PaginationMetadata, error)
+	UpdateStudent(ctx context.Context, studentID int, input request.StudentRequestUpdate, id int) error
 }
 
 type studentService struct {
@@ -35,6 +38,126 @@ func NewStudentService() StudentService {
 	}
 }
 
+func (s *studentService) UpdateStudent(ctx context.Context, studentID int, input request.StudentRequestUpdate, id int) error {
+	input.NameKh = strings.TrimSpace(input.NameKh)
+	input.NameEn = strings.TrimSpace(input.NameEn)
+	input.Phone = strings.TrimSpace(input.Phone)
+	input.Nationality = strings.TrimSpace(input.Nationality)
+	var user model.User
+	if err := s.db.WithContext(ctx).First(&user, id).Error; err != nil {
+		return err
+	}
+
+	newStatus := fmt.Sprintf("Update by %s", user.NameKh)
+
+	if err := studentValidator.Struct(input); err != nil {
+		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var student model.Student
+		if err := tx.First(&student, studentID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "student not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch student", nil)
+		}
+
+		student.GroupID = input.GroupID
+		student.NameKh = input.NameKh
+		student.NameEn = input.NameEn
+		student.DateOfBirth = input.DateOfBirth
+		student.Gender = input.Gender
+		student.Nationality = input.Nationality
+		student.Phone = input.Phone
+		student.VillageID = input.VillageID
+		student.Occupation = input.Occupation
+		student.AcademicStreamID = input.AcademicStreamID
+		student.Status = newStatus
+		if err := tx.Save(&student).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+
+		family := model.StudentFamily{
+			FatherName:        input.FatherName,
+			FatherEnglishName: input.FatherEnglishName,
+			FatherAge:         input.FatherAge,
+			FatherIsAlive:     input.FatherIsAlive,
+			FatherPhoneNumber: input.FatherPhoneNumber,
+			FatherOccupation:  input.FatherOccupation,
+			FatherWorkplace:   input.FatherWorkplace,
+			MotherName:        input.MotherName,
+			MotherEnglishName: input.MotherEnglishName,
+			MotherAge:         input.MotherAge,
+			MotherIsAlive:     input.MotherIsAlive,
+			MotherPhoneNumber: input.MotherPhoneNumber,
+			MotherOccupation:  input.MotherOccupation,
+			MotherWorkplace:   input.MotherWorkplace,
+		}
+
+		if err := tx.Model(&model.StudentFamily{}).
+			Where("student_id = ?", student.ID).
+			Assign(family).
+			FirstOrCreate(&model.StudentFamily{StudentID: student.ID}).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student family", nil)
+		}
+
+		// Replace educations
+		if err := tx.Where("student_id = ?", student.ID).
+			Delete(&model.StudentEducation{}).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to clear student educations", nil)
+		}
+		if len(input.StudentEducationRequestUpdate) > 0 {
+			educations := make([]model.StudentEducation, 0, len(input.StudentEducationRequestUpdate))
+			for _, e := range input.StudentEducationRequestUpdate {
+				educations = append(educations, model.StudentEducation{
+					StudentID:       student.ID,
+					Level:           e.Level,
+					SchoolName:      e.SchoolName,
+					VillageID:       e.VillageID,
+					StartDate:       e.StartDate,
+					EndDate:         e.EndDate,
+					CertificateDate: e.CertificateDate,
+					Score:           e.Score,
+					Gpa:             e.Gpa,
+					Grade:           e.Grade,
+				})
+			}
+			if err := tx.Create(&educations).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to create student educations", nil)
+			}
+		}
+
+		// Replace documents
+		if err := tx.Where("student_id = ?", student.ID).
+			Delete(&model.StudentDocument{}).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to clear student documents", nil)
+		}
+		if len(input.StudentDocumentRequestUpdate) > 0 {
+			documents := make([]model.StudentDocument, 0, len(input.StudentDocumentRequestUpdate))
+			for _, d := range input.StudentDocumentRequestUpdate {
+				documents = append(documents, model.StudentDocument{
+					StudentID:      student.ID,
+					DocumentTypeID: d.DocumentTypeID,
+					RequiredQty:    d.RequiredQty,
+					RecieveQty:     d.RecieveQty,
+					Remark:         d.Remark,
+				})
+			}
+			if err := tx.Create(&documents).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to create student document", nil)
+			}
+		}
+
+		return nil
+	})
+
+	return err
+}
+
 func (s *studentService) CreateStudent(ctx context.Context, input request.StudentRequestCreate) error {
 	input.NameKh = strings.TrimSpace(input.NameKh)
 	input.NameEn = strings.TrimSpace(input.NameEn)
@@ -43,6 +166,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 	username := strings.ToLower(input.NameEn)
 	email := helper.GenerateEmail(username, 168)
 	if err := studentValidator.Struct(input); err != nil {
+		log.Println("VALIDATION ERROR:", err.Error())
 		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
 	}
 
@@ -180,7 +304,6 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 	dataQuery := applyFilters(base()).
 		Select(`
 			s.id AS id,
-			s.uuid AS uuid,
 			f.id AS group_id,
 			f.code AS group_code,
 			f.name AS group_name,

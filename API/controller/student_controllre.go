@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"log"
+
 	"mysql/constant/share"
 	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
+	"mysql/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,10 +28,11 @@ func NewStudentController() StudentController {
 func (cr *StudentController) CreateStudent(c *gin.Context) {
 	var input request.StudentRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Printf("CreateStudent request: %+v", input)
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	log.Printf("CreateStudent request: %+v", input)
+
 	if err := cr.service.CreateStudent(c.Request.Context(), input); err != nil {
 		share.RespondServiceError(c, err)
 		return
@@ -44,24 +47,62 @@ func (cr *StudentController) GetStudent(c *gin.Context) {
 		"name": c.Query("name"),
 	}
 
-	data, meta, err := cr.service.GetStudent(c.Request.Context(), request.Pagination{
-		Page:     page,
-		PageSize: pageSize,
-	}, filter)
-	for i := range data {
-		data[i].DateOfBirth = helper.FormatDate(data[i].DateOfBirth)
-		data[i].StudentEducation[i].StartDate = helper.FormatDate(data[i].StudentEducation[i].StartDate)
-		data[i].StudentEducation[i].EndDate = helper.FormatDate(data[i].StudentEducation[i].EndDate)
-		data[i].StudentEducation[i].CertificateDate = helper.FormatDate(data[i].StudentEducation[i].CertificateDate)
-	}
+	data, meta, err := cr.service.GetStudent(
+		c.Request.Context(),
+		request.Pagination{
+			Page:     page,
+			PageSize: pageSize,
+		},
+		filter,
+	)
 
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(err, context.Canceled) {
 			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
 			return
 		}
+
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	share.ResponsePagination(c, 200, data, meta)
+
+	for i := range data {
+		data[i].DateOfBirth = helper.FormatDate(data[i].DateOfBirth)
+		for j := range data[i].StudentEducation {
+			data[i].StudentEducation[j].StartDate =
+				helper.FormatDate(data[i].StudentEducation[j].StartDate)
+
+			data[i].StudentEducation[j].EndDate =
+				helper.FormatDate(data[i].StudentEducation[j].EndDate)
+
+			data[i].StudentEducation[j].CertificateDate =
+				helper.FormatDate(data[i].StudentEducation[j].CertificateDate)
+		}
+	}
+
+	share.ResponsePagination(c, http.StatusOK, data, meta)
+}
+
+func (cr *StudentController) UpdateStudent(c *gin.Context) {
+	id, ok := utils.GetParamID(c)
+	if !ok {
+		return
+	}
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		return
+	}
+
+	var input request.StudentRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	log.Printf("Update request: %+v", input)
+	if err := cr.service.UpdateStudent(c.Request.Context(), id, input, userID); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
 }
