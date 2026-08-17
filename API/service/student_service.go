@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"mysql/config"
@@ -73,7 +72,7 @@ func (s *studentService) UpdateStudent(ctx context.Context, studentID int, input
 		student.Gender = input.Gender
 		student.Nationality = input.Nationality
 		student.Phone = input.Phone
-		student.VillageID = input.VillageID
+		student.VillageID = &input.VillageID
 		student.Occupation = input.Occupation
 		student.AcademicStreamID = input.AcademicStreamID
 		student.Status = newStatus
@@ -166,7 +165,6 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 	username := strings.ToLower(input.NameEn)
 	email := helper.GenerateEmail(username, 168)
 	if err := studentValidator.Struct(input); err != nil {
-		log.Println("VALIDATION ERROR:", err.Error())
 		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
 	}
 
@@ -185,27 +183,10 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 		Nationality:      input.Nationality,
 		Phone:            input.Phone,
 		Status:           share.Created,
-		VillageID:        input.VillageID,
+		VillageID:        &input.VillageID,
 		Occupation:       input.Occupation,
 		AcademicStreamID: input.AcademicStreamID,
 		TelegramUsername: nil,
-	}
-
-	family := model.StudentFamily{
-		FatherName:        input.FatherName,
-		FatherEnglishName: input.FatherEnglishName,
-		FatherAge:         input.FatherAge,
-		FatherIsAlive:     input.FatherIsAlive,
-		FatherPhoneNumber: input.FatherPhoneNumber,
-		FatherOccupation:  input.FatherOccupation,
-		FatherWorkplace:   input.FatherWorkplace,
-		MotherName:        input.MotherName,
-		MotherEnglishName: input.MotherEnglishName,
-		MotherAge:         input.MotherAge,
-		MotherIsAlive:     input.MotherIsAlive,
-		MotherPhoneNumber: input.MotherPhoneNumber,
-		MotherOccupation:  input.MotherOccupation,
-		MotherWorkplace:   input.MotherWorkplace,
 	}
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -219,9 +200,30 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 			return apperror.New(apperror.CodeInternal, "faild to update code", nil)
 		}
 
-		family.StudentID = student.ID
-		if err := tx.Create(&family).Error; err != nil {
-			return apperror.New(apperror.CodeInternal, "failed to create student family", nil)
+		if len(input.StudentFamilyRequestCreate) > 0 {
+			family := make([]model.StudentFamily, 0, len(input.StudentFamilyRequestCreate))
+			for _, f := range input.StudentFamilyRequestCreate {
+				family = append(family, model.StudentFamily{
+					StudentID:         student.ID,
+					FatherName:        f.FatherName,
+					FatherEnglishName: f.FatherEnglishName,
+					FatherAge:         f.FatherAge,
+					FatherIsAlive:     f.FatherIsAlive,
+					FatherPhoneNumber: f.FatherPhoneNumber,
+					FatherOccupation:  f.FatherOccupation,
+					FatherWorkplace:   f.FatherWorkplace,
+					MotherName:        f.MotherName,
+					MotherEnglishName: f.MotherEnglishName,
+					MotherAge:         f.MotherAge,
+					MotherIsAlive:     f.MotherIsAlive,
+					MotherPhoneNumber: f.MotherPhoneNumber,
+					MotherOccupation:  f.MotherOccupation,
+					MotherWorkplace:   f.MotherWorkplace,
+				})
+			}
+			if err := tx.Create(&family).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to create student family", nil)
+			}
 		}
 
 		if len(input.StudentEducationRequestCreate) > 0 {

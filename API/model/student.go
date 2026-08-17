@@ -17,7 +17,7 @@ type Student struct {
 	Nationality      string  `json:"nationality" gorm:"column:nationality"`
 	Phone            string  `json:"phone" gorm:"column:phone"`
 	Status           string  `json:"status" gorm:"column:status"`
-	VillageID        int     `json:"village_id" gorm:"column:village_id"`
+	VillageID        *int    `json:"village_id" gorm:"column:village_id"`
 	Occupation       string  `json:"occupation" gorm:"column:occupation"`
 	AcademicStreamID int     `json:"academic_stream_id" gorm:"column:academic_stream_id"`
 	TelegramUsername *string `json:"telegram_username" gorm:"column:telegram_username"`

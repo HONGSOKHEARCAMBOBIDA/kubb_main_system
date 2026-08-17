@@ -255,7 +255,7 @@ async function fetchStudent() {
 
     const res = await getStudent(params)
     students.value = res.data.data || []
-    total.value = res.data.total || 0
+    total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load students')
   } finally {
@@ -401,21 +401,9 @@ const form = reactive({
   student_educations: [],
   student_documents: [],
 
-  father_name: '',
-  father_english_name: '',
-  father_age: null,
-  father_is_alive: true,
-  father_phone_number: '',
-  father_occupation: '',
-  father_workplace: '',
+  student_family: [],
 
-  mother_name: '',
-  mother_english_name: '',
-  mother_age: null,
-  mother_is_alive: true,
-  mother_phone_number: '',
-  mother_occupation: '',
-  mother_workplace: '',
+
 })
 
 const rules = {
@@ -534,8 +522,32 @@ function newDocumentRow() {
   })
 }
 
+function newFamilyRow() {
+  form.student_family.push({
+  father_name: '',
+  father_english_name: '',
+  father_age: null,
+  father_is_alive: true,
+  father_phone_number: '',
+  father_occupation: '',
+  father_workplace: '',
+
+  mother_name: '',
+  mother_english_name: '',
+  mother_age: null,
+  mother_is_alive: true,
+  mother_phone_number: '',
+  mother_occupation: '',
+  mother_workplace: '',
+  })
+}
+
 function removeDocumentRow(index) {
   form.student_documents.splice(index, 1)
+}
+
+function removeFamilyRow(index) {
+  form.student_family.splice(index, 1)
 }
 
 async function handleSubmit() {
@@ -664,8 +676,9 @@ onMounted(() => {
             { name: 'general', label: 'ព័ត៏មានទូទៅ' },
             { name: 'education', label: 'ការសិក្សា' },
             { name: 'document', label: 'ឯកសារប្រគល់ជួន' },
-            { name: 'fother', label: 'ព័ត៏មានឪពុក' },
-            { name: 'mother', label: 'ព័ត៏មានម្ដាយ' },
+            // { name: 'fother', label: 'ព័ត៏មានឪពុក' },
+            // { name: 'mother', label: 'ព័ត៏មានម្ដាយ' },
+            {name: 'family',label: 'ព័ត៍មានគ្រូសារ'}
           ]"
           tab-position="top"
           stretch="true"
@@ -1036,6 +1049,166 @@ onMounted(() => {
                     <el-form-item label="សម្គាល់">
                       <el-input v-model="doc.remark" placeholder="សម្គាល់បេីមានបញ្ហា" />
                     </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
+            </el-card>
+          </template>
+          <template #family>
+            <el-card class="section-card" shadow="never">
+              <template #header>
+                <div class="section-header">
+                  <span>ព័ត៏មានគ្រួសារ</span>
+                  <AppButton type="warning" plain icon="Plus" size="small" @click="newFamilyRow"
+                    >បន្ថែមព័ត៏មានគ្រួសារ</AppButton
+                  >
+                </div>
+              </template>
+
+              <el-card
+                v-for="(doc, index) in form.student_family"
+                :key="index"
+                :gutter="16"
+                class="sub-card"
+              >
+                <template #header>
+                  <div class="section-header">
+                    <span>បន្ថែមព័ត៏មានគ្រួសារ -{{ index + 1 }}</span>
+                    <AppButton
+                      type="danger"
+                      icon="Delete"
+                      size="small"
+                      plain
+                      :disabled="form.student_family.length === 1"
+                      @click="removeFamilyRow(index)"
+                    >
+                      លុប
+                    </AppButton>
+                  </div>
+                </template>
+
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                  <AppInput
+                    v-model="form.father_name"
+                    label="ឈ្មោះខ្មែរ"
+                    placeholder="ឈ្មោះខ្មែរ"
+                    clearable
+                  />
+                  </el-col>
+                  <el-col :span="12">
+                    <AppInput
+                    v-model="form.father_english_name"
+                    label="ឈ្មោះឡាតាំង"
+                    placeholder="ឈ្មោះឡាតាំង"
+                    clearable
+                  />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                   <el-form-item label="អាយុៈ">
+                    <el-input-number
+                      v-model="form.father_age"
+                      :min="1"
+                      :max="200"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+               <AppInput
+                    v-model="form.father_phone_number"
+                    label="លេខទូរសព្ទ"
+                    placeholder="លេខទូរសព្ទ"
+                    type="number"
+                    clearable
+                  />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                  <AppInput
+                    v-model="form.father_occupation"
+                    label="មុខរបរ"
+                    placeholder="មុខរបរ"
+                    clearable
+                  />
+                  </el-col>
+                  <el-col :span="8">
+                  <AppInput
+                    v-model="form.father_workplace"
+                    label="កន្លែងធ្វេីការ"
+                    placeholder="កន្លែងធ្វេីការ"
+                    clearable
+                  />
+                  </el-col>
+                  <el-col :span="8">
+                  <el-form-item label="នៅមានជីវិត">
+                    <el-switch v-model="form.father_is_alive" />
+                  </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_name"
+                    label="ឈ្មោះខ្មែរ"
+                    placeholder="ឈ្មោះខ្មែរ"
+                    clearable
+                  />
+                  </el-col>
+                  <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_english_name"
+                    label="ឈ្មោះឡាតាំង"
+                    placeholder="ឈ្មោះឡាតាំង"
+                    clearable
+                  />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                  <el-form-item label="អាយុៈ">
+                    <el-input-number
+                      v-model="form.mother_age"
+                      :min="1"
+                      :max="200"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                  <AppInput
+                    v-model="form.mother_phone_number"
+                    label="លេខទូរសព្ទ"
+                    placeholder="លេខទូរសព្ទ"
+                    type="number"
+                    clearable
+                  />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                  <AppInput
+                    v-model="form.mother_occupation"
+                    label="មុខរបរ"
+                    placeholder="មុខរបរ"
+                    clearable
+                  />
+                  </el-col>
+                  <el-col :span="8">
+                  <AppInput
+                    v-model="form.mother_workplace"
+                    label="កន្លែងធ្វេីការ"
+                    placeholder="កន្លែងធ្វេីការ"
+                    clearable
+                  />
+                  </el-col>
+                  <el-col :span="8">
+                      <el-form-item label="នៅមានជីវិត">
+                    <el-switch v-model="form.mother_is_alive" />
+                  </el-form-item>
                   </el-col>
                 </el-row>
               </el-card>

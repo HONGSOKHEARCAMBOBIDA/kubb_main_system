@@ -14,7 +14,10 @@ type StudentRequestCreate struct {
 
 	StudentEducationRequestCreate []StudentEducationRequestCreate `json:"student_educations" validate:"omitempty,dive"`
 	StudentDocumentRequestCreate  []StudentDocumentRequestCreate  `json:"student_documents" validate:"omitempty,dive"`
+	StudentFamilyRequestCreate    []StudentFamilyRequestCreate    `json:"student_family" validate:"omitempty,dive"`
+}
 
+type StudentFamilyRequestCreate struct {
 	FatherName        string `json:"father_name" validate:"omitempty,min=2,max=150"`
 	FatherEnglishName string `json:"father_english_name" validate:"omitempty,min=2,max=150"`
 	FatherAge         int    `json:"father_age" validate:"omitempty,gt=0,lte=200"`
