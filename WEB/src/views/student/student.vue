@@ -6,6 +6,10 @@ import { getProvince, getDistrict, getCommunce, getVillage } from '../../service
 import { getAcademicStream } from '../../services/academic_stream'
 import { getDocumentType } from '../../services/document_type.service'
 import { useNotification } from '../../composables/useNotification'
+import { getAcademics } from '../../services/academic.service.js'
+import { getGenerationByAcademic } from '../../services/generation.service.js'
+import { getTermByGeneation } from '../../services/term.service'
+import { getAcademicDegreeByAcademic } from '../../services/academic_degree.service'
 import AppButton from '../../components/button/AppButton.vue'
 import AppInput from '../../components/input/AppInput.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
@@ -53,14 +57,14 @@ function closeDetail() {
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', minwidth: 120 },
-  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ',minwidth: 200 },
-  { prop: 'name_en', label: 'ឈ្មោះឡាតាំង',minwidth: 200  },
+  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 200 },
+  { prop: 'name_en', label: 'ឈ្មោះឡាតាំង', minwidth: 200 },
   { prop: 'gender', label: 'ភេទ', slot: 'gender', minwidth: 90 },
   { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', minwidth: 130 },
   { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 130 },
   { prop: 'group_name', label: 'ប្រភេទនិស្សិត', minwidth: 150 },
   { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', minwidth: 130 },
-  { prop: 'status', label: 'ស្ថានភាព', minwidth: 350,slot:'status' },
+  { prop: 'status', label: 'ស្ថានភាព', minwidth: 350, slot: 'status' },
 ]
 
 const columneducationdetail = [
@@ -79,10 +83,10 @@ const columneducationdetail = [
 ]
 
 const columndocumentdetail = [
-  {prop: 'document_type_name_kh',label: 'ប្រភេទឯកសារ',minwidth:200},
-  {prop: 'required_qty',label: 'ចំនួនត្រូវការ',minwidth:200},
-  {prop: 'received_qty',label: 'ចំនួនបានប្រគល់ជួន',minwidth:200},
-  {prop: 'remark',label: 'កត់ចំណាំផ្សេងៗ',minwidth:200},
+  { prop: 'document_type_name_kh', label: 'ប្រភេទឯកសារ', minwidth: 200 },
+  { prop: 'required_qty', label: 'ចំនួនត្រូវការ', minwidth: 200 },
+  { prop: 'received_qty', label: 'ចំនួនបានប្រគល់ជួន', minwidth: 200 },
+  { prop: 'remark', label: 'កត់ចំណាំផ្សេងៗ', minwidth: 200 },
 ]
 
 function resetForm() {
@@ -120,6 +124,19 @@ function resetForm() {
   formDistrictOptions.value = []
   formCommunceOptions.value = []
   formVillageOptions.value = []
+  form.admission = {
+    term_id: null,
+    academic_degree_id: null,
+    date: '',
+    state: '',
+    description: '',
+    referral_school: '',
+  }
+  admissionAcademicID.value = null
+  admissionGenerationID.value = null
+  admissionGenerationOptions.value = []
+  admissionTermOptions.value = []
+  admissionDegreeOptions.value = []
 }
 
 function openCreate() {
@@ -158,32 +175,29 @@ async function openEdit(row) {
     formVillageOptions.value = await loadVillageOption(formCommunceID.value)
   }
 
+  form.student_family = []
 
+  const family = row.student_family || []
 
-form.student_family = []
+  for (const f of family) {
+    form.student_family.push({
+      father_name: f.father_name || '',
+      father_english_name: f.father_english_name || '',
+      father_age: f.father_age || null,
+      father_is_alive: f.father_is_alive ?? true,
+      father_phone_number: f.father_phone_number || '',
+      father_occupation: f.father_occupation || '',
+      father_workplace: f.father_workplace || '',
 
-const family = row.student_family || []
-
-for (const f of family) {
-  form.student_family.push({
-    father_name: f.father_name || '',
-    father_english_name: f.father_english_name || '',
-    father_age: f.father_age || null,
-    father_is_alive: f.father_is_alive ?? true,
-    father_phone_number: f.father_phone_number || '',
-    father_occupation: f.father_occupation || '',
-    father_workplace: f.father_workplace || '',
-
-    mother_name: f.mother_name || '',
-    mother_english_name: f.mother_english_name || '',
-    mother_age: f.mother_age || null,
-    mother_is_alive: f.mother_is_alive ?? true,
-    mother_phone_number: f.mother_phone_number || '',
-    mother_occupation: f.mother_occupation || '',
-    mother_workplace: f.mother_workplace || ''
-  })
-}
-
+      mother_name: f.mother_name || '',
+      mother_english_name: f.mother_english_name || '',
+      mother_age: f.mother_age || null,
+      mother_is_alive: f.mother_is_alive ?? true,
+      mother_phone_number: f.mother_phone_number || '',
+      mother_occupation: f.mother_occupation || '',
+      mother_workplace: f.mother_workplace || '',
+    })
+  }
 
   form.student_educations = []
   eduLocations.splice(0, eduLocations.length)
@@ -257,14 +271,87 @@ async function fetchStudent() {
     total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load students')
-  } 
+  }
 }
-
-
 
 const groupOptions = ref([])
 const academicStreamOptions = ref([])
 const documentTypeOptions = ref([])
+
+const academicOptions = ref([])
+const generationOptions = ref([])
+const termOptions = ref([])
+const academicDegreeOptions = ref([])
+
+const admissionAcademicID = ref(null)
+const admissionGenerationID = ref(null)
+const admissionGenerationOptions = ref([])
+const admissionTermOptions = ref([])
+const admissionDegreeOptions = ref([])
+
+const admissionStateOptions = [
+  { label: 'កំពុងរង់ចាំ', value: 'created' },
+  { label: 'ត្រូវបានទទួលយក', value: 'approved' },
+  { label: 'បដិសេធ', value: 'rejected' },
+]
+
+async function fetchAcademicOption() {
+  try {
+    const res = await getAcademics()
+    academicOptions.value = (res.data.data || []).map((a) => ({
+      label: a.name,
+      value: a.id,
+    }))
+  } catch (e) {}
+}
+
+async function loadAcademicdegree(academicID) {
+  if (!academicID) return []
+  try {
+    const res = await getAcademicDegreeByAcademic(academicID)
+    return (res.data.data || []).map((g) => ({ 
+      label: `${g.major_code} - ${g.programme_name} មួយឆ្នាំ ${g.yearly_fee}$` ,
+      value: g.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+
+async function loadGeneration(academicID) {
+  if (!academicID) return []
+  try {
+    const res = await getGenerationByAcademic(academicID)
+    return (res.data.data || []).map((g) => ({ label: g.name, value: g.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+
+async function loadTerm(geneationID) {
+  if (!geneationID) return []
+  try {
+    const res = await getTermByGeneation(geneationID)
+    return (res.data.data || []).map((g) => ({ label: g.name, value: g.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+
+async function onAdmissionAcademicChange() {
+  admissionGenerationID.value = null
+  form.admission.term_id = null
+  admissionTermOptions.value = []
+  admissionDegreeOptions.value = await loadAcademicdegree(admissionAcademicID.value)
+  admissionGenerationOptions.value = await loadGeneration(admissionAcademicID.value)
+}
+
+async function onAdmissionGenerationChange() {
+  form.admission.term_id = null
+  admissionTermOptions.value = await loadTerm(admissionGenerationID.value)
+}
 
 async function fetchGroupOptions() {
   try {
@@ -392,7 +479,14 @@ const form = reactive({
 
   student_family: [],
 
-
+  admission: {
+    term_id: null,
+    academic_degree_id: null,
+    date: '',
+    state: '',
+    description: '',
+    referral_school: '',
+  },
 })
 
 const rules = {
@@ -513,21 +607,21 @@ function newDocumentRow() {
 
 function newFamilyRow() {
   form.student_family.push({
-  father_name: '',
-  father_english_name: '',
-  father_age: null,
-  father_is_alive: true,
-  father_phone_number: '',
-  father_occupation: '',
-  father_workplace: '',
+    father_name: '',
+    father_english_name: '',
+    father_age: null,
+    father_is_alive: true,
+    father_phone_number: '',
+    father_occupation: '',
+    father_workplace: '',
 
-  mother_name: '',
-  mother_english_name: '',
-  mother_age: null,
-  mother_is_alive: true,
-  mother_phone_number: '',
-  mother_occupation: '',
-  mother_workplace: '',
+    mother_name: '',
+    mother_english_name: '',
+    mother_age: null,
+    mother_is_alive: true,
+    mother_phone_number: '',
+    mother_occupation: '',
+    mother_workplace: '',
   })
 }
 
@@ -588,6 +682,7 @@ onMounted(() => {
   // newEducationRow()
   // newDocumentRow()
   fetchStudent()
+  fetchAcademicOption()
 })
 </script>
 
@@ -620,7 +715,7 @@ onMounted(() => {
       </template>
 
       <template #status="{ row }">
-        <el-text tag="b" style="color: darkcyan;">
+        <el-text tag="b" style="color: darkcyan">
           {{ row.status }}
         </el-text>
       </template>
@@ -665,12 +760,103 @@ onMounted(() => {
             { name: 'document', label: 'ឯកសារប្រគល់ជួន' },
             // { name: 'fother', label: 'ព័ត៏មានឪពុក' },
             // { name: 'mother', label: 'ព័ត៏មានម្ដាយ' },
-            {name: 'family',label: 'ព័ត៍មានគ្រូសារ'}
+            { name: 'family', label: 'ព័ត៍មានគ្រូសារ' },
+            { name: 'admission', label: 'ដាក់ពាក្យ' },
           ]"
           tab-position="top"
           stretch="true"
           :lazy="true"
         >
+          <template #admission>
+            <el-card class="section-card" shadow="never">
+              <template #header>ដាក់ពាក្យចូលរៀន</template>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="admissionAcademicID"
+                    :options="academicOptions"
+                    placeholder="រេីសឆ្នាំសិក្សា"
+                    label="ឆ្នាំសិក្សា"
+                    clearable
+                    @change="onAdmissionAcademicChange"
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.admission.academic_degree_id"
+                    :options="admissionDegreeOptions"
+                    placeholder="សុំចូលរៀនជំនាញ"
+                    label="សុំចូលរៀនជំនាញ"
+                    clearable
+                    :disabled="!admissionAcademicID"
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="admissionGenerationID"
+                    :options="admissionGenerationOptions"
+                    placeholder="រេីសជំនាន់"
+                    label="ជំនាន់"
+                    clearable
+                    :disabled="!admissionAcademicID"
+                    @change="onAdmissionGenerationChange"
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.admission.term_id"
+                    :options="admissionTermOptions"
+                    placeholder="រេីស Term"
+                    label="Term"
+                    clearable
+                    :disabled="!admissionGenerationID"
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="ថ្ងៃដាក់ពាក្យ">
+                    <el-date-picker
+                      v-model="form.admission.date"
+                      type="date"
+                      value-format="YYYY-MM-DD"
+                      placeholder="ថ្ងៃដាក់ពាក្យ"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.admission.state"
+                    :options="admissionStateOptions"
+                    placeholder="ស្ថានភាពដាក់ពាក្យ"
+                    label="ស្ថានភាព"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.admission.referral_school"
+                    label="សាលាបញ្ជូន"
+                    placeholder="សាលាបញ្ជូន (បើមាន)"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppInput
+                    v-model="form.admission.description"
+                    label="សេចក្តីលម្អិត"
+                    placeholder="សេចក្តីលម្អិត"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+            </el-card>
+          </template>
           <template #general>
             <el-card class="section-card" shadow="never">
               <template #header>ព័ត៏មានទូទៅ</template>
@@ -1077,126 +1263,126 @@ onMounted(() => {
 
                 <el-row :gutter="20">
                   <el-col :span="12">
-                  <AppInput
-                    v-model="fmy.father_name"
-                    label="ឈ្មោះខ្មែរឪពុក"
-                    placeholder="ឈ្មោះខ្មែរឪពុក"
-                    clearable
-                  />
+                    <AppInput
+                      v-model="fmy.father_name"
+                      label="ឈ្មោះខ្មែរឪពុក"
+                      placeholder="ឈ្មោះខ្មែរឪពុក"
+                      clearable
+                    />
                   </el-col>
                   <el-col :span="12">
                     <AppInput
-                    v-model="fmy.father_english_name"
-                    label="ឈ្មោះឡាតាំងឪពុក"
-                    placeholder="ឈ្មោះឡាតាំងឪពុក"
-                    clearable
-                  />
-                  </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                   <el-form-item label="អាយុៈឪពុក">
-                    <el-input-number
-                      v-model="fmy.father_age"
-                      :min="1"
-                      :max="200"
-                      style="width: 100%"
+                      v-model="fmy.father_english_name"
+                      label="ឈ្មោះឡាតាំងឪពុក"
+                      placeholder="ឈ្មោះឡាតាំងឪពុក"
+                      clearable
                     />
-                  </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-               <AppInput
-                    v-model="fmy.father_phone_number"
-                    label="លេខទូរសព្ទឪពុក"
-                    placeholder="លេខទូរសព្ទ"
-                    type="number"
-                    clearable
-                  />
-                  </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                  <el-col :span="8">
-                  <AppInput
-                    v-model="fmy.father_occupation"
-                    label="មុខរបរឪពុក"
-                    placeholder="មុខរបរឪពុក"
-                    clearable
-                  />
-                  </el-col>
-                  <el-col :span="8">
-                  <AppInput
-                    v-model="fmy.father_workplace"
-                    label="កន្លែងធ្វេីការឪពុក"
-                    placeholder="កន្លែងធ្វេីការឪពុក"
-                    clearable
-                  />
-                  </el-col>
-                  <el-col :span="8">
-                  <el-form-item label="នៅមានជីវិត">
-                    <el-switch v-model="fmy.father_is_alive" />
-                  </el-form-item>
                   </el-col>
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="12">
-                  <AppInput
-                    v-model="fmy.mother_name"
-                    label="ឈ្មោះខ្មែរម្ដាយ"
-                    placeholder="ឈ្មោះខ្មែរម្ដាយ"
-                    clearable
-                  />
+                    <el-form-item label="អាយុៈឪពុក">
+                      <el-input-number
+                        v-model="fmy.father_age"
+                        :min="1"
+                        :max="200"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                  <AppInput
-                    v-model="fmy.mother_english_name"
-                    label="ឈ្មោះឡាតាំងម្ដាយ"
-                    placeholder="ឈ្មោះឡាតាំងម្ដាយ"
-                    clearable
-                  />
-                  </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                  <el-form-item label="អាយុៈម្ដាយ">
-                    <el-input-number
-                      v-model="fmy.mother_age"
-                      :min="1"
-                      :max="200"
-                      style="width: 100%"
+                    <AppInput
+                      v-model="fmy.father_phone_number"
+                      label="លេខទូរសព្ទឪពុក"
+                      placeholder="លេខទូរសព្ទ"
+                      type="number"
+                      clearable
                     />
-                  </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                  <AppInput
-                    v-model="fmy.mother_phone_number"
-                    label="លេខទូរសព្ទម្ដាយ"
-                    placeholder="លេខទូរសព្ទម្ដាយ"
-                    type="number"
-                    clearable
-                  />
                   </el-col>
                 </el-row>
                 <el-row :gutter="20">
                   <el-col :span="8">
-                  <AppInput
-                    v-model="fmy.mother_occupation"
-                    label="មុខរបរម្ដាយ"
-                    placeholder="មុខរបរម្ដាយ"
-                    clearable
-                  />
+                    <AppInput
+                      v-model="fmy.father_occupation"
+                      label="មុខរបរឪពុក"
+                      placeholder="មុខរបរឪពុក"
+                      clearable
+                    />
                   </el-col>
                   <el-col :span="8">
-                  <AppInput
-                    v-model="fmy.mother_workplace"
-                    label="កន្លែងធ្វេីការម្ដាយ"
-                    placeholder="កន្លែងធ្វេីការម្ដាយ"
-                    clearable
-                  />
+                    <AppInput
+                      v-model="fmy.father_workplace"
+                      label="កន្លែងធ្វេីការឪពុក"
+                      placeholder="កន្លែងធ្វេីការឪពុក"
+                      clearable
+                    />
                   </el-col>
                   <el-col :span="8">
-                      <el-form-item label="នៅមានជីវិត">
-                    <el-switch v-model="fmy.mother_is_alive" />
-                  </el-form-item>
+                    <el-form-item label="នៅមានជីវិត">
+                      <el-switch v-model="fmy.father_is_alive" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <AppInput
+                      v-model="fmy.mother_name"
+                      label="ឈ្មោះខ្មែរម្ដាយ"
+                      placeholder="ឈ្មោះខ្មែរម្ដាយ"
+                      clearable
+                    />
+                  </el-col>
+                  <el-col :span="12">
+                    <AppInput
+                      v-model="fmy.mother_english_name"
+                      label="ឈ្មោះឡាតាំងម្ដាយ"
+                      placeholder="ឈ្មោះឡាតាំងម្ដាយ"
+                      clearable
+                    />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="អាយុៈម្ដាយ">
+                      <el-input-number
+                        v-model="fmy.mother_age"
+                        :min="1"
+                        :max="200"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <AppInput
+                      v-model="fmy.mother_phone_number"
+                      label="លេខទូរសព្ទម្ដាយ"
+                      placeholder="លេខទូរសព្ទម្ដាយ"
+                      type="number"
+                      clearable
+                    />
+                  </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <AppInput
+                      v-model="fmy.mother_occupation"
+                      label="មុខរបរម្ដាយ"
+                      placeholder="មុខរបរម្ដាយ"
+                      clearable
+                    />
+                  </el-col>
+                  <el-col :span="8">
+                    <AppInput
+                      v-model="fmy.mother_workplace"
+                      label="កន្លែងធ្វេីការម្ដាយ"
+                      placeholder="កន្លែងធ្វេីការម្ដាយ"
+                      clearable
+                    />
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="នៅមានជីវិត">
+                      <el-switch v-model="fmy.mother_is_alive" />
+                    </el-form-item>
                   </el-col>
                 </el-row>
               </el-card>
@@ -1300,8 +1486,7 @@ onMounted(() => {
               :columns="columndocumentdetail"
               :show-pagination="false"
             >
-            </TableCustom>            
-            
+            </TableCustom>
           </section>
         </div>
       </div>

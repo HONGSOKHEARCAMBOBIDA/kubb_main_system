@@ -11,6 +11,7 @@ import (
 	"mysql/constant/share"
 	"mysql/helper"
 	"mysql/model"
+	"mysql/model/base"
 	"mysql/request"
 	"mysql/response"
 	"mysql/utils"
@@ -230,6 +231,25 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 			}
 			if err := tx.Create(&family).Error; err != nil {
 				return apperror.New(apperror.CodeInternal, "failed to create student family", nil)
+			}
+		}
+
+		if input.AdmissionRequestCreate != nil {
+			admission := model.Admission{
+				UUIDBase: base.UUIDBase{
+					UUID: helper.GenerateUUID(),
+				},
+				StudentID:        student.ID,
+				TermID:           input.AdmissionRequestCreate.TermID,
+				AcademicDegreeID: input.AdmissionRequestCreate.AcademicDegreeID,
+				Date:             input.AdmissionRequestCreate.Date,
+				AdmissionState:   input.AdmissionRequestCreate.AdmissionState,
+				Description:      input.AdmissionRequestCreate.Description,
+				ReferralSchool:   input.AdmissionRequestCreate.ReferralSchool,
+			}
+
+			if err := tx.Create(&admission).Error; err != nil {
+				return err
 			}
 		}
 

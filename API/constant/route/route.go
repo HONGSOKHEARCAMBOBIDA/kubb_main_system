@@ -66,10 +66,11 @@ const (
 	SchoolOfficeView         = "school.office.view"
 	SchoolRoomView           = "school.room.view"
 	// term
-	TermView   = "term.view"
-	TermCreate = "term.create"
-	TermUpdate = "term.update/:uuid"
-	TermToggle = "term.toggle/:uuid"
+	TermView             = "term.view"
+	TermViewByGeneration = "term.view.by.generaion/:id"
+	TermCreate           = "term.create"
+	TermUpdate           = "term.update/:uuid"
+	TermToggle           = "term.toggle/:uuid"
 
 	// faculty
 	FacultyView            = "faculty.view"

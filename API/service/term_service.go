@@ -21,6 +21,7 @@ import (
 
 type TermService interface {
 	GetTerm(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.TermResponse, *model.PaginationMetadata, error)
+	GetTermByGeneration(ctx context.Context, generationID int) ([]response.TermResponse, error)
 	CreateTerm(ctx context.Context, input request.TermRequestCreate) error
 	UpdateTerm(ctx context.Context, id string, input request.TermRequestUpdate) error
 	Toggle(ctx context.Context, id string) error
@@ -34,6 +35,47 @@ func NewTermService() TermService {
 	return &termservice{
 		db: config.DB,
 	}
+}
+
+func (s *termservice) GetTermByGeneration(ctx context.Context, generationID int) ([]response.TermResponse, error) {
+	if generationID <= 0 {
+		return nil, apperror.New(apperror.CodeInvalidInput, "generation is required", nil)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	var data []response.TermResponse
+	base := func() *gorm.DB {
+		return s.db.WithContext(ctx).
+			Table("terms t").
+			Joins("LEFT JOIN generations g ON g.id = t.generation_id").
+			Joins("LEFT JOIN academics a ON a.id = g.academic_id")
+	}
+	dataQuery := base().
+		Select(`
+			t.id AS id,
+			t.uuid AS uuid,
+
+			g.id AS generation_id,
+			g.code AS generation_code,
+			g.name AS generation_name,
+
+			a.id AS academic_id,
+			a.code AS academic_code,
+			a.name AS academic_name,
+
+			t.code AS code,
+			t.name AS name,
+			t.start_date AS start_date,
+			t.end_date AS end_date,
+			t.description AS description,
+			t.active AS active
+		`).Where("t.generation_id = ?", generationID)
+	if err := dataQuery.Scan(&data).Error; err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (s *termservice) GetTerm(

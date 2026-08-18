@@ -24,6 +24,19 @@ func NewTermController() TermController {
 	}
 }
 
+func (cr *TermController) GetTermByGeneration(c *gin.Context) {
+	generationID, ok := utils.GetParamID(c)
+	if !ok {
+		return
+	}
+	data, err := cr.service.GetTermByGeneration(c, generationID)
+	if err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *TermController) GetTerm(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 
