@@ -19,6 +19,7 @@ import (
 type AcademicSectionService interface {
 	CreateAcademicSection(ctx context.Context, input request.AcademicSectionRequestCreate) error
 	GetAcademicSection(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AcademicSectionResponse, *model.PaginationMetadata, error)
+	GetAcademicSectionByShift(ctx context.Context, id int) ([]response.AcademicSectionResponse, error)
 	Toggle(ctx context.Context, id string) error
 	UpdateAcademicSection(ctx context.Context, id string, input request.AcademicSectionRequestUpdate) error
 }
@@ -31,6 +32,54 @@ func NewAcademicSectionService() AcademicSectionService {
 	return &academicsectionservice{
 		db: config.DB,
 	}
+}
+
+func (s *academicsectionservice) GetAcademicSectionByShift(ctx context.Context, id int) ([]response.AcademicSectionResponse, error) {
+	if id <= 0 {
+		return nil, apperror.New(
+			apperror.CodeInvalidInput,
+			"academic id is required",
+			nil,
+		)
+	}
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	var data []response.AcademicSectionResponse
+	base := func() *gorm.DB {
+		return s.db.WithContext(ctx).
+			Table("academic_sections ash").
+			Joins("LEFT JOIN majors m ON m.id = ash.major_id").
+			Joins("LEFT JOIN departments d ON d.id = m.department_id").
+			Joins("LEFT JOIN faculties f ON f.id = d.faculty_id").
+			Joins("LEFT JOIN programmes p ON p.id = f.programme_id").
+			Joins("LEFT JOIN academic_shifts asf ON asf.id = ash.shift_id").
+			Joins("LEFT JOIN academics a ON a.id = asf.academic_id")
+	}
+	dataQuery := base().Select(`
+		ash.id AS id,
+		ash.uuid AS uuid,
+		ash.name AS name,
+		ash.description AS description,
+		ash.type AS type,
+		ash.active AS active,
+		m.id AS major_id,
+		m.code AS major_code,
+		m.name AS major_name,
+		p.id AS programme_id,
+		p.name AS programme_name,
+		d.id AS department_id,
+		f.id AS faculty_id,
+		asf.id AS shift_id,
+		asf.name AS shift_name,
+		a.id AS academic_id,
+		a.code AS academic_code
+	`).Where("ash.shift_id = ?", id)
+	if err := dataQuery.Scan(&data).Error; err != nil {
+		return nil, err
+	}
+
+	return data, nil
+
 }
 
 func (s *academicsectionservice) CreateAcademicSection(ctx context.Context, input request.AcademicSectionRequestCreate) error {

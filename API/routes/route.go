@@ -36,6 +36,7 @@ func SetupRoutes(r *gin.Engine) {
 	locationcontroller := controller.NewLocationController()
 	academicstreamcontroller := controller.NewAcademicStreamController()
 	studentcontroller := controller.NewStudentController()
+	schoolarshipcontroller := controller.NewSchoolarshipController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -149,9 +150,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AcademicSectionCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.CreateAcademicSection)
 		auth.PUT(route.AcademicSectionUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.UpdateAcademicSection)
 		auth.PUT(route.AcademicSectionToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.Toggle)
+		auth.GET(route.AcademicSectionViewByShift, middleware.PermissionMiddleware(permission.CRUDACADEMICSECTION), academicsectioncontroller.GetAcademicSectionByShift)
 
 		// AcademicDegree
 		auth.GET(route.AcademicDegreeView, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.GetAcademicDegree)
+		auth.GET(route.AcademicDegreeViewByAcademic, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.GetAcademicDegreeByAcademicID)
 		auth.POST(route.AcademicDegreeCreate, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.CreateAcademicDegree)
 		auth.PUT(route.AcademicDegreeUpdate, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.UpdateAcademicDegree)
 		auth.PUT(route.AcademicDegreeToggle, middleware.PermissionMiddleware(permission.CRUDACADEMICDEGREE), academicdegreecontroller.Toggle)
@@ -178,5 +181,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.StudentCreate, middleware.PermissionMiddleware(permission.CRUDSTUDENT), studentcontroller.CreateStudent)
 		auth.GET(route.StudentView, middleware.PermissionMiddleware(permission.CRUDSTUDENT), studentcontroller.GetStudent)
 		auth.PUT(route.StudentUpdate, middleware.PermissionMiddleware(permission.CRUDSTUDENT), studentcontroller.UpdateStudent)
+
+		// SchoolarshipGroup
+		auth.GET(route.SchoolarshipGroupView, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.GetSchoolarship)
+		auth.POST(route.SchoolarshipGroupCreate, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.CreateSchoolarship)
+		auth.PUT(route.SchoolarshipGroupUpdate, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.UpdateSchoolarship)
+		auth.PUT(route.SchoolarshipGroupToggle, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.Toggle)
 	}
 }

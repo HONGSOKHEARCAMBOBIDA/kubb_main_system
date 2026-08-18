@@ -23,6 +23,19 @@ func NewAcademicSectionController() AcademicSectionController {
 	}
 }
 
+func (cr *AcademicSectionController) GetAcademicSectionByShift(c *gin.Context) {
+	departmentID, ok := utils.GetParamID(c)
+	if !ok {
+		return
+	}
+	data, err := cr.service.GetAcademicSectionByShift(c, departmentID)
+	if err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *AcademicSectionController) GetAcademicSection(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 

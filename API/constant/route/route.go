@@ -114,16 +114,18 @@ const (
 
 	// AcademicSection
 	AcademicSectionView           = "AcademicSection.view"
+	AcademicSectionViewByShift    = "AcademicSection.view.by.shift/:id"
 	AcademicSectionViewByAcademic = "AcademicSection.view.academic/:id"
 	AcademicSectionCreate         = "AcademicSection.create"
 	AcademicSectionUpdate         = "AcademicSection.update/:uuid"
 	AcademicSectionToggle         = "AcademicSection.toggle/:uuid"
 
 	// AcademicDegree
-	AcademicDegreeView   = "AcademicDegree.view"
-	AcademicDegreeCreate = "AcademicDegree.create"
-	AcademicDegreeUpdate = "AcademicDegree.update/:uuid"
-	AcademicDegreeToggle = "AcademicDegree.toggle/:uuid"
+	AcademicDegreeView           = "AcademicDegree.view"
+	AcademicDegreeViewByAcademic = "AcademicDegree.view.by.academic/:id"
+	AcademicDegreeCreate         = "AcademicDegree.create"
+	AcademicDegreeUpdate         = "AcademicDegree.update/:uuid"
+	AcademicDegreeToggle         = "AcademicDegree.toggle/:uuid"
 
 	// FeediscountGroup
 	FeediscountGroupView   = "FeediscountGroup.view"
@@ -147,4 +149,10 @@ const (
 	StudentCreate = "student.create"
 	StudentView   = "student.view"
 	StudentUpdate = "student.update/:id"
+
+	// SchoolarshipGroup
+	SchoolarshipGroupView   = "SchoolarshipGroup.view"
+	SchoolarshipGroupCreate = "SchoolarshipGroup.create"
+	SchoolarshipGroupUpdate = "SchoolarshipGroup.update/:uuid"
+	SchoolarshipGroupToggle = "SchoolarshipGroup.toggle/:uuid"
 )

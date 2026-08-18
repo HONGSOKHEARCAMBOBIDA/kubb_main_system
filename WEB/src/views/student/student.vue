@@ -18,10 +18,18 @@ import AppFilterBar from '../../components/common/AppFilterBar.vue'
 // Update state
 const isEditMode = ref(false)
 const editingId = ref(null)
+const dialogVisible = ref(false)
+const notify = useNotification()
+const submitting = ref(false)
+const formRef = ref(null)
+const activeTab = ref('general')
+const genderOption = [
+  { label: 'ស្រី', value: 'Female' },
+  { label: 'ប្រុស', value: 'Male' },
+]
 
 // List state
 const students = ref([])
-const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
@@ -32,28 +40,16 @@ let searchTimer = null
 
 const detailVisible = ref(false)
 const detailStudent = ref(null)
-const detailLoading = ref(false)
 
 async function openDetail(row) {
   detailVisible.value = true
-  detailLoading.value = true
   detailStudent.value = row
-  detailLoading.value = false
 }
 
 function closeDetail() {
   detailVisible.value = false
   detailStudent.value = null
 }
-
-function printDetail() {
-  window.print()
-}
-
-const statusOptions = [
-  { label: 'សកម្ម', value: 'active' },
-  { label: 'អសកម្ម', value: 'inactive' },
-]
 
 const columns = [
   { prop: 'code', label: 'លេខកូដ', minwidth: 120 },
@@ -62,7 +58,7 @@ const columns = [
   { prop: 'gender', label: 'ភេទ', slot: 'gender', minwidth: 90 },
   { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', minwidth: 130 },
   { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 130 },
-  { prop: 'group_name', label: 'ក្រុមបញ្ចុះតម្លៃ', minwidth: 150 },
+  { prop: 'group_name', label: 'ប្រភេទនិស្សិត', minwidth: 150 },
   { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', minwidth: 130 },
   { prop: 'status', label: 'ស្ថានភាព', minwidth: 350,slot:'status' },
 ]
@@ -73,13 +69,13 @@ const columneducationdetail = [
   { prop: 'start_date', label: 'ចាប់ផ្ដេីម', width: 120 },
   { prop: 'end_date', label: 'បញ្ជប់', width: 120 },
   { prop: 'cerificate_date', label: 'ទទួលសញ្ញាបត្រ', width: 120 },
-  { prop: 'score', label: 'Score', width: 120 },
+  { prop: 'score', label: 'SCORE', width: 120 },
   { prop: 'gpa', label: 'GPA', width: 120 },
   { prop: 'grade', label: 'GRADE', width: 120 },
   { prop: 'villlage_name_kh', label: 'ភូមិ', width: 120 },
-  { prop: 'communce_name', label: 'ឃុំ', width: 120 },
-  { prop: 'distirct_name', label: 'ស្រុក', width: 120 },
-  { prop: 'province_name', label: 'ខេត្ត', width: 120 },
+  { prop: 'communce_name', label: 'ឃុំ/សង្កាត់', width: 120 },
+  { prop: 'distirct_name', label: 'ស្រុក/ខណ្ឌ', width: 120 },
+  { prop: 'province_name', label: 'ខេត្ត/រាជធានី', width: 120 },
 ]
 
 const columndocumentdetail = [
@@ -126,8 +122,6 @@ function resetForm() {
   formVillageOptions.value = []
 }
 
-const dialogVisible = ref(false)
-
 function openCreate() {
   isEditMode.value = false
   editingId.value = null
@@ -140,7 +134,6 @@ async function openEdit(row) {
   editingId.value = row.id
   resetForm()
 
-  // --- General info ---
   form.group_id = row.group_id
   form.name_kh = row.name_kh
   form.name_en = row.name_en
@@ -152,7 +145,6 @@ async function openEdit(row) {
   form.occupation = row.occupation
   form.academic_stream_id = row.academic_stream_id
 
-  // --- Address cascade prefill ---
   formProvinceID.value = row.province_id ?? null
   formDistrictID.value = row.district_id ?? null
   formCommunceID.value = row.communce_id ?? null
@@ -168,7 +160,6 @@ async function openEdit(row) {
 
 
 
-  // Family
 form.student_family = []
 
 const family = row.student_family || []
@@ -193,7 +184,7 @@ for (const f of family) {
   })
 }
 
-  // --- Educations ---
+
   form.student_educations = []
   eduLocations.splice(0, eduLocations.length)
   const educations = row.student_educations || []
@@ -254,7 +245,6 @@ function closeDialog() {
 }
 
 async function fetchStudent() {
-  loading.value = true
   try {
     const params = {
       page: page.value,
@@ -267,20 +257,10 @@ async function fetchStudent() {
     total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load students')
-  } finally {
-    loading.value = false
-  }
+  } 
 }
 
-const notify = useNotification()
-const submitting = ref(false)
-const formRef = ref(null)
-const activeTab = ref('general')
 
-const genderOption = [
-  { label: 'ស្រី', value: 'Female' },
-  { label: 'ប្រុស', value: 'Male' },
-]
 
 const groupOptions = ref([])
 const academicStreamOptions = ref([])
@@ -630,7 +610,6 @@ onMounted(() => {
     <TableCustom
       :data="students"
       :columns="columns"
-      :loading="loading"
       :total="total"
       v-model:current-page="page"
       v-model:page-size="pageSize"
@@ -674,7 +653,6 @@ onMounted(() => {
         ref="formRef"
         :model="form"
         :rules="rules"
-        :loading="submitting"
         :show-actions="true"
         @submit="handleSubmit"
         submitText="រក្សាទុក"
@@ -828,6 +806,7 @@ onMounted(() => {
                 </el-col>
                 <el-col :span="12">
                   <AppSelect
+                    prop="village_id"
                     v-model="form.village_id"
                     :options="formVillageOptions"
                     placeholder="រេីសភូមិ"
@@ -1232,7 +1211,7 @@ onMounted(() => {
       :showDefaultFooter="false"
       width="75%"
     >
-      <div v-loading="detailLoading">
+      <div>
         <div v-if="detailStudent">
           <div class="a4-header">
             <h2>ព័ត៌មានលម្អិតនិស្សិត</h2>

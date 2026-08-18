@@ -183,6 +183,12 @@ const routes = [
         meta: { title: 'ប្រភេទនិស្សិត', icone: 'Document' },
       },
       {
+        path: 'schoolarship',
+        name: 'អាហារូបករណ៏',
+        component: () => import('@/views/schoolarship/schoolarship.vue'),
+        meta: { title: 'អាហារូបករណ៏', icone: 'Document' },
+      },
+      {
         path: 'student',
         name: 'និស្សិត',
         component: () => import('@/views/student/student.vue'),

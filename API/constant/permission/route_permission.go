@@ -55,4 +55,6 @@ const (
 	CRUDACADEMICSTREAM = "crud.academic.stream"
 
 	CRUDSTUDENT = "crud.student"
+
+	CRUDSCHOOLARSHIP = "crud.schoolarship"
 )

@@ -21,6 +21,7 @@ var validate = validator.New()
 
 type AcademicDegreeService interface {
 	GetAcademicDegree(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AcademicDegreeResponse, *model.PaginationMetadata, error)
+	GetAcademicDegreeByAcademicID(ctx context.Context, id int) ([]response.AcademicDegreeResponse, error)
 	CreateAcademicDegree(ctx context.Context, input request.AcademicDegreeRequestCreate) error
 	UpdateAcademicDegree(ctx context.Context, id string, input request.AcademicDegreeRequestUpdate) error
 	Toggle(ctx context.Context, id string) error
@@ -36,6 +37,64 @@ func NewAcademicDegreeService() AcademicDegreeService {
 	}
 }
 
+func (s *academicdegreeservice) GetAcademicDegreeByAcademicID(
+	ctx context.Context,
+	id int,
+) ([]response.AcademicDegreeResponse, error) {
+
+	if id <= 0 {
+		return nil, apperror.New(
+			apperror.CodeInvalidInput,
+			"academic id is required",
+			nil,
+		)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	var data []response.AcademicDegreeResponse
+
+	base := func() *gorm.DB {
+		return s.db.WithContext(ctx).
+			Table("academic_degrees ad").
+			Joins("LEFT JOIN majors m ON m.id = ad.major_id").
+			Joins("LEFT JOIN departments d ON d.id = m.department_id").
+			Joins("LEFT JOIN faculties f ON f.id = d.faculty_id").
+			Joins("LEFT JOIN programmes p ON p.id = f.programme_id").
+			Joins("LEFT JOIN academics a ON a.id = ad.academic_id")
+	}
+
+	dataQuery := base().
+		Select(`
+			ad.id AS id,
+			ad.uuid AS uuid,
+			a.id AS academic_id,
+			a.code AS academic_code,
+			a.name AS academic_name,
+			f.id AS faculty_id,
+			d.id AS department_id,
+			m.id AS major_id,
+			m.code AS major_code,
+			m.name AS major_name,
+			p.id AS programme_id,
+			p.name AS programme_name,
+			ad.name AS name,
+			ad.monthly_fee AS monthly_fee,
+			ad.quarterly_fee AS quarterly_fee,
+			ad.semesterly_fee AS semesterly_fee,
+			ad.yearly_fee AS yearly_fee,
+			ad.description AS description,
+			ad.active AS active
+		`).
+		Where("ad.academic_id = ?", id)
+
+	if err := dataQuery.Scan(&data).Error; err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
 func (s *academicdegreeservice) GetAcademicDegree(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AcademicDegreeResponse, *model.PaginationMetadata, error) {
 	helper.NormalizePagination(&pf)
 

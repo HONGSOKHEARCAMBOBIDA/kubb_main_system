@@ -23,6 +23,19 @@ func NewAcademicDegreeController() AcademicDegreeController {
 	}
 }
 
+func (cr *AcademicDegreeController) GetAcademicDegreeByAcademicID(c *gin.Context) {
+	departmentID, ok := utils.GetParamID(c)
+	if !ok {
+		return
+	}
+	data, err := cr.service.GetAcademicDegreeByAcademicID(c, departmentID)
+	if err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *AcademicDegreeController) GetAcademicDegree(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 	filter := map[string]string{
