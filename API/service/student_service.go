@@ -243,13 +243,46 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 				TermID:           input.AdmissionRequestCreate.TermID,
 				AcademicDegreeID: input.AdmissionRequestCreate.AcademicDegreeID,
 				Date:             input.AdmissionRequestCreate.Date,
-				AdmissionState:   input.AdmissionRequestCreate.AdmissionState,
+				State:            input.AdmissionRequestCreate.AdmissionState,
 				Description:      input.AdmissionRequestCreate.Description,
 				ReferralSchool:   input.AdmissionRequestCreate.ReferralSchool,
+				Active:           true,
 			}
 
 			if err := tx.Create(&admission).Error; err != nil {
 				return err
+			}
+
+			if input.EnrollmentRequestCreate != nil {
+				enrollment := model.Enrollment{
+					UUIDBase: base.UUIDBase{
+						UUID: helper.GenerateUUID(),
+					},
+					AdmissionID:    admission.ID,
+					SchoolarshipID: input.EnrollmentRequestCreate.SchoolarshipID,
+					SectionID:      nil,
+					FeeInterval:    input.EnrollmentRequestCreate.FeeInterval,
+					Description:    nil,
+				}
+				if err := tx.Create(&enrollment).Error; err != nil {
+					return err
+				}
+
+				if input.StudentTermRequestCreate != nil {
+					newstudentterm := model.StudentTerm{
+						UUIDBase: base.UUIDBase{
+							UUID: helper.GenerateUUID(),
+						},
+						EnrollmentID: enrollment.ID,
+						SemesterID:   input.StudentTermRequestCreate.SemesterID,
+						StudyYearID:  input.StudentTermRequestCreate.StudyYearID,
+						Active:       true,
+						Status:       "PENDING",
+					}
+					if err := tx.Create(&newstudentterm).Error; err != nil {
+						return err
+					}
+				}
 			}
 		}
 

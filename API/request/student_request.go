@@ -15,7 +15,10 @@ type StudentRequestCreate struct {
 	StudentEducationRequestCreate []StudentEducationRequestCreate `json:"student_educations" validate:"omitempty,dive"`
 	StudentDocumentRequestCreate  []StudentDocumentRequestCreate  `json:"student_documents" validate:"omitempty,dive"`
 	StudentFamilyRequestCreate    []StudentFamilyRequestCreate    `json:"student_family" validate:"omitempty,dive"`
-	AdmissionRequestCreate        *AdmissionRequestCreate         `json:"admission" validate:"omitempty,dive"`
+	AdmissionRequestCreate        *AdmissionRequestCreate         `json:"admission"`
+	EnrollmentRequestCreate       *EnrollmentRequestCreate        `json:"enrollment"`
+	StudentTermRequestCreate      *StudentTermRequestCreate       `json:"student_term"`
+	FeeRequestCreate              *FeeRequestCreate               `json:"fee"`
 }
 
 type StudentFamilyRequestCreate struct {
