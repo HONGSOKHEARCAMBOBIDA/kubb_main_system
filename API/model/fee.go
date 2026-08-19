@@ -10,7 +10,7 @@ type Fee struct {
 	Amount       float64 `json:"amount" gorm:"column:amount"`
 	Discount     float64 `json:"discount" gorm:"column:discount"`
 	Total        float64 `json:"total" gorm:"column:total"`
-	Active       bool    `json:"active" gorm:"column:discount"`
+	Active       bool    `json:"active" gorm:"column:active"`
 }
 
 func (Fee) TableName() string {

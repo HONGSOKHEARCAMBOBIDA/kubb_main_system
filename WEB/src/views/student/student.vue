@@ -10,6 +10,8 @@ import { getAcademics } from '../../services/academic.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
 import { getAcademicDegreeByAcademic } from '../../services/academic_degree.service'
+import { getSchoolarshipGroup} from '../../services/schoolarship.service.js'
+import { getSemesterByAcademic } from '../../services/semester.service.js'
 import AppButton from '../../components/button/AppButton.vue'
 import AppInput from '../../components/input/AppInput.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
@@ -274,6 +276,9 @@ async function fetchStudent() {
   }
 }
 
+const schoolarshipOptions = ref([])
+const semesterOptions = ref([])
+
 const groupOptions = ref([])
 const academicStreamOptions = ref([])
 const documentTypeOptions = ref([])
@@ -295,6 +300,35 @@ const admissionStateOptions = [
   { label: 'បដិសេធ', value: 'rejected' },
 ]
 
+const endrollmentFeeintervalOption = [
+  {label: 'បង់1ខែម្ដង',value: 'monthly_fee'},
+  {label: 'បង់3ខែម្ដង',value: 'quarterly_fee'},
+  {label: 'បង់1ឆមាសម្ដង',value: 'semesterly_fee'},
+  {label: 'បង់1ឆ្នាំម្ដង',value: 'yearly_fee'},
+]
+
+const studyyearOption = [
+  {label: 'ឆ្នាំទី1',value: '1'},
+  {label: 'ឆ្នាំទី2',value: '2'},
+  {label: 'ឆ្នាំទី3',value: '3'},
+   {label: 'ឆ្នាំទី4',value: '4'},
+]
+
+async function fetchSchoolarship() {
+  try {
+    const res = await getSchoolarshipGroup()
+    schoolarshipOptions.value = (res.data.data || []).map((a) => ({
+      label:
+        a.discount_type === 'percentage'
+          ? `${a.name} ${a.discount_percentage}%`
+          : `${a.name} ${a.discount_amount}$`,
+      value: a.id,
+    }))
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 async function fetchAcademicOption() {
   try {
     const res = await getAcademics()
@@ -311,6 +345,19 @@ async function loadAcademicdegree(academicID) {
     const res = await getAcademicDegreeByAcademic(academicID)
     return (res.data.data || []).map((g) => ({ 
       label: `${g.major_code} - ${g.programme_name} មួយឆ្នាំ ${g.yearly_fee}$` ,
+      value: g.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+
+async function loadSemester(academicID) {
+  if (!academicID) return []
+  try {
+    const res = await getSemesterByAcademic(academicID)
+    return (res.data.data || []).map((g) => ({ 
+      label: g.name,
       value: g.id }))
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
@@ -346,6 +393,7 @@ async function onAdmissionAcademicChange() {
   admissionTermOptions.value = []
   admissionDegreeOptions.value = await loadAcademicdegree(admissionAcademicID.value)
   admissionGenerationOptions.value = await loadGeneration(admissionAcademicID.value)
+  semesterOptions.value = await loadSemester(admissionAcademicID.value)
 }
 
 async function onAdmissionGenerationChange() {
@@ -487,6 +535,14 @@ const form = reactive({
     description: '',
     referral_school: '',
   },
+  enrollment: {
+    scholarship_id: null,
+    fee_interval: null
+  },
+  student_term: {
+    semester_id: null,
+    study_year_id: null
+  }
 })
 
 const rules = {
@@ -683,6 +739,7 @@ onMounted(() => {
   // newDocumentRow()
   fetchStudent()
   fetchAcademicOption()
+  fetchSchoolarship()
 })
 </script>
 
@@ -839,6 +896,26 @@ onMounted(() => {
               </el-row>
               <el-row :gutter="20">
                 <el-col :span="12">
+                  <AppSelect
+                    v-model="form.enrollment.scholarship_id"
+                    :options="schoolarshipOptions"
+                    placeholder="អាហារូបករណ៍"
+                    label="អាហារូបករណ៍"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.enrollment.fee_interval"
+                    :options="endrollmentFeeintervalOption"
+                    placeholder="សុំបង់ប្រាក់ជា"
+                    label="សុំបង់ប្រាក់ជា"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
                   <AppInput
                     v-model="form.admission.referral_school"
                     label="សាលាបញ្ជូន"
@@ -851,6 +928,28 @@ onMounted(() => {
                     v-model="form.admission.description"
                     label="សេចក្តីលម្អិត"
                     placeholder="សេចក្តីលម្អិត"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+ <el-divider content-position="left">សុំចូលរៀន</el-divider>
+               <el-row :gutter="20">
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.student_term.study_year_id"
+                    :options="studyyearOption"
+                    placeholder="ឆ្នាំទី"
+                    label="ឆ្នាំទី"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="12">
+                  <AppSelect
+                    v-model="form.student_term.semester_id"
+                    :options="semesterOptions"
+                    :disabled="!admissionAcademicID"
+                    placeholder="ឆមាសទី"
+                    label="ឆមាសទី"
                     clearable
                   />
                 </el-col>

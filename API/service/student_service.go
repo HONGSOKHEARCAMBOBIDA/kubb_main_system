@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
+	"time"
 
 	"mysql/config"
 	"mysql/constant/apperror"
@@ -268,6 +270,78 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 					return err
 				}
 
+				var degree model.AcademicDegree
+				if err := tx.First(&degree, input.AdmissionRequestCreate.AcademicDegreeID).Error; err != nil {
+					return apperror.New(apperror.CodeInternal, "failed to load academic degree", nil)
+				}
+
+				baseAmount := helper.GetFeeAmountByInterval(degree, enrollment.FeeInterval)
+				var discountgroupt *model.FeeDiscountGroup
+				if student.GroupID > 0 {
+					var group model.FeeDiscountGroup
+					if err := tx.First(&group, student.GroupID).Error; err != nil {
+						return apperror.New(apperror.CodeInternal, "failed to load discount group", nil)
+					}
+					discountgroupt = &group
+				}
+
+				discount := helper.CalculateDiscount(baseAmount, discountgroupt)
+				total := baseAmount - discount
+				if total < 0 {
+					total = 0
+				}
+				var schoolarship model.Schoolarship
+				if err := tx.First(&schoolarship, enrollment.SchoolarshipID).Error; err != nil {
+					return apperror.New(apperror.CodeInternal, "failed to load discount group", nil)
+				}
+				secondDiscount := helper.CalculateDiscountBySchoolarship(baseAmount, &schoolarship)
+				nettotal := total - secondDiscount
+				totaldiscount := discount + secondDiscount
+				fee := model.Fee{
+					UUIDBase:     base.UUIDBase{UUID: helper.GenerateUUID()},
+					EnrollmentID: enrollment.ID,
+					Date:         time.Now().Format("2006-01-02"),
+					Amount:       baseAmount,
+					Discount:     totaldiscount,
+					Total:        nettotal,
+					Active:       true,
+				}
+				if err := tx.Create(&fee).Error; err != nil {
+					return apperror.New(apperror.CodeInternal, "failed to create fee", nil)
+				}
+
+				scheduleCount := helper.GetFeeSchedule(enrollment.FeeInterval)
+				if secondDiscount > 0 {
+					paymentAmount := nettotal / float64(scheduleCount)
+					paymentAmount = math.Round(paymentAmount*100) / 100
+
+					installments := make([]model.Installment, 0, scheduleCount)
+					dueDate := time.Now()
+
+					for i := 1; i <= scheduleCount; i++ {
+						amount := paymentAmount
+						if i == scheduleCount {
+							paidSoFar := paymentAmount * float64(scheduleCount-1)
+							amount = nettotal - paidSoFar
+						}
+
+						dueDate = dueDate.AddDate(0, 1, 0)
+
+						installments = append(installments, model.Installment{
+							UUIDBase:          base.UUIDBase{UUID: helper.GenerateUUID()},
+							FeeID:             fee.ID,
+							SequenceNO:        i,
+							DueDate:           dueDate.Format("2006-01-02"),
+							Amount:            amount,
+							InstallmentStatus: model.InstallmentStatusPending,
+						})
+					}
+
+					if err := tx.Create(&installments).Error; err != nil {
+						return apperror.New(apperror.CodeInternal, "failed to create installments", nil)
+					}
+				}
+
 				if input.StudentTermRequestCreate != nil {
 					newstudentterm := model.StudentTerm{
 						UUIDBase: base.UUIDBase{
@@ -283,6 +357,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 						return err
 					}
 				}
+
 			}
 		}
 
