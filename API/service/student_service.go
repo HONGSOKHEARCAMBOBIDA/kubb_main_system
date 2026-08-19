@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -175,6 +176,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 	username := strings.ToLower(input.NameEn)
 	email := helper.GenerateEmail(username, 168)
 	if err := studentValidator.Struct(input); err != nil {
+		log.Printf("validation error: %v", err) // <-- add this
 		return apperror.New(apperror.CodeInvalidInput, err.Error(), nil)
 	}
 
@@ -275,7 +277,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 					return apperror.New(apperror.CodeInternal, "failed to load academic degree", nil)
 				}
 
-				baseAmount := helper.GetFeeAmountByInterval(degree, enrollment.FeeInterval)
+				baseAmount := helper.GetFeeAmountPerYear(degree, enrollment.FeeInterval)
 				var discountgroupt *model.FeeDiscountGroup
 				if student.GroupID > 0 {
 					var group model.FeeDiscountGroup
@@ -328,12 +330,13 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 						dueDate = dueDate.AddDate(0, 1, 0)
 
 						installments = append(installments, model.Installment{
-							UUIDBase:          base.UUIDBase{UUID: helper.GenerateUUID()},
-							FeeID:             fee.ID,
-							SequenceNO:        i,
-							DueDate:           dueDate.Format("2006-01-02"),
-							Amount:            amount,
-							InstallmentStatus: model.InstallmentStatusPending,
+							UUIDBase:   base.UUIDBase{UUID: helper.GenerateUUID()},
+							FeeID:      fee.ID,
+							SequenceNO: i,
+							DueDate:    dueDate.Format("2006-01-02"),
+							Amount:     amount,
+							Status:     model.InstallmentStatusPending,
+							InvoiceID:  nil,
 						})
 					}
 

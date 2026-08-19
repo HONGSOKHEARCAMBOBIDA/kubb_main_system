@@ -28,7 +28,7 @@ func NewStudentController() StudentController {
 func (cr *StudentController) CreateStudent(c *gin.Context) {
 	var input request.StudentRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {
-		log.Printf("CreateStudent request: %+v", input)
+		log.Printf("CreateStudent request: %+v", err)
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}

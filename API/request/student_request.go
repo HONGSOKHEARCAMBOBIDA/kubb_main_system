@@ -18,7 +18,7 @@ type StudentRequestCreate struct {
 	AdmissionRequestCreate        *AdmissionRequestCreate         `json:"admission"`
 	EnrollmentRequestCreate       *EnrollmentRequestCreate        `json:"enrollment"`
 	StudentTermRequestCreate      *StudentTermRequestCreate       `json:"student_term"`
-	FeeRequestCreate              *FeeRequestCreate               `json:"fee"`
+	// FeeRequestCreate              *FeeRequestCreate               `json:"fee"`
 }
 
 type StudentFamilyRequestCreate struct {

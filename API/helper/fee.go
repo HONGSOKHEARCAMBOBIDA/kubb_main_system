@@ -17,6 +17,21 @@ func GetFeeSchedule(interval model.FeeInterval) int {
 	}
 }
 
+func GetFeeAmountPerYear(degree model.AcademicDegree, interval model.FeeInterval) float64 {
+	switch interval {
+	case model.FeeIntervalMonthlyfee:
+		return degree.MonthlyFee * 12
+	case model.FeeIntervalQuarterlyFee:
+		return degree.QuarterlyFee * 4
+	case model.FeeIntervalSemesterlyFee:
+		return degree.SemesterlyFee * 2
+	case model.FeeIntervalYearlyFee:
+		return degree.YearlyFee
+	default:
+		return 0
+	}
+}
+
 func GetFeeAmountByInterval(degree model.AcademicDegree, interval model.FeeInterval) float64 {
 	switch interval {
 	case model.FeeIntervalMonthlyfee:

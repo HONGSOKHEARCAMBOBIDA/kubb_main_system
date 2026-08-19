@@ -308,10 +308,10 @@ const endrollmentFeeintervalOption = [
 ]
 
 const studyyearOption = [
-  {label: 'ឆ្នាំទី1',value: '1'},
-  {label: 'ឆ្នាំទី2',value: '2'},
-  {label: 'ឆ្នាំទី3',value: '3'},
-   {label: 'ឆ្នាំទី4',value: '4'},
+  {label: 'ឆ្នាំទី1',value: 1},
+  {label: 'ឆ្នាំទី2',value: 2},
+  {label: 'ឆ្នាំទី3',value: 3},
+   {label: 'ឆ្នាំទី4',value: 4},
 ]
 
 async function fetchSchoolarship() {
@@ -537,7 +537,7 @@ const form = reactive({
   },
   enrollment: {
     scholarship_id: null,
-    fee_interval: null
+    fee_interval: ""
   },
   student_term: {
     semester_id: null,
