@@ -67,7 +67,7 @@ const columns = [
 
 const columnenrollments = [
   { slot: 'schoolarship', label: 'អាហារូបករណ៍ទទួលបាន', minwidth: 160 },
-  { slot: 'fee_interval', label: 'វិធីបង់ប្រាក់', minwidth: 130 },
+  { slot: 'fee_interval', label: 'សុំបង់ប្រាក់ជា', minwidth: 130 },
   { slot: 'description', label: 'ផ្សេងៗ' },
 ]
 
@@ -239,15 +239,15 @@ onMounted(() => {
               {{ row.schoolarship_name }} —
               {{
                 row.schoolarship_discount_type === 'percentage'
-                  ? `${row.schoolarship_discount_percentage}%`
-                  : `${(row.schoolarship_discount_amount)}$`
+                  ? `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_percentage}%`
+                  : `ទទួលការបញ្ចុះតម្លៃ${(row.schoolarship_discount_amount)}$`
               }}
             </el-text>
             <el-text v-else type="info">គ្មាន</el-text>
           </template>
 
           <template #fee_interval="{ row }">
-            <el-tag size="small" type="warning">{{ labelOf(feeIntervalLabels, row.fee_interval) }}</el-tag>
+            <el-text tag="b" type="success">{{ labelOf(feeIntervalLabels, row.fee_interval) }}</el-text>
           </template>
 
           <template #description="{ row }">
@@ -268,7 +268,7 @@ onMounted(() => {
               </template>
 
               <template #stStatus="{ row }">
-                <el-text>{{ row.status }}</el-text>
+                <el-text tag="b" :type="row.status == 'PENDING' ? 'success' : 'info'">{{ row.status }}</el-text>
               </template>
 
               <template #stActive="{ row }">

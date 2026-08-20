@@ -159,4 +159,7 @@ const (
 
 	// Admission
 	AdmissionView = "admission.view"
+
+	// Invoice
+	InvoiceCreate = "invoice.create"
 )

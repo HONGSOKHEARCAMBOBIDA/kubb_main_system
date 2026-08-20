@@ -38,6 +38,7 @@ func SetupRoutes(r *gin.Engine) {
 	studentcontroller := controller.NewStudentController()
 	schoolarshipcontroller := controller.NewSchoolarshipController()
 	admissioncontroller := controller.NewAdmissionController()
+	invoicecontroller := controller.NewInvoiceController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -192,5 +193,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Admision
 		auth.GET(route.AdmissionView, middleware.PermissionMiddleware(permission.CRUDADMISSION), admissioncontroller.GetAdmission)
+
+		// Invoice
+		auth.POST(route.InvoiceCreate, middleware.PermissionMiddleware(permission.CRUDINVOICE), invoicecontroller.CreateInvoice)
 	}
 }

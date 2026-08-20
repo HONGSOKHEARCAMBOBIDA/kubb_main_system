@@ -59,4 +59,6 @@ const (
 	CRUDSCHOOLARSHIP = "crud.schoolarship"
 
 	CRUDADMISSION = "crud.admission"
+
+	CRUDINVOICE = "crud.invoice"
 )
