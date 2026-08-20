@@ -123,7 +123,7 @@ const (
 
 	// AcademicDegree
 	AcademicDegreeView           = "AcademicDegree.view"
-	AcademicDegreeViewByAcademic = "AcademicDegree.view.by.academic/:id"
+	AcademicDegreeViewByAcademic = "AcademicDegree.view.by.academic"
 	AcademicDegreeCreate         = "AcademicDegree.create"
 	AcademicDegreeUpdate         = "AcademicDegree.update/:uuid"
 	AcademicDegreeToggle         = "AcademicDegree.toggle/:uuid"

@@ -263,7 +263,7 @@ onMounted(() => {
           placeholder="បញ្ចូលឈ្មោះ"
           clearable
           prop="name"
-          label="ឈ្មោះជំនាន់"
+          label="ឈ្មោះមហាវិទ្យាល័យ"
         />
         <AppSelect
           v-model="form.programme_id"

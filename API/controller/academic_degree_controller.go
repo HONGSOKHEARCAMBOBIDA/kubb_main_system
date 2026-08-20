@@ -24,11 +24,14 @@ func NewAcademicDegreeController() AcademicDegreeController {
 }
 
 func (cr *AcademicDegreeController) GetAcademicDegreeByAcademicID(c *gin.Context) {
-	departmentID, ok := utils.GetParamID(c)
-	if !ok {
-		return
+	filter := map[string]string{
+		"academic_id":   c.Query("academic_id"),
+		"programme_id":  c.Query("programme_id"),
+		"faculty_id":    c.Query("faculty_id"),
+		"department_id": c.Query("department_id"),
+		"major_id":      c.Query("major_id"),
 	}
-	data, err := cr.service.GetAcademicDegreeByAcademicID(c, departmentID)
+	data, err := cr.service.GetAcademicDegreeByAcademicID(c, filter)
 	if err != nil {
 		share.RespondServiceError(c, err)
 		return

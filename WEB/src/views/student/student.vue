@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { createStudent, getStudent, updateStudent } from '../../services/student.service'
 import { getFeediscountGroup } from '../../services/feediscountgroup.service'
 import { getProvince, getDistrict, getCommunce, getVillage } from '../../services/location.service'
@@ -10,8 +10,9 @@ import { getAcademics } from '../../services/academic.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
 import { getAcademicDegreeByAcademic } from '../../services/academic_degree.service'
-import { getSchoolarshipGroup} from '../../services/schoolarship.service.js'
+import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
 import { getSemesterByAcademic } from '../../services/semester.service.js'
+import { getprogrammes } from '../../services/programmes.service.js'
 import AppButton from '../../components/button/AppButton.vue'
 import AppInput from '../../components/input/AppInput.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
@@ -32,6 +33,12 @@ const activeTab = ref('general')
 const genderOption = [
   { label: 'ស្រី', value: 'Female' },
   { label: 'ប្រុស', value: 'Male' },
+]
+
+const nationalityOption = [
+  {label: 'ខ្មែរ',value: 'ខ្មែរ'},
+  {label: 'ជនជាតិភាគតិច',value:'ជនជាតិភាគតិច'},
+  {label: 'ជនបរទេស',value:'ជនបរទេស'}
 ]
 
 // List state
@@ -287,12 +294,22 @@ const academicOptions = ref([])
 const generationOptions = ref([])
 const termOptions = ref([])
 const academicDegreeOptions = ref([])
+const programmesOptions = ref([])
 
 const admissionAcademicID = ref(null)
 const admissionGenerationID = ref(null)
 const admissionGenerationOptions = ref([])
 const admissionTermOptions = ref([])
 const admissionDegreeOptions = ref([])
+
+
+const filteradmissionDegreeOptions = reactive({
+  programme_id: null,
+  faculty_id: null,
+  department_id: null,
+  major_id: null,
+  academic_id: null,
+})
 
 const admissionStateOptions = [
   { label: 'កំពុងរង់ចាំ', value: 'created' },
@@ -301,18 +318,27 @@ const admissionStateOptions = [
 ]
 
 const endrollmentFeeintervalOption = [
-  {label: 'បង់1ខែម្ដង',value: 'monthly_fee'},
-  {label: 'បង់3ខែម្ដង',value: 'quarterly_fee'},
-  {label: 'បង់1ឆមាសម្ដង',value: 'semesterly_fee'},
-  {label: 'បង់1ឆ្នាំម្ដង',value: 'yearly_fee'},
+  { label: 'បង់1ខែម្ដង', value: 'monthly_fee' },
+  { label: 'បង់3ខែម្ដង', value: 'quarterly_fee' },
+  { label: 'បង់1ឆមាសម្ដង', value: 'semesterly_fee' },
+  { label: 'បង់1ឆ្នាំម្ដង', value: 'yearly_fee' },
 ]
 
 const studyyearOption = [
-  {label: 'ឆ្នាំទី1',value: 1},
-  {label: 'ឆ្នាំទី2',value: 2},
-  {label: 'ឆ្នាំទី3',value: 3},
-   {label: 'ឆ្នាំទី4',value: 4},
+  { label: 'ឆ្នាំទី1', value: 1 },
+  { label: 'ឆ្នាំទី2', value: 2 },
+  { label: 'ឆ្នាំទី3', value: 3 },
+  { label: 'ឆ្នាំទី4', value: 4 },
 ]
+
+async function fetchProgrammeOptions() {
+  try {
+    const res = await getprogrammes()
+    programmesOptions.value = (res.data.data || []).map((a) => ({ label: a.name, value: a.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load programmes')
+  }
+}
 
 async function fetchSchoolarship() {
   try {
@@ -339,13 +365,16 @@ async function fetchAcademicOption() {
   } catch (e) {}
 }
 
-async function loadAcademicdegree(academicID) {
-  if (!academicID) return []
+async function loadAcademicdegree() {
   try {
-    const res = await getAcademicDegreeByAcademic(academicID)
-    return (res.data.data || []).map((g) => ({ 
-      label: `${g.major_code} - ${g.programme_name} មួយឆ្នាំ ${g.yearly_fee}$` ,
-      value: g.id }))
+    const params = {}
+    if (filteradmissionDegreeOptions.programme_id) params.programme_id = filteradmissionDegreeOptions.programme_id
+    if (filteradmissionDegreeOptions.academic_id) params.academic_id = filteradmissionDegreeOptions.academic_id
+    const res = await getAcademicDegreeByAcademic(params)
+    admissionDegreeOptions.value = (res.data.data || []).map((g) => ({
+      label: `${g.major_code} - ${g.programme_name} មួយឆ្នាំ ${g.yearly_fee}$`,
+      value: g.id,
+    }))
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
     return []
@@ -356,9 +385,10 @@ async function loadSemester(academicID) {
   if (!academicID) return []
   try {
     const res = await getSemesterByAcademic(academicID)
-    return (res.data.data || []).map((g) => ({ 
+    return (res.data.data || []).map((g) => ({
       label: g.name,
-      value: g.id }))
+      value: g.id,
+    }))
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
     return []
@@ -391,9 +421,12 @@ async function onAdmissionAcademicChange() {
   admissionGenerationID.value = null
   form.admission.term_id = null
   admissionTermOptions.value = []
-  admissionDegreeOptions.value = await loadAcademicdegree(admissionAcademicID.value)
+  form.admission.academic_degree_id = null
+  academicDegreeOptions.value = []
+ // admissionDegreeOptions.value = await loadAcademicdegree(admissionAcademicID.value)
   admissionGenerationOptions.value = await loadGeneration(admissionAcademicID.value)
   semesterOptions.value = await loadSemester(admissionAcademicID.value)
+  filteradmissionDegreeOptions.academic_id = admissionAcademicID.value
 }
 
 async function onAdmissionGenerationChange() {
@@ -404,7 +437,10 @@ async function onAdmissionGenerationChange() {
 async function fetchGroupOptions() {
   try {
     const res = await getFeediscountGroup()
-    groupOptions.value = (res.data.data || []).map((g) => ({ label: g.name, value: g.id }))
+    groupOptions.value = (res.data.data || []).map((g) => ({ 
+    label: g.discount_type === 'percentage' ? `${g.name} បញ្ចុះតម្លៃ ${g.discount_percentage}%` : `${g.name} បញ្ចុះតម្លៃ ${g.discount_amount}$`, 
+    value: g.id 
+    }))
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load groups')
   }
@@ -537,12 +573,12 @@ const form = reactive({
   },
   enrollment: {
     scholarship_id: null,
-    fee_interval: ""
+    fee_interval: '',
   },
   student_term: {
     semester_id: null,
-    study_year_id: null
-  }
+    study_year_id: null,
+  },
 })
 
 const rules = {
@@ -720,6 +756,20 @@ async function handleSubmit() {
 }
 
 watch(
+  () => filteradmissionDegreeOptions.programme_id,
+  () => {
+    loadAcademicdegree()
+  }
+)
+
+watch(
+  () => filteradmissionDegreeOptions.academic_id,
+  () => {
+    loadAcademicdegree()
+  }
+)
+
+watch(
   () => filters.name,
   () => {
     clearTimeout(searchTimer)
@@ -740,6 +790,7 @@ onMounted(() => {
   fetchStudent()
   fetchAcademicOption()
   fetchSchoolarship()
+  fetchProgrammeOptions()
 })
 </script>
 
@@ -798,7 +849,7 @@ onMounted(() => {
       v-model:visible="dialogVisible"
       :title="isEditMode ? 'កែប្រែព័ត៌មាននិស្សិត' : 'បង្កេីតនិស្សិតថ្មី'"
       :showDefaultFooter="false"
-      width="50%"
+      width="58%"
       @close="closeDialog"
     >
       <AppForm
@@ -813,12 +864,12 @@ onMounted(() => {
           v-model="activeTap"
           :tabs="[
             { name: 'general', label: 'ព័ត៏មានទូទៅ' },
+            { name: 'admission', label: 'ដាក់ពាក្យ' },
             { name: 'education', label: 'ការសិក្សា' },
             { name: 'document', label: 'ឯកសារប្រគល់ជួន' },
             // { name: 'fother', label: 'ព័ត៏មានឪពុក' },
             // { name: 'mother', label: 'ព័ត៏មានម្ដាយ' },
             { name: 'family', label: 'ព័ត៍មានគ្រូសារ' },
-            { name: 'admission', label: 'ដាក់ពាក្យ' },
           ]"
           tab-position="top"
           stretch="true"
@@ -828,7 +879,7 @@ onMounted(() => {
             <el-card class="section-card" shadow="never">
               <template #header>ដាក់ពាក្យចូលរៀន</template>
               <el-row :gutter="20">
-                <el-col :span="12">
+                <el-col :span="8">
                   <AppSelect
                     v-model="admissionAcademicID"
                     :options="academicOptions"
@@ -838,14 +889,24 @@ onMounted(() => {
                     @change="onAdmissionAcademicChange"
                   />
                 </el-col>
-                <el-col :span="12">
+                <el-col :span="8">
+                  <AppSelect
+                    v-model="filteradmissionDegreeOptions.programme_id"
+                    :options="programmesOptions"
+                    placeholder="កម្រិត"
+                    label="កម្រិត"
+                    clearable
+                    :disabled="!admissionAcademicID"
+                  />
+                </el-col>
+                <el-col :span="8">
                   <AppSelect
                     v-model="form.admission.academic_degree_id"
                     :options="admissionDegreeOptions"
                     placeholder="សុំចូលរៀនជំនាញ"
                     label="សុំចូលរៀនជំនាញ"
                     clearable
-                    :disabled="!admissionAcademicID"
+                    
                   />
                 </el-col>
               </el-row>
@@ -865,8 +926,8 @@ onMounted(() => {
                   <AppSelect
                     v-model="form.admission.term_id"
                     :options="admissionTermOptions"
-                    placeholder="រេីស Term"
-                    label="Term"
+                    placeholder="រេីសវគ្គ"
+                    label="រេីសវគ្គ"
                     clearable
                     :disabled="!admissionGenerationID"
                   />
@@ -918,22 +979,22 @@ onMounted(() => {
                 <el-col :span="12">
                   <AppInput
                     v-model="form.admission.referral_school"
-                    label="សាលាបញ្ជូន"
-                    placeholder="សាលាបញ្ជូន (បើមាន)"
+                    label="មកពីសាលា(មិនចាំចាច់)"
+                    placeholder="មកពីសាលា"
                     clearable
                   />
                 </el-col>
                 <el-col :span="12">
                   <AppInput
                     v-model="form.admission.description"
-                    label="សេចក្តីលម្អិត"
+                    label="សេចក្តីលម្អិត(មិនចាំចាច់)"
                     placeholder="សេចក្តីលម្អិត"
                     clearable
                   />
                 </el-col>
               </el-row>
- <el-divider content-position="left">សុំចូលរៀន</el-divider>
-               <el-row :gutter="20">
+              <el-divider content-position="left">សុំចូលរៀន</el-divider>
+              <el-row :gutter="20">
                 <el-col :span="12">
                   <AppSelect
                     v-model="form.student_term.study_year_id"
@@ -961,32 +1022,33 @@ onMounted(() => {
               <template #header>ព័ត៏មានទូទៅ</template>
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <AppSelect
-                    v-model="form.group_id"
-                    :options="groupOptions"
-                    placeholder="ប្រភេទនិស្សិត"
-                    prop="group_id"
-                    label="ប្រភេទនិស្សិត"
-                    clearable
-                  />
-                </el-col>
-                <el-col :span="12">
-                  <AppInput
+                      <AppInput
                     v-model="form.name_kh"
                     prop="name_kh"
                     label="ឈ្មោះខែ្មរ"
                     placeholder="ឈ្មោះខែ្មរ"
                     clearable
                   />
+              
                 </el-col>
-              </el-row>
-              <el-row :gutter="20">
                 <el-col :span="12">
-                  <AppInput
+                   <AppInput
                     v-model="form.name_en"
                     prop="name_en"
                     label="ឈ្មោះឡាតាំង"
                     placeholder="ឈ្មោះឡាតាំង"
+                    clearable
+                  />
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                      <AppSelect
+                    v-model="form.group_id"
+                    :options="groupOptions"
+                    placeholder="ប្រភេទនិស្សិត"
+                    prop="group_id"
+                    label="ប្រភេទនិស្សិត"
                     clearable
                   />
                 </el-col>
@@ -1013,10 +1075,10 @@ onMounted(() => {
                   />
                 </el-col>
                 <el-col :span="12">
-                  <AppInput
-                    v-model="form.nationality"
-                    prop="nationality"
+                  <AppSelect
                     label="សញ្ជាតិ"
+                    v-model="form.nationality"
+                    :options="nationalityOption"
                     placeholder="សញ្ជាតិ"
                     clearable
                   />
@@ -1091,7 +1153,6 @@ onMounted(() => {
                 </el-col>
                 <el-col :span="12">
                   <AppSelect
-                    prop="village_id"
                     v-model="form.village_id"
                     :options="formVillageOptions"
                     placeholder="រេីសភូមិ"
