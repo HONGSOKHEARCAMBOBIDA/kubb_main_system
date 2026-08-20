@@ -37,6 +37,7 @@ func SetupRoutes(r *gin.Engine) {
 	academicstreamcontroller := controller.NewAcademicStreamController()
 	studentcontroller := controller.NewStudentController()
 	schoolarshipcontroller := controller.NewSchoolarshipController()
+	admissioncontroller := controller.NewAdmissionController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -188,5 +189,8 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.SchoolarshipGroupCreate, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.CreateSchoolarship)
 		auth.PUT(route.SchoolarshipGroupUpdate, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.UpdateSchoolarship)
 		auth.PUT(route.SchoolarshipGroupToggle, middleware.PermissionMiddleware(permission.CRUDSCHOOLARSHIP), schoolarshipcontroller.Toggle)
+
+		// Admision
+		auth.GET(route.AdmissionView, middleware.PermissionMiddleware(permission.CRUDADMISSION), admissioncontroller.GetAdmission)
 	}
 }

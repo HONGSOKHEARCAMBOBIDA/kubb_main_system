@@ -45,6 +45,7 @@ export const menuConfig = [
       { title: 'ប្រភេទនិស្សិត', icon: 'Document', path: '/feediscountgroup' },
       { title: 'អាហារូបករណ៏', icon: 'Document', path: '/schoolarship' },
       { title: 'និស្សិត', icon: 'Document', path: '/student' },
+      { title: 'និស្សិតបានចុះឈ្មោះសិក្សា', icon: 'Document', path: '/admission' },
     ],
   },
 ]

@@ -156,4 +156,7 @@ const (
 	SchoolarshipGroupCreate = "SchoolarshipGroup.create"
 	SchoolarshipGroupUpdate = "SchoolarshipGroup.update/:uuid"
 	SchoolarshipGroupToggle = "SchoolarshipGroup.toggle/:uuid"
+
+	// Admission
+	AdmissionView = "admission.view"
 )

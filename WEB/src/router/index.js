@@ -194,6 +194,12 @@ const routes = [
         component: () => import('@/views/student/student.vue'),
         meta: { title: 'និស្សិត', icone: 'Document' },
       },
+      {
+        path: 'admission',
+        name: 'និស្សិតបានចុះឈ្មោះសិក្សា',
+        component: () => import('@/views/admission/admission.vue'),
+        meta: { title: 'និស្សិតបានចុះឈ្មោះសិក្សា', icone: 'Document' },
+      },
     ],
   },
   {

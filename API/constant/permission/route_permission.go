@@ -57,4 +57,6 @@ const (
 	CRUDSTUDENT = "crud.student"
 
 	CRUDSCHOOLARSHIP = "crud.schoolarship"
+
+	CRUDADMISSION = "crud.admission"
 )

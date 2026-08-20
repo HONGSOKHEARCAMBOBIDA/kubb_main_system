@@ -111,4 +111,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.schoolarship",
 		Group: "schoolarship",
 	},
+	{
+		Name:  "crud.admission",
+		Group: "admission",
+	},
 }
