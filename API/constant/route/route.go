@@ -162,4 +162,10 @@ const (
 
 	// Invoice
 	InvoiceCreate = "invoice.create"
+
+	// Student Term
+	StudentTermCreate = "student.term.create"
+
+	// Enrollment
+	EnrollmentCreate = "enrollment.create"
 )

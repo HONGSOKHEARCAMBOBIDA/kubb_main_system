@@ -193,8 +193,12 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Admision
 		auth.GET(route.AdmissionView, middleware.PermissionMiddleware(permission.CRUDADMISSION), admissioncontroller.GetAdmission)
+		auth.POST(route.StudentTermCreate, middleware.PermissionMiddleware(permission.CRUDSTUDENTTERM), admissioncontroller.CreateStudentTerm)
 
 		// Invoice
 		auth.POST(route.InvoiceCreate, middleware.PermissionMiddleware(permission.CRUDINVOICE), invoicecontroller.CreateInvoice)
+
+		// Enrollment
+		auth.POST(route.EnrollmentCreate, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.CreateEnrollment)
 	}
 }

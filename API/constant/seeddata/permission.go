@@ -119,4 +119,12 @@ var Permissions = []model.Permission{
 		Name:  "crud.invoice",
 		Group: "invoice",
 	},
+	{
+		Name:  "crud.student.term",
+		Group: "student.term",
+	},
+	{
+		Name:  "crud.enrollment",
+		Group: "enrollment",
+	},
 }

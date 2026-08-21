@@ -46,3 +46,33 @@ func (cr *AdmissionController) GetAdmission(c *gin.Context) {
 	}
 	share.ResponsePagination(c, 200, data, meta)
 }
+
+func (cr *AdmissionController) CreateStudentTerm(c *gin.Context) {
+	var input request.StudentTermRequestv2
+	if err := c.ShouldBindJSON(&input); err != nil {
+		// log.Printf("CreateStudent request: %+v", err)
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := cr.service.CreateStudentTerm(c.Request.Context(), input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
+func (cr *AdmissionController) CreateEnrollment(c *gin.Context) {
+	var input request.EnrollmentRequestCreateV2
+	if err := c.ShouldBindJSON(&input); err != nil {
+		// log.Printf("CreateStudent request: %+v", err)
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := cr.service.CreateEnrollment(c.Request.Context(), input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}

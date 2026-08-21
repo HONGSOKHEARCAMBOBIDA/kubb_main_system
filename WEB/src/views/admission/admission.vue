@@ -10,6 +10,11 @@ import AppButton from '../../components/button/AppButton.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
+import { studentTermCreate } from '../../services/studentterm.service.js'
+import { getSemesterByAcademic } from '../../services/semester.service.js'
+import { getAcademics } from '../../services/academic.service.js'
+import { EnrollmentCreate } from '../../services/enrollment.service.js'
+import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
 const notify = useNotification()
 
 const admissions = ref([])
@@ -21,6 +26,68 @@ const pageSize = ref(10)
 const invoiceDialogVisible = ref(false)
 const invoiceSubmitting = ref(false)
 const invoiceFormRef = ref(null)
+
+// add new student term
+
+const studyyearOption = [
+  { label: 'ឆ្នាំទី1', value: 1 },
+  { label: 'ឆ្នាំទី2', value: 2 },
+  { label: 'ឆ្នាំទី3', value: 3 },
+  { label: 'ឆ្នាំទី4', value: 4 },
+]
+
+const AcademicID = ref(null)
+const academicOptions = ref([])
+const semesterOptions = ref([])
+async function fetchAcademicOption() {
+  try {
+    const res = await getAcademics()
+    academicOptions.value = (res.data.data || []).map((a) => ({
+      label: a.name,
+      value: a.id,
+    }))
+  } catch (e) {}
+}
+async function onSemesterAcademicChange() {
+  semesterOptions.value = await loadSemester(AcademicID.value)
+}
+async function loadSemester(academicID) {
+  if (!academicID) return []
+  try {
+    const res = await getSemesterByAcademic(academicID)
+    return (res.data.data || []).map((g) => ({
+      label: g.name,
+      value: g.id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+const formstudentterm = reactive({
+  enrollment_id: null,
+  semester_id: null,
+  study_year_id: null,
+})
+const addstudenttermvisible = ref(false)
+function openCreateStudentTerm(enrollment) {
+  formstudentterm.enrollment_id = enrollment.id
+  addstudenttermvisible.value = true
+}
+
+function closeCreateStudentTerm() {
+  addstudenttermvisible.value = false
+}
+
+async function submitstudentterm() {
+  try {
+    await studentTermCreate(formstudentterm)
+    addstudenttermvisible.value = false
+    formstudentterm.enrollment_id = null
+    fetchAdmissions()
+  } catch (e) {}
+}
+//student term
 
 const filters = reactive({
   student_id: '',
@@ -40,6 +107,56 @@ const form = reactive({
   reference: '',
   method: '',
 })
+
+// Enrollment
+const schoolarshipOptions = ref([])
+async function fetchSchoolarship() {
+  try {
+    const res = await getSchoolarshipGroup()
+    schoolarshipOptions.value = (res.data.data || []).map((a) => ({
+      label:
+        a.discount_type === 'percentage'
+          ? `${a.name} ${a.discount_percentage}%`
+          : `${a.name} ${a.discount_amount}$`,
+      value: a.id,
+    }))
+  } catch (e) {
+    console.error(e)
+  }
+}
+const endrollmentFeeintervalOption = [
+  { label: 'បង់1ខែម្ដង', value: 'monthly_fee' },
+  { label: 'បង់3ខែម្ដង', value: 'quarterly_fee' },
+  { label: 'បង់1ឆមាសម្ដង', value: 'semesterly_fee' },
+  { label: 'បង់1ឆ្នាំម្ដង', value: 'yearly_fee' },
+]
+const formenrollment = reactive({
+  admision_id: null,
+  scholarship_id: null,
+  fee_interval: '',
+  student_term: {
+    semester_id: null,
+    study_year_id: null,
+  },
+})
+
+const addenrollmentvisible = ref(false)
+function openCreateEnrollment(admission) {
+  formenrollment.admision_id = admission.id
+  addenrollmentvisible.value = true
+}
+function closeCreateEnrollment() {
+  addstudenttermvisible.value = false
+}
+
+async function submitEnrollment() {
+  try {
+    await EnrollmentCreate(formenrollment)
+    addenrollmentvisible.value = false
+    formenrollment.admision_id = null
+    fetchAdmissions()
+  } catch (e) {}
+}
 
 const invoiceRules = {
   fee_id: [{ required: true, message: 'សូមជ្រើសរើសថ្លៃសិក្សា', trigger: 'change' }],
@@ -182,6 +299,7 @@ const columns = [
 ]
 
 const columnenrollments = [
+  { slot: 'year_id', label: 'ឆ្នាំទី', minwidth: 60 },
   { slot: 'schoolarship', label: 'អាហារូបករណ៍ទទួលបាន', minwidth: 160 },
   { slot: 'fee_interval', label: 'សុំបង់ប្រាក់ជា', minwidth: 130 },
   { slot: 'description', label: 'ផ្សេងៗ' },
@@ -216,12 +334,12 @@ const columninstallments = [
   { prop: 'due_date', label: 'ថ្ងៃត្រូវបង់', minwidth: 110 },
   { label: 'ចំនួនត្រូវបង់', slot: 'instAmount', minwidth: 100 },
   { label: 'ស្ថានភាព', slot: 'instStatus', minwidth: 110 },
-  {prop: 'invoice_code',label:'លេខកូដវិក័យបត្រ', minwidth: 110 },
-  {prop: 'invoice_date',label:'ថ្ងៃចេញវិក័យបត្រ', minwidth: 110 },
-  {slot: 'invoice_grant_total',label:'ចំនួនទទួលបានសរុប', minwidth: 110 },
-  {prop: 'payment_code',label:'លេខកូដទូទាត់', minwidth: 110 },
-   {prop: 'payment_reference',label:'លេខយោង', minwidth: 110 },
-    {prop: 'payment_method',label:'វិធីសាស្រ្តទូទាត់', minwidth: 110 },
+  { prop: 'invoice_code', label: 'លេខកូដវិក័យបត្រ', minwidth: 110 },
+  { prop: 'invoice_date', label: 'ថ្ងៃចេញវិក័យបត្រ', minwidth: 110 },
+  { slot: 'invoice_grant_total', label: 'ចំនួនទទួលបានសរុប', minwidth: 110 },
+  { prop: 'payment_code', label: 'លេខកូដទូទាត់', minwidth: 110 },
+  { prop: 'payment_reference', label: 'លេខយោង', minwidth: 110 },
+  { prop: 'payment_method', label: 'វិធីសាស្រ្តទូទាត់', minwidth: 110 },
 ]
 
 const columnpayments = [
@@ -257,10 +375,10 @@ function onFilterChange() {
   fetchAdmissions()
 }
 
-
-
 onMounted(() => {
   fetchAdmissions()
+  fetchAcademicOption()
+  fetchSchoolarship()
 })
 </script>
 
@@ -356,13 +474,25 @@ onMounted(() => {
 
       <!-- Level 1: enrollments -->
       <template #expand="{ row }">
-        <el-divider content-position="left">ព័ត៌មានដាក់ពាក្យ</el-divider>
+        <el-divider content-position="left"
+          >ព័ត៌មានដាក់ពាក្យ
+          <AppButton
+            v-if="row.enrollment?.length < 5"
+            @click="openCreateEnrollment(row)"
+            type="primary"
+          >
+            ដាក់ពាក្យថ្មី
+          </AppButton>
+        </el-divider>
         <TableCustom
           expandable
           :data="row.enrollment"
           :columns="columnenrollments"
           :show-pagination="false"
         >
+          <template #year_id="{ row }">
+            <el-text tag="b"> ឆ្នាំទី {{ row.year_id }} </el-text>
+          </template>
           <template #schoolarship="{ row }">
             <el-text v-if="row.schoolarship_id" tag="b" style="color: crimson">
               {{ row.schoolarship_name }} —
@@ -387,7 +517,13 @@ onMounted(() => {
 
           <!-- Level 2: student terms -->
           <template #expand="{ row }">
-            <el-divider content-position="left">កំពុងសិក្សា</el-divider>
+            <el-divider content-position="left"
+              >កំពុងសិក្សា
+
+              <AppButton v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
+                ថែមឆមាសថ្មី
+              </AppButton>
+            </el-divider>
             <TableCustom
               expandable
               :data="row.student_term"
@@ -437,50 +573,46 @@ onMounted(() => {
                   </template>
 
                   <!-- Level 4: invoices + installments -->
-<template #expand="{ row: feeRow }">
-  <div>
-    <el-divider content-position="left">
-      ការបង់រំលស់
-    </el-divider>
+                  <template #expand="{ row: feeRow }">
+                    <div>
+                      <el-divider content-position="left"> ការបង់រំលស់ </el-divider>
 
-    <TableCustom
-      expandable
-      :data="feeRow.installment || []"
-      :columns="columninstallments"
-      :show-pagination="false"
-      actions-width="180"
-    >
-      <template #instAmount="{ row }">
-        {{ formatMoney(row.amount) }}$
-      </template>
+                      <TableCustom
+                        expandable
+                        :data="feeRow.installment || []"
+                        :columns="columninstallments"
+                        :show-pagination="false"
+                        actions-width="180"
+                      >
+                        <template #instAmount="{ row }"> {{ formatMoney(row.amount) }}$ </template>
 
-      <template #instStatus="{ row }">
-        {{ labelOf(installmentStatusLabels, row.status) }}
-      </template>
+                        <template #instStatus="{ row }">
+                          {{ labelOf(installmentStatusLabels, row.status) }}
+                        </template>
 
-      <template #invoice_grant_total="{row}">
-        <el-text tag="b">{{ row.invoice_grant_total }}$</el-text>
-      </template>
+                        <template #invoice_grant_total="{ row }">
+                          <el-text tag="b">{{ row.invoice_grant_total }}$</el-text>
+                        </template>
 
-      <template #actions="{ row: installmentRow }">
-        <AppButton
-          :disabled="installmentRow.status === 'paid'"
-          type="success"
-          @click="openInvoiceDialog(feeRow, installmentRow)"
-        >
-          បង់ប្រាក់
-        </AppButton>
-          <AppButton
-          :disabled="installmentRow.status === 'pending'"
-          type="primary"
-          @click=""
-        >
-          បោះពុម្ព
-        </AppButton>
-      </template>
-    </TableCustom>
-  </div>
-</template>
+                        <template #actions="{ row: installmentRow }">
+                          <AppButton
+                            :disabled="installmentRow.status === 'paid'"
+                            type="success"
+                            @click="openInvoiceDialog(feeRow, installmentRow)"
+                          >
+                            បង់ប្រាក់
+                          </AppButton>
+                          <AppButton
+                            :disabled="installmentRow.status === 'pending'"
+                            type="primary"
+                            @click=""
+                          >
+                            បោះពុម្ព
+                          </AppButton>
+                        </template>
+                      </TableCustom>
+                    </div>
+                  </template>
                 </TableCustom>
               </template>
             </TableCustom>
@@ -579,8 +711,8 @@ onMounted(() => {
           </el-col>
         </el-row>
 
-        <el-row >
-          <el-col >
+        <el-row>
+          <el-col>
             <AppInput
               type="area"
               v-model="form.message_on_invoice"
@@ -588,6 +720,121 @@ onMounted(() => {
               placeholder="សេចក្តីលម្អិត"
             >
             </AppInput>
+          </el-col>
+        </el-row>
+      </AppForm>
+    </AppDialog>
+
+    <AppDialog
+      v-if="addstudenttermvisible"
+      v-model:visible="addstudenttermvisible"
+      title="ថែមឆមាស"
+      :showDefaultFooter="false"
+      width="520px"
+      @close="closeCreateStudentTerm"
+    >
+      <AppForm
+        :model="formstudentterm"
+        :show-actions="true"
+        @submit="submitstudentterm"
+        submitText="រក្សាទុក"
+      >
+        <AppSelect
+          v-model="AcademicID"
+          :options="academicOptions"
+          placeholder="រេីសឆ្នាំសិក្សា"
+          label="ឆ្នាំសិក្សា"
+          clearable
+          @change="onSemesterAcademicChange"
+        />
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppSelect
+              v-model="formstudentterm.study_year_id"
+              :options="studyyearOption"
+              placeholder="ឆ្នាំទី"
+              label="ឆ្នាំទី"
+              clearable
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppSelect
+              v-model="formstudentterm.semester_id"
+              :options="semesterOptions"
+              :disabled="!AcademicID"
+              placeholder="ឆមាសទី"
+              label="ឆមាសទី"
+              clearable
+            />
+          </el-col>
+        </el-row>
+      </AppForm>
+    </AppDialog>
+    <AppDialog
+      v-if="addenrollmentvisible"
+      v-model:visible="addenrollmentvisible"
+      title="ថែមការចុះឈ្មោះ"
+      :showDefaultFooter="false"
+      width="720px"
+      @close="closeCreateEnrollment"
+    >
+      <AppForm
+        :model="formenrollment"
+        :show-actions="true"
+        @submit="submitEnrollment"
+        submitText="រក្សាទុក"
+      >
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <AppSelect
+              v-model="AcademicID"
+              :options="academicOptions"
+              placeholder="រេីសឆ្នាំសិក្សា"
+              label="ឆ្នាំសិក្សា"
+              clearable
+              @change="onSemesterAcademicChange"
+            />
+          </el-col>
+          <el-col :span="8">
+            <AppSelect
+              v-model="formenrollment.scholarship_id"
+              :options="schoolarshipOptions"
+              placeholder="អាហារូបករណ៍"
+              label="អាហារូបករណ៍"
+              clearable
+            />
+          </el-col>
+          <el-col :span="8">
+            <AppSelect
+              v-model="formenrollment.fee_interval"
+              :options="endrollmentFeeintervalOption"
+              placeholder="សុំបង់ប្រាក់ជា"
+              label="សុំបង់ប្រាក់ជា"
+              clearable
+            />
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppSelect
+              v-model="formenrollment.student_term.study_year_id"
+              :options="studyyearOption"
+              placeholder="ឆ្នាំទី"
+              label="ឆ្នាំទី"
+              clearable
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppSelect
+              v-model="formenrollment.student_term.semester_id"
+              :options="semesterOptions"
+              :disabled="!AcademicID"
+              placeholder="ឆមាសទី"
+              label="ឆមាសទី"
+              clearable
+            />
           </el-col>
         </el-row>
       </AppForm>

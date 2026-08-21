@@ -61,4 +61,8 @@ const (
 	CRUDADMISSION = "crud.admission"
 
 	CRUDINVOICE = "crud.invoice"
+
+	CRUDSTUDENTTERM = "crud.student.term"
+
+	CRUDENROLLMENT = "crud.enrollment"
 )

@@ -2,18 +2,26 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"math"
 	"mysql/config"
+	"mysql/constant/apperror"
 	"mysql/helper"
 	"mysql/model"
+	"mysql/model/base"
 	"mysql/request"
 	"mysql/response"
+	"mysql/utils"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type AdmissionService interface {
 	GetAdmission(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AdmissionResponse, *model.PaginationMetadata, error)
+	CreateStudentTerm(ctx context.Context, input request.StudentTermRequestv2) error
+	CreateEnrollment(ctx context.Context, input request.EnrollmentRequestCreateV2) error
 }
 
 type admissionservice struct {
@@ -123,6 +131,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 		Table("enrollments e").
 		Joins("INNER JOIN admissions a ON a.id = e.admission_id").
 		Joins("LEFT JOIN scholarships s ON s.id = e.scholarship_id").
+		Joins("LEFT JOIN student_terms st ON st.id = e.id").
 		Where("e.admission_id IN ?", admissionIDs).
 		Select(`
 			e.id AS id,
@@ -134,7 +143,13 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 			s.discount_amount AS schoolarship_discount_amount,
 			s.discount_percentage AS schoolarship_discount_percentage,
 			e.fee_interval AS fee_interval,
-			e.description AS description
+			e.description AS description,
+				(
+		SELECT st.study_year_id
+		FROM student_terms st
+		WHERE st.enrollment_id = e.id
+		LIMIT 1
+	) AS year_id
 		`).Scan(&enrollments).Error; err != nil {
 		return nil, nil, fmt.Errorf("fetch enrollments: %w", err)
 	}
@@ -265,4 +280,188 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 	}
 
 	return data, helper.BuildPaginationMeta(pf, total), nil
+}
+
+func (s *admissionservice) CreateStudentTerm(
+	ctx context.Context,
+	input request.StudentTermRequestv2,
+) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		studentTerm := model.StudentTerm{
+			UUIDBase: base.UUIDBase{
+				UUID: helper.GenerateUUID(),
+			},
+			EnrollmentID: input.EnrollmentID,
+			SemesterID:   input.SemesterID,
+			StudyYearID:  input.StudyYearID,
+			Active:       true,
+			Status:       "PENDING",
+		}
+
+		if err := tx.Create(&studentTerm).Error; err != nil {
+			return apperror.New(
+				apperror.CodeInternal,
+				"failed to create student term",
+				nil,
+			)
+		}
+		if err := tx.Model(&model.StudentTerm{}).
+			Where("enrollment_id = ?", input.EnrollmentID).
+			Where("id < ?", studentTerm.ID).
+			Update("status", "FINISH").Error; err != nil {
+			return apperror.New(
+				apperror.CodeInternal,
+				"failed to finish previous student terms",
+				nil,
+			)
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (s *admissionservice) CreateEnrollment(ctx context.Context, input request.EnrollmentRequestCreateV2) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	enrollment := model.Enrollment{
+		UUIDBase: base.UUIDBase{
+			UUID: helper.GenerateUUID(),
+		},
+		AdmissionID:    input.AdmissionID,
+		SchoolarshipID: input.SchoolarshipID,
+		SectionID:      nil,
+		FeeInterval:    input.FeeInterval,
+	}
+
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var admission model.Admission
+		if err := tx.First(&admission, input.AdmissionID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "admission not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to load admission", nil)
+		}
+
+		var student model.Student
+		if err := tx.First(&student, admission.StudentID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "student not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to load student", nil)
+		}
+
+		var degree model.AcademicDegree
+		if err := tx.First(&degree, admission.AcademicDegreeID).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to load academic degree", nil)
+		}
+
+		scheduleCount := helper.GetFeeSchedule(enrollment.FeeInterval)
+		if scheduleCount <= 0 {
+			return apperror.New(apperror.CodeInternal, "invalid fee schedule for given interval", nil)
+		}
+
+		if err := tx.Create(&enrollment).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to create enrollment", nil)
+		}
+
+		baseAmount := helper.GetFeeAmountPerYear(degree, enrollment.FeeInterval)
+
+		var discountGroup *model.FeeDiscountGroup
+		if student.GroupID > 0 {
+			var group model.FeeDiscountGroup
+			if err := tx.First(&group, student.GroupID).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to load discount group", nil)
+			}
+			discountGroup = &group
+		}
+		discount := helper.CalculateDiscount(baseAmount, discountGroup)
+		total := baseAmount - discount
+		if total < 0 {
+			total = 0
+		}
+
+		var secondDiscount float64
+		if enrollment.SchoolarshipID > 0 {
+			var schoolarship model.Schoolarship
+			if err := tx.First(&schoolarship, enrollment.SchoolarshipID).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to load schoolarship", nil)
+			}
+			secondDiscount = helper.CalculateDiscountBySchoolarship(baseAmount, &schoolarship)
+		}
+
+		nettotal := total - secondDiscount
+		if nettotal < 0 {
+			nettotal = 0
+		}
+		totaldiscount := discount + secondDiscount
+
+		fee := model.Fee{
+			UUIDBase:     base.UUIDBase{UUID: helper.GenerateUUID()},
+			EnrollmentID: enrollment.ID,
+			Date:         time.Now().Format("2006-01-02"),
+			Amount:       baseAmount,
+			Discount:     totaldiscount,
+			Total:        nettotal,
+			Active:       true,
+		}
+		if err := tx.Create(&fee).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to create fee", nil)
+		}
+
+		// --- Installments: always generated, regardless of discounts ---
+		paymentAmount := nettotal / float64(scheduleCount)
+		paymentAmount = math.Round(paymentAmount*100) / 100
+
+		installments := make([]model.Installment, 0, scheduleCount)
+		dueDate := time.Now()
+
+		for i := 1; i <= scheduleCount; i++ {
+			amount := paymentAmount
+			if i == scheduleCount {
+				paidSoFar := paymentAmount * float64(scheduleCount-1)
+				amount = nettotal - paidSoFar
+			}
+
+			dueDate = dueDate.AddDate(0, 1, 0)
+
+			installments = append(installments, model.Installment{
+				UUIDBase:   base.UUIDBase{UUID: helper.GenerateUUID()},
+				FeeID:      fee.ID,
+				SequenceNO: i,
+				DueDate:    dueDate.Format("2006-01-02"),
+				Amount:     amount,
+				Status:     model.InstallmentStatusPending,
+				InvoiceID:  nil,
+			})
+		}
+
+		if err := tx.Create(&installments).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to create installments", nil)
+		}
+
+		// --- Optional student term ---
+		if input.StudentTermRequestCreate != nil {
+			newstudentterm := model.StudentTerm{
+				UUIDBase: base.UUIDBase{
+					UUID: helper.GenerateUUID(),
+				},
+				EnrollmentID: enrollment.ID,
+				SemesterID:   input.StudentTermRequestCreate.SemesterID,
+				StudyYearID:  input.StudentTermRequestCreate.StudyYearID,
+				Active:       true,
+				Status:       "PENDING",
+			}
+			if err := tx.Create(&newstudentterm).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to create student term", nil)
+			}
+		}
+
+		return nil
+	})
 }
