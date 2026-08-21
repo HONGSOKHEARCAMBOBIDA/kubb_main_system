@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"mysql/config"
 	"mysql/constant/apperror"
 	"mysql/helper"
@@ -58,14 +59,9 @@ func (s *invoiceservice) CreateInvoice(ctx context.Context, input request.Invoic
 	}
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&newinvoice).Error; err != nil {
-			return apperror.New(apperror.CodeInternal, "failed to create invoice", err)
-		}
-
+		tx.Create(&newinvoice)
 		newinvoice.Code = helper.GenerateCode("INVOICE", uint(newinvoice.ID))
-		if err := tx.Save(&newinvoice).Error; err != nil {
-			return apperror.New(apperror.CodeInternal, "failed to update invoice code", err)
-		}
+		tx.Save(&newinvoice)
 
 		newpayment := model.Payment{
 			UUIDBase: base.UUIDBase{
@@ -78,15 +74,23 @@ func (s *invoiceservice) CreateInvoice(ctx context.Context, input request.Invoic
 			Method:    input.Method,
 			Active:    true,
 		}
-		if err := tx.Create(&newpayment).Error; err != nil {
-			return apperror.New(apperror.CodeInternal, "failed to create payment", err)
-		}
+		tx.Create(&newpayment)
 
 		newpayment.Code = helper.GenerateCode("PAYMENT", uint(newpayment.ID))
-		if err := tx.Save(&newpayment).Error; err != nil {
-			return apperror.New(apperror.CodeInternal, "failed to update payment code", err)
-		}
+		tx.Save(&newpayment)
 
+		updates := map[string]interface{}{}
+
+		updates["invoice_id"] = newinvoice.ID
+		updates["status"] = model.InstallmentStatusPaid
+		result := tx.Model(&model.Installment{}).Where("uuid = ?", input.InstallmentUUID).Updates(updates)
+		if result.Error != nil {
+			return helper.MapAcademicError(result.Error, "update")
+		}
+		fmt.Println("rows affected:", result.RowsAffected, "installment uuid:", input.InstallmentUUID)
+		if result.RowsAffected == 0 {
+			return apperror.New(apperror.CodeNotFound, "installment not found", nil)
+		}
 		return nil
 	})
 

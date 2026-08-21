@@ -1,12 +1,15 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { getAdmission } from '../../services/admission.service'
+import { invoicecreate } from '../../services/invoice.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import AppInput from '../../components/input/AppInput.vue'
 import AppFilterBar from '../../components/common/AppFilterBar.vue'
 import AppButton from '../../components/button/AppButton.vue'
-
+import AppForm from '@/components/forms/AppForm.vue'
+import AppDialog from '@/components/dialogs/AppDialog.vue'
+import AppSelect from '../../components/common/AppSelect.vue'
 const notify = useNotification()
 
 const admissions = ref([])
@@ -15,10 +18,123 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
 
+const invoiceDialogVisible = ref(false)
+const invoiceSubmitting = ref(false)
+const invoiceFormRef = ref(null)
+
 const filters = reactive({
   student_id: '',
   student_name: '',
 })
+
+const form = reactive({
+  installment_uuid: '',
+  fee_id: null,
+  invoice_date: '',
+  due_date: '',
+  total: 0,
+  discount: 0,
+  tax: 0,
+  grant_total: 0,
+  message_on_invoice: '',
+  reference: '',
+  method: '',
+})
+
+const invoiceRules = {
+  fee_id: [{ required: true, message: 'សូមជ្រើសរើសថ្លៃសិក្សា', trigger: 'change' }],
+  invoice_date: [{ required: true, message: 'សូមបញ្ចូលថ្ងៃចេញ', trigger: 'change' }],
+  due_date: [{ required: true, message: 'សូមបញ្ចូលថ្ងៃកំណត់', trigger: 'change' }],
+  total: [{ required: true, message: 'សូមបញ្ចូលចំនួនទឹកប្រាក់', trigger: 'blur' }],
+  grant_total: [{ required: true, message: 'ចំនួនត្រូវបង់មិនអាចទទេ', trigger: 'blur' }],
+  method: [{ required: true, message: 'សូមជ្រើសរើសមធ្យោបាយបង់ប្រាក់', trigger: 'change' }],
+}
+
+const methodOptions = [
+  { label: 'សាច់ប្រាក់', value: 'cash' },
+  { label: 'ACELEDA', value: 'aceleda' },
+  { label: 'ABA', value: 'aba' },
+  { label: 'WING', value: 'wing' },
+]
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function resetForm() {
+  form.installment_uuid = ''
+  form.fee_id = null
+  form.invoice_date = todayStr()
+  form.due_date = todayStr()
+  form.total = 0
+  form.discount = 0
+  form.tax = 0
+  form.grant_total = 0
+  form.message_on_invoice = ''
+  form.reference = ''
+  form.method = ''
+}
+
+watch(
+  () => [form.total, form.discount, form.tax],
+  ([t, d, x]) => {
+    const g = Number(t || 0) - Number(d || 0) + Number(x || 0)
+    form.grant_total = Math.max(0, Number(g.toFixed(2)))
+  }
+)
+
+function openInvoiceDialog(feeRow, installmentRow) {
+  resetForm()
+  form.installment_uuid = installmentRow.uuid
+  form.fee_id = feeRow?.id ?? feeRow?.ID ?? null
+  form.total = Number(installmentRow?.amount ?? feeRow?.total ?? 0)
+  form.due_date = installmentRow.due_date
+  form.discount = 0
+  form.tax = 0
+  form.reference = installmentRow ? `លេខយោង-${installmentRow.id}` : ''
+  invoiceDialogVisible.value = true
+}
+
+function closeInvoiceDialog() {
+  invoiceDialogVisible.value = false
+  invoiceFormRef.value?.clearValidate?.()
+}
+
+async function submitInvoice() {
+  if (!invoiceFormRef.value) return
+  try {
+    await invoiceFormRef.value.validate()
+  } catch {
+    return
+  }
+
+  invoiceSubmitting.value = true
+  try {
+    const payload = {
+      installment_uuid: form.installment_uuid,
+      fee_id: Number(form.fee_id),
+      invoice_date: form.invoice_date,
+      due_date: form.due_date,
+      total: Number(form.total),
+      discount: Number(form.discount),
+      tax: Number(form.tax),
+      grant_total: Number(form.grant_total),
+      message_on_invoice: form.message_on_invoice,
+      reference: form.reference,
+      method: form.method,
+    }
+
+    await invoicecreate(payload)
+
+    notify.success('បង់ប្រាក់ និងបង្កើតវិក័យបត្រដោយជោគជ័យ')
+    invoiceDialogVisible.value = false
+    await fetchAdmissions()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to create invoice')
+  } finally {
+    invoiceSubmitting.value = false
+  }
+}
 
 // --- Label maps: replace with your real enum values ---
 const stateLabels = {
@@ -73,7 +189,7 @@ const columnenrollments = [
 
 const columnstudentterms = [
   { slot: 'semester', label: 'ឆមាស', minwidth: 160 },
-  {prop:'study_year_id',label:'ឆ្នាំទី',minwidth: 160},
+  { prop: 'study_year_id', label: 'ឆ្នាំទី', minwidth: 160 },
   { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 130 },
   { prop: 'status', label: 'ស្ថានភាព', slot: 'stStatus', minwidth: 120 },
   { label: 'សកម្ម', slot: 'stActive', minwidth: 90 },
@@ -96,10 +212,16 @@ const columninvoices = [
 ]
 
 const columninstallments = [
-  { prop: 'sequence_no', label: 'លេីកទី', minwidth: 70 },
+  { prop: 'sequence_no', label: 'លេីកទី', width: 70 },
   { prop: 'due_date', label: 'ថ្ងៃត្រូវបង់', minwidth: 110 },
   { label: 'ចំនួនត្រូវបង់', slot: 'instAmount', minwidth: 100 },
   { label: 'ស្ថានភាព', slot: 'instStatus', minwidth: 110 },
+  {prop: 'invoice_code',label:'លេខកូដវិក័យបត្រ', minwidth: 110 },
+  {prop: 'invoice_date',label:'ថ្ងៃចេញវិក័យបត្រ', minwidth: 110 },
+  {slot: 'invoice_grant_total',label:'ចំនួនទទួលបានសរុប', minwidth: 110 },
+  {prop: 'payment_code',label:'លេខកូដទូទាត់', minwidth: 110 },
+   {prop: 'payment_reference',label:'លេខយោង', minwidth: 110 },
+    {prop: 'payment_method',label:'វិធីសាស្រ្តទូទាត់', minwidth: 110 },
 ]
 
 const columnpayments = [
@@ -134,6 +256,8 @@ function onFilterChange() {
   page.value = 1
   fetchAdmissions()
 }
+
+
 
 onMounted(() => {
   fetchAdmissions()
@@ -179,13 +303,16 @@ onMounted(() => {
     >
       <template #student_name="{ row }">
         <el-text>
-          <div>{{ row.student_name_kh }} (<el-text type="warning">{{ row.student_gender }}</el-text>)</div>
+          <div>
+            {{ row.student_name_kh }} (<el-text type="warning">{{ row.student_gender }}</el-text
+            >)
+          </div>
           <div>{{ row.student_name_en }}</div>
         </el-text>
       </template>
 
       <template #generation="{ row }">
-        <el-text tag="b" style="color: darkcyan;">{{ row.generation_name || '-' }}</el-text>
+        <el-text tag="b" style="color: darkcyan">{{ row.generation_name || '-' }}</el-text>
       </template>
 
       <template #academic="{ row }">
@@ -197,7 +324,7 @@ onMounted(() => {
       </template>
 
       <template #enrollCount="{ row }">
-        <el-text tag="b" style="color: dodgerblue;">
+        <el-text tag="b" style="color: dodgerblue">
           {{ (row.enrollment || []).length }} ដង
         </el-text>
       </template>
@@ -205,7 +332,9 @@ onMounted(() => {
       <template #major_name="{ row }">
         <el-text>
           <div>{{ row.major_name }}</div>
-          <div><el-text type="primary">{{ row.yearly_fee }}$ /Year</el-text></div>
+          <div>
+            <el-text type="primary">{{ row.yearly_fee }}$ /Year</el-text>
+          </div>
         </el-text>
       </template>
 
@@ -240,14 +369,16 @@ onMounted(() => {
               {{
                 row.schoolarship_discount_type === 'percentage'
                   ? `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_percentage}%`
-                  : `ទទួលការបញ្ចុះតម្លៃ${(row.schoolarship_discount_amount)}$`
+                  : `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_amount}$`
               }}
             </el-text>
             <el-text v-else type="info">គ្មាន</el-text>
           </template>
 
           <template #fee_interval="{ row }">
-            <el-text tag="b" type="success">{{ labelOf(feeIntervalLabels, row.fee_interval) }}</el-text>
+            <el-text tag="b" type="success">{{
+              labelOf(feeIntervalLabels, row.fee_interval)
+            }}</el-text>
           </template>
 
           <template #description="{ row }">
@@ -256,7 +387,7 @@ onMounted(() => {
 
           <!-- Level 2: student terms -->
           <template #expand="{ row }">
-      <el-divider content-position="left">កំពុងសិក្សា</el-divider>
+            <el-divider content-position="left">កំពុងសិក្សា</el-divider>
             <TableCustom
               expandable
               :data="row.student_term"
@@ -268,7 +399,9 @@ onMounted(() => {
               </template>
 
               <template #stStatus="{ row }">
-                <el-text tag="b" :type="row.status == 'PENDING' ? 'success' : 'info'">{{ row.status }}</el-text>
+                <el-text tag="b" :type="row.status == 'PENDING' ? 'success' : 'info'">{{
+                  row.status
+                }}</el-text>
               </template>
 
               <template #stActive="{ row }">
@@ -279,7 +412,7 @@ onMounted(() => {
 
               <!-- Level 3: fees -->
               <template #expand="{ row }">
-                  <el-divider content-position="left">ថ្លៃសិក្សា</el-divider>
+                <el-divider content-position="left">ថ្លៃសិក្សាប្រចាំឆ្នាំ</el-divider>
                 <TableCustom
                   expandable
                   :data="row.fee"
@@ -287,17 +420,12 @@ onMounted(() => {
                   :show-pagination="false"
                 >
                   <template #feeAmount="{ row }">
-                    <el-text tag="b" style="color: black;">
-  {{ formatMoney(row.amount) }}$
-                    </el-text>
-                  
+                    <el-text tag="b" style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
                   </template>
                   <template #feeDiscount="{ row }">
                     <el-text tag="b" style="color: crimson">
- {{ formatMoney(row.discount) }}$
+                      {{ formatMoney(row.discount) }}$
                     </el-text>
-                   
-                  
                   </template>
                   <template #feeTotal="{ row }">
                     <el-text tag="b" type="primary">{{ formatMoney(row.total) }}$</el-text>
@@ -309,54 +437,50 @@ onMounted(() => {
                   </template>
 
                   <!-- Level 4: invoices + installments -->
-                  <template #expand="{ row }">
-                        <div>
-                      <el-divider content-position="left">ការបង់រំលស់</el-divider>
-                      <TableCustom
-                        expandable
-                        :data="row.installment"
-                        :columns="columninstallments"
-                        :show-pagination="false"
-                      >
-                        <template #instAmount="{ row }">{{ formatMoney(row.amount) }}$</template>
-                        <template #instStatus="{ row }">
-                          {{ labelOf(installmentStatusLabels, row.status) }}
-                        </template>
-                        <template #actions>
-                          <AppButton type="success">
-                            បង់ប្រាក់
-                          </AppButton>
-                        </template>
-                      </TableCustom>
-                    </div>
-                    <!-- <div class="mb-3">
-                      <el-text tag="b" size="small">វិក័យបត្រ</el-text>
-                      <TableCustom
-                        expandable
-                        :data="row.invoice"
-                        :columns="columninvoices"
-                        :show-pagination="false"
-                      >
-                        <template #invGrantTotal="{ row }">
-                          <el-text tag="b" type="primary">{{ formatMoney(row.grant_total) }}$</el-text>
-                        </template>
-                        <template #invTax="{ row }">{{ formatMoney(row.tax) }}$</template>
+<template #expand="{ row: feeRow }">
+  <div>
+    <el-divider content-position="left">
+      ការបង់រំលស់
+    </el-divider>
 
-                       
-                        <template #expand="{ row }">
-                          <TableCustom
-                            :data="row.payment"
-                            :columns="columnpayments"
-                            :show-pagination="false"
-                          >
-                            <template #payAmount="{ row }">{{ formatMoney(row.amount) }}$</template>
-                          </TableCustom>
-                        </template>
-                      </TableCustom>
-                    </div> -->
+    <TableCustom
+      expandable
+      :data="feeRow.installment || []"
+      :columns="columninstallments"
+      :show-pagination="false"
+      actions-width="180"
+    >
+      <template #instAmount="{ row }">
+        {{ formatMoney(row.amount) }}$
+      </template>
 
+      <template #instStatus="{ row }">
+        {{ labelOf(installmentStatusLabels, row.status) }}
+      </template>
 
-                  </template>
+      <template #invoice_grant_total="{row}">
+        <el-text tag="b">{{ row.invoice_grant_total }}$</el-text>
+      </template>
+
+      <template #actions="{ row: installmentRow }">
+        <AppButton
+          :disabled="installmentRow.status === 'paid'"
+          type="success"
+          @click="openInvoiceDialog(feeRow, installmentRow)"
+        >
+          បង់ប្រាក់
+        </AppButton>
+          <AppButton
+          :disabled="installmentRow.status === 'pending'"
+          type="primary"
+          @click=""
+        >
+          បោះពុម្ព
+        </AppButton>
+      </template>
+    </TableCustom>
+  </div>
+</template>
                 </TableCustom>
               </template>
             </TableCustom>
@@ -364,6 +488,110 @@ onMounted(() => {
         </TableCustom>
       </template>
     </TableCustom>
+    <AppDialog
+      v-if="invoiceDialogVisible"
+      v-model:visible="invoiceDialogVisible"
+      title="បង្កើតវិក័យបត្រ / បង់ប្រាក់"
+      :showDefaultFooter="false"
+      width="520px"
+      @close="closeInvoiceDialog"
+    >
+      <AppForm
+        ref="invoiceFormRef"
+        :model="form"
+        :rules="invoiceRules"
+        :show-actions="true"
+        @submit="submitInvoice"
+        submitText="បញ្ជាក់ការបង់ប្រាក់"
+      >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="ថ្ងៃចេញ" prop="invoice_date">
+              <el-date-picker
+                v-model="form.invoice_date"
+                type="date"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="ថ្ងៃកំណត់" prop="due_date">
+              <el-date-picker
+                v-model="form.due_date"
+                type="date"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppInput
+              v-model.number="form.total"
+              type="number"
+              label="តម្លៃដេីម"
+              placeholder="តម្លៃដេីម"
+            >
+            </AppInput>
+          </el-col>
+          <el-col :span="12">
+            <AppInput
+              v-model.number="form.discount"
+              type="number"
+              label="បញ្ចុះតម្លៃ"
+              placeholder="បញ្ចុះតម្លៃ"
+            >
+            </AppInput>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppInput v-model.number="form.tax" type="number" label="ពន្ធ" placeholder="ពន្ធ">
+            </AppInput>
+          </el-col>
+          <el-col :span="12">
+            <AppInput
+              v-model.number="form.grant_total"
+              type="number"
+              label="សរុបត្រូវបង់"
+              placeholder="សរុបត្រូវបង់"
+            >
+            </AppInput>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppSelect
+              v-model="form.method"
+              :options="methodOptions"
+              placeholder="មធ្យោបាយបង់ប្រាក់"
+              label="មធ្យោបាយបង់ប្រាក់"
+              clearable
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppInput v-model="form.reference" label="លេខយោង" placeholder="លេខយោង"> </AppInput>
+          </el-col>
+        </el-row>
+
+        <el-row >
+          <el-col >
+            <AppInput
+              type="area"
+              v-model="form.message_on_invoice"
+              label="សេចក្តីលម្អិត"
+              placeholder="សេចក្តីលម្អិត"
+            >
+            </AppInput>
+          </el-col>
+        </el-row>
+      </AppForm>
+    </AppDialog>
   </div>
 </template>
 

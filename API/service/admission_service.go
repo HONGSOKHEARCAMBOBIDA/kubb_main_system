@@ -198,36 +198,13 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 		feeIDs = append(feeIDs, fee.ID)
 	}
 
-	var invoices []response.InvoiceResposne
-	if len(feeIDs) > 0 {
-		if err := s.db.WithContext(ctx).
-			Table("invoices i").
-			Joins("INNER JOIN fees f ON f.id = i.fee_id").
-			Where("i.fee_id IN ?", feeIDs).
-			Select(`
-				i.id AS id,
-				i.uuid AS uuid,
-				i.fee_id AS fee_id,
-				i.code AS code,
-				i.invoice_date AS invoice_date,
-				i.due_date AS due_date,
-				i.total AS total,
-				i.discount AS discount,
-				i.tax AS tax,
-				i.grant_total AS grant_total,
-				i.message_on_invoice AS message_on_invoice,
-				i.description AS description,
-				i.active AS active
-			`).Scan(&invoices).Error; err != nil {
-			return nil, nil, fmt.Errorf("fetch invoices: %w", err)
-		}
-	}
-
 	var installments []response.InstallmentResponse
 	if len(feeIDs) > 0 {
 		if err := s.db.WithContext(ctx).
 			Table("installments it").
 			Joins("INNER JOIN fees f ON f.id = it.fee_id").
+			Joins("LEFT JOIN invoices i ON i.id = invoice_id").
+			Joins("LEFT JOIN payments p ON p.invoice_id = i.id").
 			Where("it.fee_id IN ?", feeIDs).
 			Select(`
 				it.id AS id,
@@ -237,7 +214,18 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 				it.due_date AS due_date,
 				it.amount AS amount,
 				it.status AS status,
-				it.invoice_id AS invoice_id
+				i.id AS invoice_id,
+				i.code AS invoice_code,
+				i.invoice_date AS invoice_date,
+				i.due_date AS invoice_due_date,
+				i.total AS invoice_total,
+				i.tax AS invoice_tax,
+				i.grant_total AS invoice_grant_total,
+				i.message_on_invoice AS invoice_message_on_invoice,
+				p.id AS payment_id,
+				p.code AS payment_code,
+				p.reference AS payment_reference,
+				p.method AS payment_method
 			`).Scan(&installments).Error; err != nil {
 			return nil, nil, fmt.Errorf("fetch installments: %w", err)
 		}
@@ -245,66 +233,17 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 
 	for i := range installments {
 		installments[i].DueDate = helper.FormatDate(installments[i].DueDate)
-	}
-
-	invoiceIDs := make([]int, 0, len(invoices))
-	for _, invoice := range invoices {
-		invoiceIDs = append(invoiceIDs, invoice.ID)
-	}
-
-	var payments []response.PaymentResposen
-	if len(invoiceIDs) > 0 {
-		if err := s.db.WithContext(ctx).
-			Table("payments p").
-			Joins("INNER JOIN invoices i ON i.id = p.invoice_id").
-			Where("p.invoice_id IN ?", invoiceIDs).
-			Select(`
-				p.id AS id,
-				p.uuid AS uuid,
-				p.invoice_id AS invoice_id,
-				p.code AS code,
-				p.date AS date,
-				p.amount AS amount,
-				p.reference AS reference,
-				p.method AS method,
-				p.description AS description,
-				p.active AS active
-			`).Scan(&payments).Error; err != nil {
-			return nil, nil, fmt.Errorf("fetch payments: %w", err)
-		}
-	}
-
-	// ---- Assemble the nested tree ----
-
-	paymentsByInvoice := make(map[int][]response.PaymentResposen, len(payments))
-	for _, pay := range payments {
-		paymentsByInvoice[pay.InvoiceID] = append(paymentsByInvoice[pay.InvoiceID], pay)
-	}
-
-	invoicesByFee := make(map[int][]response.InvoiceResposne, len(invoices))
-	for _, inv := range invoices {
-		inv.PaymentResposen = paymentsByInvoice[inv.ID]
-		invoicesByFee[inv.FeeID] = append(invoicesByFee[inv.FeeID], inv)
+		installments[i].InvoiceDate = helper.FormatDate(installments[i].InvoiceDate)
 	}
 
 	installmentsByFee := make(map[int][]response.InstallmentResponse, len(installments))
 	for _, inst := range installments {
-		if inst.InvoiceID != nil {
-			if invs := invoicesByFee[inst.FeeID]; len(invs) > 0 {
-				for _, inv := range invs {
-					if inv.ID == *inst.InvoiceID {
-						inst.InvoiceResposne = inv
-						break
-					}
-				}
-			}
-		}
+
 		installmentsByFee[inst.FeeID] = append(installmentsByFee[inst.FeeID], inst)
 	}
 
 	feesByEnrollment := make(map[int][]response.FeeResponse, len(fees))
 	for _, fee := range fees {
-		fee.InvoiceResposne = invoicesByFee[fee.ID]
 		fee.InstallmentResponse = installmentsByFee[fee.ID]
 		feesByEnrollment[fee.EnrollmentID] = append(feesByEnrollment[fee.EnrollmentID], fee)
 	}

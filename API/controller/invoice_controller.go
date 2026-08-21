@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"mysql/constant/share"
 	"mysql/request"
 	"mysql/service"
@@ -25,6 +26,8 @@ func (cr *InvoiceController) CreateInvoice(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	log.Printf("CreateInvoice request: %+v", input)
 
 	if err := cr.service.CreateInvoice(c.Request.Context(), input); err != nil {
 		share.RespondServiceError(c, err)
