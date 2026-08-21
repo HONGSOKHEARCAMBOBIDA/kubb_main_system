@@ -17,5 +17,6 @@ type EnrollmentResponse struct {
 	FeeInterval                    model.FeeInterval     `json:"fee_interval"`
 	Description                    *string               `json:"description" gorm:"column:description"`
 	StudentResponse                []StudentTermResponse `json:"student_term" gorm:"-"`
+	FeeResponse                    []FeeResponse         `json:"fee_response" gorm:"-"`
 	YearID                         int                   `json:"year_id"`
 }

@@ -265,12 +265,13 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 
 	studentTermsByEnrollment := make(map[int][]response.StudentTermResponse, len(studentTerms))
 	for _, st := range studentTerms {
-		st.FeeResponse = feesByEnrollment[st.EnrollmentID]
+		//st.FeeResponse = feesByEnrollment[st.EnrollmentID]
 		studentTermsByEnrollment[st.EnrollmentID] = append(studentTermsByEnrollment[st.EnrollmentID], st)
 	}
 
 	enrollmentsByAdmission := make(map[int][]response.EnrollmentResponse, len(enrollments))
 	for _, en := range enrollments {
+		en.FeeResponse = feesByEnrollment[en.ID]
 		en.StudentResponse = studentTermsByEnrollment[en.ID]
 		enrollmentsByAdmission[en.AdmissionID] = append(enrollmentsByAdmission[en.AdmissionID], en)
 	}

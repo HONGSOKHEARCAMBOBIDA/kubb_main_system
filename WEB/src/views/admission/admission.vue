@@ -363,6 +363,7 @@ async function fetchAdmissions() {
     const res = await getAdmission(params)
     admissions.value = res.data.data || []
     total.value = res.data.total || 0
+    console.log(admissions.value)
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load admissions')
   } finally {
@@ -515,108 +516,80 @@ onMounted(() => {
             <el-text>{{ row.description || '-' }}</el-text>
           </template>
 
-          <!-- Level 2: student terms -->
-          <template #expand="{ row }">
-            <el-divider content-position="left"
-              >កំពុងសិក្សា
+        <template #expand="{ row }">
+  <el-divider content-position="left">
+    កំពុងសិក្សា
+    <AppButton v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
+      ថែមឆមាសថ្មី
+    </AppButton>
+  </el-divider>
+  <TableCustom :data="row.student_term" :columns="columnstudentterms" :show-pagination="false">
+    <template #semester="{ row }">
+      <el-text tag="b" class="ml-2">{{ row.semester_name }}</el-text>
+    </template>
+    <template #stStatus="{ row }">
+      <el-text tag="b" :type="row.status == 'PENDING' ? 'success' : 'info'">
+        {{ row.status }}
+      </el-text>
+    </template>
+    <template #stActive="{ row }">
+      <el-tag :type="row.active ? 'success' : 'danger'" size="small">
+        {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
+      </el-tag>
+    </template>
+  </TableCustom>
 
-              <AppButton v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
-                ថែមឆមាសថ្មី
-              </AppButton>
-            </el-divider>
-            <TableCustom
-              expandable
-              :data="row.student_term"
-              :columns="columnstudentterms"
-              :show-pagination="false"
-            >
-              <template #semester="{ row }">
-                <el-text tag="b" class="ml-2">{{ row.semester_name }}</el-text>
-              </template>
+  <el-divider content-position="left">ថ្លៃសិក្សាប្រចាំឆ្នាំ</el-divider>
+  <TableCustom expandable :data="row.fee_response" :columns="columnfees" :show-pagination="false">
+    <template #feeAmount="{ row }">
+      <el-text tag="b" style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
+    </template>
+    <template #feeDiscount="{ row }">
+      <el-text tag="b" style="color: crimson">{{ formatMoney(row.discount) }}$</el-text>
+    </template>
+    <template #feeTotal="{ row }">
+      <el-text tag="b" type="primary">{{ formatMoney(row.total) }}$</el-text>
+    </template>
+    <template #feeActive="{ row }">
+      <el-tag :type="row.active ? 'success' : 'danger'" size="small">
+        {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
+      </el-tag>
+    </template>
 
-              <template #stStatus="{ row }">
-                <el-text tag="b" :type="row.status == 'PENDING' ? 'success' : 'info'">{{
-                  row.status
-                }}</el-text>
-              </template>
-
-              <template #stActive="{ row }">
-                <el-tag :type="row.active ? 'success' : 'danger'" size="small">
-                  {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
-                </el-tag>
-              </template>
-
-              <!-- Level 3: fees -->
-              <template #expand="{ row }">
-                <el-divider content-position="left">ថ្លៃសិក្សាប្រចាំឆ្នាំ</el-divider>
-                <TableCustom
-                  expandable
-                  :data="row.fee"
-                  :columns="columnfees"
-                  :show-pagination="false"
-                >
-                  <template #feeAmount="{ row }">
-                    <el-text tag="b" style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
-                  </template>
-                  <template #feeDiscount="{ row }">
-                    <el-text tag="b" style="color: crimson">
-                      {{ formatMoney(row.discount) }}$
-                    </el-text>
-                  </template>
-                  <template #feeTotal="{ row }">
-                    <el-text tag="b" type="primary">{{ formatMoney(row.total) }}$</el-text>
-                  </template>
-                  <template #feeActive="{ row }">
-                    <el-tag :type="row.active ? 'success' : 'danger'" size="small">
-                      {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
-                    </el-tag>
-                  </template>
-
-                  <!-- Level 4: invoices + installments -->
-                  <template #expand="{ row: feeRow }">
-                    <div>
-                      <el-divider content-position="left"> ការបង់រំលស់ </el-divider>
-
-                      <TableCustom
-                        expandable
-                        :data="feeRow.installment || []"
-                        :columns="columninstallments"
-                        :show-pagination="false"
-                        actions-width="180"
-                      >
-                        <template #instAmount="{ row }"> {{ formatMoney(row.amount) }}$ </template>
-
-                        <template #instStatus="{ row }">
-                          {{ labelOf(installmentStatusLabels, row.status) }}
-                        </template>
-
-                        <template #invoice_grant_total="{ row }">
-                          <el-text tag="b">{{ row.invoice_grant_total }}$</el-text>
-                        </template>
-
-                        <template #actions="{ row: installmentRow }">
-                          <AppButton
-                            :disabled="installmentRow.status === 'paid'"
-                            type="success"
-                            @click="openInvoiceDialog(feeRow, installmentRow)"
-                          >
-                            បង់ប្រាក់
-                          </AppButton>
-                          <AppButton
-                            :disabled="installmentRow.status === 'pending'"
-                            type="primary"
-                            @click=""
-                          >
-                            បោះពុម្ព
-                          </AppButton>
-                        </template>
-                      </TableCustom>
-                    </div>
-                  </template>
-                </TableCustom>
-              </template>
-            </TableCustom>
+    <template #expand="{ row: feeRow }">
+      <div>
+        <el-divider content-position="left"> ការបង់រំលស់ </el-divider>
+        <TableCustom
+          expandable
+          :data="feeRow.installment || []"
+          :columns="columninstallments"
+          :show-pagination="false"
+          actions-width="180"
+        >
+          <template #instAmount="{ row }"> {{ formatMoney(row.amount) }}$ </template>
+          <template #instStatus="{ row }">
+            {{ labelOf(installmentStatusLabels, row.status) }}
           </template>
+          <template #invoice_grant_total="{ row }">
+            <el-text tag="b">{{ row.invoice_grant_total }}$</el-text>
+          </template>
+          <template #actions="{ row: installmentRow }">
+            <AppButton
+              :disabled="installmentRow.status === 'paid'"
+              type="success"
+              @click="openInvoiceDialog(feeRow, installmentRow)"
+            >
+              បង់ប្រាក់
+            </AppButton>
+            <AppButton :disabled="installmentRow.status === 'pending'" type="primary" @click="">
+              បោះពុម្ព
+            </AppButton>
+          </template>
+        </TableCustom>
+      </div>
+    </template>
+  </TableCustom>
+</template>
         </TableCustom>
       </template>
     </TableCustom>
