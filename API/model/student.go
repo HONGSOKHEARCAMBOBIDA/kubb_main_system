@@ -21,4 +21,6 @@ type Student struct {
 	Occupation       string  `json:"occupation" gorm:"column:occupation"`
 	AcademicStreamID int     `json:"academic_stream_id" gorm:"column:academic_stream_id"`
 	TelegramUsername *string `json:"telegram_username" gorm:"column:telegram_username"`
+	ExamIN           bool    `json:"exam_in" gorm:"column:exam_in"`
+	ExamOut          bool    `json:"exam_out" gorm:"column:exam_out"`
 }

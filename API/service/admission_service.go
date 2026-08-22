@@ -429,8 +429,6 @@ func (s *admissionservice) CreateEnrollment(ctx context.Context, input request.E
 				amount = nettotal - paidSoFar
 			}
 
-			dueDate = dueDate.AddDate(0, 1, 0)
-
 			installments = append(installments, model.Installment{
 				UUIDBase:   base.UUIDBase{UUID: helper.GenerateUUID()},
 				FeeID:      fee.ID,
@@ -440,6 +438,7 @@ func (s *admissionservice) CreateEnrollment(ctx context.Context, input request.E
 				Status:     model.InstallmentStatusPending,
 				InvoiceID:  nil,
 			})
+			dueDate = dueDate.AddDate(0, 1, 0)
 		}
 
 		if err := tx.Create(&installments).Error; err != nil {

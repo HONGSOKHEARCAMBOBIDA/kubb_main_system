@@ -168,4 +168,7 @@ const (
 
 	// Enrollment
 	EnrollmentCreate = "enrollment.create"
+
+	// ClassCurriculumn
+	ClassCurriculumnCreate = "class_curriculmn.create"
 )

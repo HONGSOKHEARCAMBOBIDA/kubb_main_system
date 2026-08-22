@@ -39,6 +39,7 @@ func SetupRoutes(r *gin.Engine) {
 	schoolarshipcontroller := controller.NewSchoolarshipController()
 	admissioncontroller := controller.NewAdmissionController()
 	invoicecontroller := controller.NewInvoiceController()
+	classcurriculumcontroller := controller.NewClassCurriculumnController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -200,5 +201,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Enrollment
 		auth.POST(route.EnrollmentCreate, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.CreateEnrollment)
+
+		// ClassCurriculumn
+		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)
 	}
 }

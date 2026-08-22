@@ -36,6 +36,8 @@ type StudentResponse struct {
 	AcademicStreamID   int                `json:"academic_stream_id" gorm:"column:academic_stream_id"`
 	AcademicStreamName string             `json:"academic_stream_name"`
 	TelegramUsername   *string            `json:"telegram_username" gorm:"column:telegram_username"`
+	ExamIN             bool               `json:"exam_in" gorm:"column:exam_in"`
+	ExamOut            bool               `json:"exam_out" gorm:"column:exam_out"`
 
 	StudentFamily    []model.StudentFamily      `json:"student_family" gorm:"-"`
 	StudentEducation []StudentEducationResponse `json:"student_educations" gorm:"-"`

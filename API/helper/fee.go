@@ -2,6 +2,25 @@ package helper
 
 import "mysql/model"
 
+func GetNextDueDate(interval model.FeeInterval) (count int, months int) {
+	switch interval {
+	case model.FeeIntervalMonthlyfee:
+		return 12, 1
+
+	case model.FeeIntervalQuarterlyFee:
+		return 4, 3
+
+	case model.FeeIntervalSemesterlyFee:
+		return 2, 6
+
+	case model.FeeIntervalYearlyFee:
+		return 1, 12
+
+	default:
+		return 0, 0
+	}
+}
+
 func GetFeeSchedule(interval model.FeeInterval) int {
 	switch interval {
 	case model.FeeIntervalMonthlyfee:

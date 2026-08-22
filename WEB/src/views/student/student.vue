@@ -65,7 +65,7 @@ function closeDetail() {
 }
 
 const columns = [
-  { prop: 'code', label: 'លេខកូដ', minwidth: 120 },
+  { prop: 'code', label: 'លេខកូដ', width: 130 },
   { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 200 },
   { prop: 'name_en', label: 'ឈ្មោះឡាតាំង', minwidth: 200 },
   { prop: 'gender', label: 'ភេទ', slot: 'gender', minwidth: 90 },
@@ -73,7 +73,9 @@ const columns = [
   { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 130 },
   { prop: 'group_name', label: 'ប្រភេទនិស្សិត', minwidth: 150 },
   { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', minwidth: 130 },
-  { prop: 'status', label: 'ស្ថានភាព', minwidth: 350, slot: 'status' },
+  {slot:'exam_in',label:'ប្រឡងចូល',minwidth: 150},
+  {slot:'exam_out',label:'ប្រឡងចេញ',minwidth: 190},
+  { prop: 'status', label: 'ស្ថានភាព', minwidth: 150, slot: 'status' },
 ]
 
 const columneducationdetail = [
@@ -827,6 +829,18 @@ onMounted(() => {
           {{ row.status }}
         </el-text>
       </template>
+
+<template #exam_in="{ row }">
+  <el-text :type="row.exam_in ? 'success' : 'danger'">
+    {{ row.exam_in ? 'បានប្រឡងចូល' : 'មិនទាន់ប្រឡងចូល' }}
+  </el-text>
+</template>
+
+<template #exam_out="{ row }">
+  <el-text :type="row.exam_out ? 'success' : 'danger'">
+    {{ row.exam_out ? 'បានប្រឡងចេញ' : 'មិនទាន់ប្រឡងចេញ' }}
+  </el-text>
+</template>
 
       <template #actions="{ row }">
         <el-tooltip content="មើលព័ត៌មានលម្អិត" placement="top">

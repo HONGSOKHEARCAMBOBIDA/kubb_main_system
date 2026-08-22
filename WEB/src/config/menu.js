@@ -44,6 +44,7 @@ export const menuConfig = [
       { title: 'បន្ទប់', icon: 'Document', path: '/school_room' },
       { title: 'ប្រភេទនិស្សិត', icon: 'Document', path: '/feediscountgroup' },
       { title: 'អាហារូបករណ៏', icon: 'Document', path: '/schoolarship' },
+{ title: 'បើកថ្នាក់', icon: 'Document', path: '/classcurriculum' },
       { title: 'និស្សិត', icon: 'Document', path: '/student' },
       { title: 'និស្សិតបានចុះឈ្មោះសិក្សា', icon: 'Document', path: '/admission' },
     ],

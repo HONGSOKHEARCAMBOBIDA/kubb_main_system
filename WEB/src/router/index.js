@@ -189,6 +189,12 @@ const routes = [
         meta: { title: 'អាហារូបករណ៏', icone: 'Document' },
       },
       {
+        path: 'classcurriculum',
+        name: 'បើកថ្នាក់',
+        component: () => import('@/views/classcurriculum/classcurriculum.vue'),
+        meta: { title: 'បើកថ្នាក់', icone: 'Document' },
+      },
+      {
         path: 'student',
         name: 'និស្សិត',
         component: () => import('@/views/student/student.vue'),

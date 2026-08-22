@@ -312,7 +312,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 					return apperror.New(apperror.CodeInternal, "failed to create fee", nil)
 				}
 
-				scheduleCount := helper.GetFeeSchedule(enrollment.FeeInterval)
+				scheduleCount, monthInterval := helper.GetNextDueDate(enrollment.FeeInterval)
 				if secondDiscount > 0 {
 					paymentAmount := nettotal / float64(scheduleCount)
 					paymentAmount = math.Round(paymentAmount*100) / 100
@@ -327,8 +327,6 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 							amount = nettotal - paidSoFar
 						}
 
-						dueDate = dueDate.AddDate(0, 1, 0)
-
 						installments = append(installments, model.Installment{
 							UUIDBase:   base.UUIDBase{UUID: helper.GenerateUUID()},
 							FeeID:      fee.ID,
@@ -338,6 +336,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 							Status:     model.InstallmentStatusPending,
 							InvoiceID:  nil,
 						})
+						dueDate = dueDate.AddDate(0, monthInterval, 0)
 					}
 
 					if err := tx.Create(&installments).Error; err != nil {
@@ -460,6 +459,8 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 			s.nationality AS nationality,
 			s.phone AS phone,
 			s.status AS status,
+			s.exam_in AS exam_in,
+			s.exam_out AS exam_out,
 			sv.id AS village_id,
 			sv.name_kh AS villlage_name_kh,
 			sc.id AS communce_id,
