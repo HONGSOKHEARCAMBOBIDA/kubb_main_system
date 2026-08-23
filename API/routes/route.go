@@ -40,6 +40,7 @@ func SetupRoutes(r *gin.Engine) {
 	admissioncontroller := controller.NewAdmissionController()
 	invoicecontroller := controller.NewInvoiceController()
 	classcurriculumcontroller := controller.NewClassCurriculumnController()
+	classofferingcontroller := controller.NewClassOfferingController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -205,5 +206,8 @@ func SetupRoutes(r *gin.Engine) {
 		// ClassCurriculumn
 		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)
 		auth.GET(route.ClassCurriculumnView, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumn)
+
+		// ClassOffering
+		auth.POST(route.ClassOfferingCreate, middleware.PermissionMiddleware(permission.CRUDCLASSOFFERING), classofferingcontroller.CreateClassOffering)
 	}
 }

@@ -21,6 +21,9 @@ import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppFilterBar from '../../components/common/AppFilterBar.vue'
 import TableCustom from '../../components/tables/TableCustom.vue'
+import { CreateClassOffering } from '../../services/class_offering.service.js'
+import { getSubjectByMajor } from '../../services/subject.service.js'
+
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -40,7 +43,7 @@ const columns = [
     label: 'រយៈពេលសិក្សា',
     minwidth: 120,
   },
-  { prop: 'programme_name', label: 'កម្រិត', minwidth: 120 },
+  { slot: 'programme_name', label: 'កម្រិត', minwidth: 120 },
   { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 120 },
   { prop: 'generation_name', label: 'ជំនាន់', minwidth: 120 },
   { prop: 'term_name', label: 'វគ្គ', minwidth: 120 },
@@ -55,7 +58,19 @@ const columndetails = [
   { prop: 'midterm_date', label: 'ថ្ងៃប្រឡង Midterm', minwidth: 120 },
   { prop: 'final_date', label: 'ថ្ងៃប្រឡង Final', minwidth: 120 },
   { prop: 'total_student', label: 'សិស្សសរុប', minwidth: 120 },
-  { prop: 'type_class',slot:'type_class', label: 'ប្រភេទថ្នាក់', minwidth: 120 },
+  { prop: 'type_class', slot: 'type_class', label: 'ប្រភេទថ្នាក់', minwidth: 120 },
+]
+
+const columnclass_offering = [
+  { prop: 'subject_code', label: 'កូដ', width: 90 },
+  { prop: 'subject_name',slot:'subject_name', label: 'ឈ្មោះ', minwidth: 120 },
+  { prop: 'credit',slot:'credit', label: 'ក្រេឌីត', width: 90 },
+  { prop: 'passing_score',slot:'passing_score', label: 'ពិន្ទុជាប់', width: 90 },
+  { prop: 'total_hour',slot:'total_hour', label: 'ម៉ោងសរុប', width: 90 },
+  { prop: 'status', label: 'ស្ថានភាព', width: 90 },
+  { prop: 'total_attendance_for_rexam',slot:'total_attendance_for_rexam', label: 'អវត្តមានត្រូវប្រឡងសង', minwidth: 120 },
+  { prop: 'total_attendance_for_relearn',slot:'total_attendance_for_relearn', label: 'អវត្តមានត្រូវរៀនសង', minwidth: 120 },
+  { prop: 'description', label: 'ផ្សេងៗ', minwidth: 120 },
 ]
 
 async function fetchClassCurriculum() {
@@ -67,12 +82,77 @@ async function fetchClassCurriculum() {
     const res = await GetClassCurriculum(params)
     classcurriculmn.value = res.data.data || []
     total.value = res.data.pagination.total_count || 0
+    console.log(classcurriculmn.value)
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load class curriculums')
   }
 }
-/* ---------------- top level form (name / term / major) ---------------- */
 
+/* ---------------- Class Offering dialog ---------------- */
+const createclassofferingvisible = ref(false)
+const submittingOffering = ref(false)
+const subjectoptions = ref([])
+
+function emptyOfferingRow() {
+  return {
+    subject_id: null,
+    credit: 0,
+    passing_score: 0,
+    total_hour: 0,
+    total_attendance_for_rexam: 0,
+    total_attendance_for_relearn: 0,
+    description: '',
+  }
+}
+
+function defaultOfferingForm() {
+  return {
+    class_curriculum_detail_id: null,
+    class_offering: [emptyOfferingRow()],
+  }
+}
+
+const classofferingform = reactive(defaultOfferingForm())
+
+function newClassOffering() {
+  classofferingform.class_offering.push(emptyOfferingRow())
+}
+
+function removeClassOfferingRow(index) {
+  if (classofferingform.class_offering.length <= 1) return
+  classofferingform.class_offering.splice(index, 1)
+}
+
+// detailRow = the row from class_curriculum_detais (has the detail id)
+// curriculumRow = the parent class curriculum row (has major_id)
+async function openClassOfferingDialog(detailRow, curriculumRow) {
+  Object.assign(classofferingform, defaultOfferingForm())
+  classofferingform.class_curriculum_detail_id = detailRow.id
+  subjectoptions.value = await loadSubjectOption(curriculumRow.major_id)
+  createclassofferingvisible.value = true
+}
+
+function closeClassOfferingDialog() {
+  createclassofferingvisible.value = false
+  subjectoptions.value = []
+  Object.assign(classofferingform, defaultOfferingForm())
+}
+
+async function submitClassOffering() {
+  submittingOffering.value = true
+  try {
+    await CreateClassOffering(classofferingform)
+    notify.success('បញ្ចូលមុខវិជ្ជាបានជោគជ័យ')
+    closeClassOfferingDialog()
+    fetchClassCurriculum()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to create class offering')
+  } finally {
+    submittingOffering.value = false
+  }
+}
+
+/* ---------------- Class Curriculum top-level form ---------------- */
 function emptyDetailRow() {
   return {
     semester_id: null,
@@ -180,6 +260,17 @@ async function loadMajorOption(departmentID) {
     return (res.data.data || []).map((m) => ({ label: m.name, value: m.id }))
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load majors')
+    return []
+  }
+}
+
+async function loadSubjectOption(majorID) {
+  if (!majorID) return []
+  try {
+    const res = await getSubjectByMajor(majorID)
+    return (res.data.data || []).map((m) => ({ label: m.name, value: m.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load subjects')
     return []
   }
 }
@@ -305,6 +396,7 @@ async function handleSubmit() {
     notify.success('បង្កើតកម្មវិធីសិក្សាបានជោគជ័យ')
     dialogVisible.value = false
     resetForm()
+    fetchClassCurriculum()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to create')
   } finally {
@@ -355,6 +447,11 @@ onMounted(() => {
     v-model:page-size="pageSize"
     @page-change="fetchClassCurriculum"
   >
+    <template #programme_name="{ row }">
+      <el-text tag="b" style="color: crimson">
+        {{ row.programme_name }}
+      </el-text>
+    </template>
     <template #active="{ row }">
       <el-text>
         {{ row.active === true ? 'កំពុងសិក្សា' : 'បានបញ្ចប់' }}
@@ -366,23 +463,71 @@ onMounted(() => {
     <template #major_duration_interval="{ row }">
       <el-text tag="b"> {{ row.major_duration_period }} {{ row.major_duration_interval }} </el-text>
     </template>
+    <!-- `row` here is the parent class curriculum row -->
     <template #expand="{ row }">
-      <el-divider content-position="left">លំអិត </el-divider>
+      <el-divider content-position="left">លំអិត</el-divider>
       <TableCustom
+        expandable
         :data="row.class_curriculum_detais"
         :columns="columndetails"
         :show-pagination="false"
       >
-      <template #type_class="{row}">
-        <el-text>
-          {{ row.type_class === 'onclass' ? 'រៀនថ្នាក់ផ្ទាល់' : 'រៀនOnline' }}
-        </el-text>
-      </template>
-      <template #actions>
-        <AppButton>
-          ថែមមុខវិជ្ជា
-        </AppButton>
-      </template>
+        <template #type_class="{ row }">
+          <el-text>
+            {{ row.type_class === 'onclass' ? 'រៀនថ្នាក់ផ្ទាល់' : 'រៀនOnline' }}
+          </el-text>
+        </template>
+        <!-- rename inner scope's `row` to `detailRow` so it doesn't shadow the outer curriculum `row` -->
+        <template #actions="{ row: detailRow }">
+          <AppButton @click="openClassOfferingDialog(detailRow, row)"> ថែមមុខវិជ្ជា </AppButton>
+        </template>
+        <template #expand="{ row }">
+          <el-divider content-position="left">
+           <el-text tag="b" style="color: darkcyan;">
+             មុខវិជ្ជាត្រូវសិក្សា
+           </el-text>
+          </el-divider>
+          <TableCustom
+            show-index
+            :data="row.class_offering"
+            :columns="columnclass_offering"
+            :show-pagination="false"
+          >
+          <template #credit="{row}">
+            <el-text tag="b" style="color: crimson;">
+              {{ row.credit }}
+            </el-text>
+          </template>
+          <template #passing_score="{row}">
+            <el-text tag="b" style="color: crimson;">
+              {{ row.passing_score }}
+            </el-text>
+          </template>
+          <template #total_hour="{row}">
+            <el-text tag="b" style="color: black;">
+              {{ row.total_hour }} ម៉ោង
+            </el-text>
+          </template>
+          <template #subject_name="{row}">
+            <el-text tag="b" style="color: black;">
+              {{ row.subject_name }}
+            </el-text>
+          </template>
+          <template #total_attendance_for_rexam="{row}">
+            <el-text tag="b" style="color: crimson;">
+              {{ row.total_attendance_for_rexam }}
+            </el-text>
+          </template>
+          <template #total_attendance_for_relearn="{row}">
+            <el-text tag="b" style="color: crimson;">
+              {{ row.total_attendance_for_relearn }}
+            </el-text>
+          </template>
+          <template #actions>
+<AppButton type="warning" @click=""> កែប្រែ </AppButton>
+          </template>
+          </TableCustom>
+        </template>
       </TableCustom>
     </template>
   </TableCustom>
@@ -583,6 +728,119 @@ onMounted(() => {
       </div>
     </AppForm>
   </AppDialog>
+
+  <!-- Class Offering dialog -->
+  <AppDialog
+    v-if="createclassofferingvisible"
+    v-model:visible="createclassofferingvisible"
+    title="បញ្ចូលមុខវិជ្ជាទៅថ្នាក់រៀន"
+    :showDefaultFooter="false"
+    width="720px"
+    @close="closeClassOfferingDialog"
+  >
+    <AppForm
+      :model="classofferingform"
+      :loading="submittingOffering"
+      :show-actions="true"
+      @submit="submitClassOffering"
+      submitText="បញ្ជូល"
+    >
+      <div class="section-header">
+        <el-text tag="b">បញ្ចូលមុខវិជ្ជា</el-text>
+        <AppButton type="warning" plain icon="Plus" size="small" @click="newClassOffering">
+          បន្ថែម
+        </AppButton>
+      </div>
+
+      <el-card
+        v-for="(classf, index) in classofferingform.class_offering"
+        :key="index"
+        :gutter="16"
+        style="margin-bottom: 12px"
+      >
+        <template #header>
+          <div class="section-header">
+            <span>មុខវិជ្ជាទី -{{ index + 1 }}</span>
+            <AppButton
+              type="danger"
+              icon="Delete"
+              size="small"
+              plain
+              :disabled="classofferingform.class_offering.length <= 1"
+              @click="removeClassOfferingRow(index)"
+            >
+              លុប
+            </AppButton>
+          </div>
+        </template>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppSelect
+              v-model="classf.subject_id"
+              :options="subjectoptions"
+              placeholder="មុខវិជ្ជា"
+              label="មុខវិជ្ជា"
+              clearable
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppInput
+              v-model.number="classf.credit"
+              placeholder="បញ្ចូលក្រេឌីត"
+              type="number"
+              clearable
+              label="បញ្ចូលក្រេឌីត"
+            />
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppInput
+              v-model.number="classf.passing_score"
+              placeholder="បញ្ចូលពន្ទុជាប់"
+              type="number"
+              clearable
+              label="បញ្ចូលពន្ទុជាប់"
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppInput
+              v-model.number="classf.total_hour"
+              placeholder="បញ្ចូលចំនួនម៉ោងត្រូវរៀន"
+              type="number"
+              clearable
+              label="បញ្ចូលចំនួនម៉ោងត្រូវរៀន"
+            />
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppInput
+              v-model.number="classf.total_attendance_for_relearn"
+              placeholder="បញ្ចូលចំនួនអវត្តមានត្រូវរៀនសង"
+              type="number"
+              clearable
+              label="បញ្ចូលចំនួនអវត្តមានត្រូវរៀនសង"
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppInput
+              v-model.number="classf.total_attendance_for_rexam"
+              placeholder="បញ្ចូលចំនួនវត្តមានត្រូវប្រឡងសង"
+              type="number"
+              clearable
+              label="បញ្ចូលចំនួនវត្តមានត្រូវប្រឡងសង"
+            />
+          </el-col>
+        </el-row>
+
+        <AppInput v-model="classf.description" placeholder="ផ្សេងៗ" clearable label="ផ្សេងៗ" />
+      </el-card>
+    </AppForm>
+  </AppDialog>
 </template>
 
 <style scoped>
@@ -612,5 +870,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 </style>

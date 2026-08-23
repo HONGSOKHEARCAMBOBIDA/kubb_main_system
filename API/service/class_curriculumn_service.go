@@ -137,6 +137,7 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 		c.uuid AS uuid,
 		c.name AS name,
 		c.active AS active,
+		m.id AS major_id,
 		m.name AS major_name,
 		m.code AS major_code,
 		m.duration_period AS major_duration_period,
@@ -201,6 +202,41 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 	for i := range details {
 		details[i].MidtermDate = helper.FormatDate(details[i].MidtermDate)
 		details[i].FinalDate = helper.FormatDate(details[i].FinalDate)
+	}
+
+	detailIDs := make([]int, 0, len(details))
+	for _, d := range details {
+		detailIDs = append(detailIDs, d.ID)
+	}
+
+	var classoffer []response.ClassOfferingResponse
+	if err := s.db.WithContext(ctx).
+		Table("class_offerings co").
+		Joins("LEFT JOIN subjects s ON s.id = co.subject_id").
+		Where("co.class_curriculum_detail_id IN ?", detailIDs).Select(`
+		co.id AS id,
+		co.uuid AS uuid,
+		co.class_curriculum_detail_id AS class_curriculum_detail_id,
+		s.id AS subject_id,
+		s.code AS subject_code,
+		s.name AS subject_name,
+		co.credit AS credit,
+		co.passing_score AS passing_score,
+		co.total_hour AS total_hour,
+		co.status AS status,
+		co.total_attendance_for_rexam AS total_attendance_for_rexam,
+		co.total_attendance_for_relearn AS total_attendance_for_relearn,
+		co.description
+	`).Scan(&classoffer).Error; err != nil {
+		return nil, nil, fmt.Errorf("fetch class curriculum detail: %w", err)
+	}
+
+	offeringsByDetail := make(map[int][]response.ClassOfferingResponse, len(details))
+	for _, o := range classoffer {
+		offeringsByDetail[o.ClassCurriculumnDetailID] = append(offeringsByDetail[o.ClassCurriculumnDetailID], o)
+	}
+	for i := range details {
+		details[i].ClassOfferingResponse = offeringsByDetail[details[i].ID] // adjust field name to match your struct
 	}
 
 	detailsByParent := make(map[int][]response.ClasCurriculumnDetailResponse, len(data))

@@ -10,6 +10,7 @@ type ClasCurriculumnResponse struct {
 	base.UUIDBase
 	Name                          string                          `json:"name" gorm:"column:name"`
 	Active                        bool                            `json:"active" gorm:"column:active"`
+	MajorID                       int                             `json:"major_id"`
 	MajorName                     string                          `json:"major_name"`
 	MajorCode                     string                          `json:"major_code"`
 	MajorDurationPeriod           int                             `json:"major_duration_period" gorm:"column:major_duration_period"`

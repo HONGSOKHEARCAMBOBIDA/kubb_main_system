@@ -67,4 +67,6 @@ const (
 	CRUDENROLLMENT = "crud.enrollment"
 
 	CRUDCLASSCURRICULMN = "crud.classcurriculm"
+
+	CRUDCLASSOFFERING = "crud.class.offering"
 )
