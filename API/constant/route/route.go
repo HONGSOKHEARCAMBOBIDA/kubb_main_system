@@ -171,4 +171,5 @@ const (
 
 	// ClassCurriculumn
 	ClassCurriculumnCreate = "class_curriculmn.create"
+	ClassCurriculumnView   = "class_curriculmn.view"
 )

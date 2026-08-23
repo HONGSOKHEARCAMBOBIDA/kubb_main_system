@@ -1,7 +1,10 @@
 package controller
 
 import (
+	"context"
+	"errors"
 	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
 	"net/http"
@@ -31,4 +34,35 @@ func (cr *ClassCurriculumnController) CreateClassCurriculumn(c *gin.Context) {
 		return
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
+func (cr *ClassCurriculumnController) GetClassCurriculumn(c *gin.Context) {
+	page, pageSize := helper.GetPagination(c)
+	filter := map[string]string{
+		"programme_id":  c.Query("programme_id"),
+		"faculty_id":    c.Query("faculty_id"),
+		"department_id": c.Query("department_id"),
+		"term_id":       c.Query("term_id"),
+		"generation_id": c.Query("generation_id"),
+		"academic_id":   c.Query("academic_id"),
+	}
+	data, meta, err := cr.service.GetClassCurriculumn(
+		c.Request.Context(),
+		request.Pagination{
+			Page:     page,
+			PageSize: pageSize,
+		},
+		filter,
+	)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(err, context.Canceled) {
+			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
+			return
+		}
+
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponsePagination(c, http.StatusOK, data, meta)
 }

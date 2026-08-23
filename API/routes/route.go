@@ -204,5 +204,6 @@ func SetupRoutes(r *gin.Engine) {
 
 		// ClassCurriculumn
 		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)
+		auth.GET(route.ClassCurriculumnView, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumn)
 	}
 }

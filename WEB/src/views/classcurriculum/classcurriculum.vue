@@ -1,6 +1,9 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { CreateClassCurriculum } from '../../services/classcurriculmn.service.js'
+import {
+  CreateClassCurriculum,
+  GetClassCurriculum,
+} from '../../services/classcurriculmn.service.js'
 import { getAcademics } from '../../services/academic.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
@@ -17,14 +20,57 @@ import AppSelect from '../../components/common/AppSelect.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppFilterBar from '../../components/common/AppFilterBar.vue'
-
+import TableCustom from '../../components/tables/TableCustom.vue'
 const notify = useNotification()
-
+const classcurriculmn = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(10)
 const submitting = ref(false)
 const formRef = ref(null)
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
 
+const columns = [
+  { prop: 'name', label: 'ឈ្មោះថ្នាក់', minwidth: 120 },
+  { prop: 'major_name', slot: 'major_name', label: 'ជំនាញ', minwidth: 120 },
+  {
+    prop: 'major_duration_interval',
+    slot: 'major_duration_interval',
+    label: 'រយៈពេលសិក្សា',
+    minwidth: 120,
+  },
+  { prop: 'programme_name', label: 'កម្រិត', minwidth: 120 },
+  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 120 },
+  { prop: 'generation_name', label: 'ជំនាន់', minwidth: 120 },
+  { prop: 'term_name', label: 'វគ្គ', minwidth: 120 },
+  { prop: 'active', slot: 'active', label: 'ស្ថានភាព', minwidth: 120 },
+]
+
+const columndetails = [
+  { prop: 'semester_name', label: 'ឆមាស', minwidth: 120 },
+  { prop: 'study_year_id', label: 'ឆ្នាំទី', minwidth: 120 },
+  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 120 },
+  { prop: 'academic_shift_name', label: 'វេនសិក្សា', minwidth: 120 },
+  { prop: 'midterm_date', label: 'ថ្ងៃប្រឡង Midterm', minwidth: 120 },
+  { prop: 'final_date', label: 'ថ្ងៃប្រឡង Final', minwidth: 120 },
+  { prop: 'total_student', label: 'សិស្សសរុប', minwidth: 120 },
+  { prop: 'type_class',slot:'type_class', label: 'ប្រភេទថ្នាក់', minwidth: 120 },
+]
+
+async function fetchClassCurriculum() {
+  try {
+    const params = {
+      page: page.value,
+      page_size: pageSize.value,
+    }
+    const res = await GetClassCurriculum(params)
+    classcurriculmn.value = res.data.data || []
+    total.value = res.data.pagination.total_count || 0
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load class curriculums')
+  }
+}
 /* ---------------- top level form (name / term / major) ---------------- */
 
 function emptyDetailRow() {
@@ -34,7 +80,7 @@ function emptyDetailRow() {
     academic_shift_id: null,
     midterm_date: '',
     final_date: '',
-    type_class: ''
+    type_class: '',
   }
 }
 
@@ -43,7 +89,7 @@ function defaultForm() {
     name: '',
     major_id: null,
     term_id: null,
-    class_curriclumn_details: [emptyDetailRow()]
+    class_curriclumn_details: [emptyDetailRow()],
   }
 }
 
@@ -287,21 +333,59 @@ function resetForm() {
 }
 
 onMounted(() => {
+  fetchClassCurriculum()
   fetchProgrammeOptions()
   fetchAcademicOptions()
 })
 </script>
 
 <template>
-  <AppFilterBar
-    :fields="[
-      { slot: 'create', span: 4 },
-    ]"
-  >
+  <AppFilterBar :fields="[{ slot: 'create', span: 4 }]">
     <template #create>
       <AppButton type="default" icon="Plus" @click="openCreate">បង្កើតថ្នាក់ថ្មី</AppButton>
     </template>
   </AppFilterBar>
+
+  <TableCustom
+    expandable
+    :data="classcurriculmn"
+    :columns="columns"
+    :total="total"
+    v-model:current-page="page"
+    v-model:page-size="pageSize"
+    @page-change="fetchClassCurriculum"
+  >
+    <template #active="{ row }">
+      <el-text>
+        {{ row.active === true ? 'កំពុងសិក្សា' : 'បានបញ្ចប់' }}
+      </el-text>
+    </template>
+    <template #major_name="{ row }">
+      <el-text tag="b"> {{ row.major_code }} - {{ row.major_name }} </el-text>
+    </template>
+    <template #major_duration_interval="{ row }">
+      <el-text tag="b"> {{ row.major_duration_period }} {{ row.major_duration_interval }} </el-text>
+    </template>
+    <template #expand="{ row }">
+      <el-divider content-position="left">លំអិត </el-divider>
+      <TableCustom
+        :data="row.class_curriculum_detais"
+        :columns="columndetails"
+        :show-pagination="false"
+      >
+      <template #type_class="{row}">
+        <el-text>
+          {{ row.type_class === 'onclass' ? 'រៀនថ្នាក់ផ្ទាល់' : 'រៀនOnline' }}
+        </el-text>
+      </template>
+      <template #actions>
+        <AppButton>
+          ថែមមុខវិជ្ជា
+        </AppButton>
+      </template>
+      </TableCustom>
+    </template>
+  </TableCustom>
 
   <AppDialog
     v-if="dialogVisible"
@@ -318,7 +402,6 @@ onMounted(() => {
       :loading="submitting"
       :show-actions="true"
       @submit="handleSubmit"
-      @reset="closeDialog"
       submitText="រក្សាទុក"
       resetText="ចាកចេញ"
     >
@@ -416,16 +499,14 @@ onMounted(() => {
       <div class="detail-section">
         <div class="detail-header">
           <el-text tag="b">ព័ត៌មានលម្អិត (ឆមាស / ឆ្នាំសិក្សា / វេន)</el-text>
-          <AppButton type="default" icon="Plus" size="small" @click="addDetailRow">ថែមជួរ</AppButton>
+          <AppButton type="default" icon="Plus" size="small" @click="addDetailRow"
+            >ថែមជួរ</AppButton
+          >
         </div>
 
-        <div
-          v-for="(row, index) in form.class_curriclumn_details"
-          :key="index"
-          class="detail-row"
-        >
+        <div v-for="(row, index) in form.class_curriclumn_details" :key="index" class="detail-row">
           <div class="detail-row-header">
-            <el-text tag="b" type="info">ជួរទី {{ index + 1 }}</el-text>
+            <el-text tag="b" type="info">ឆមាសទី {{ index + 1 }}</el-text>
             <AppButton
               icon="Delete"
               circle
@@ -474,18 +555,18 @@ onMounted(() => {
               <AppInput
                 v-model="row.midterm_date"
                 type="date"
-                placeholder="ថ្ងៃប្រឡងកម្ពស់"
+                placeholder="ថ្ងៃប្រឡង Midterm"
                 clearable
-                label="ថ្ងៃប្រឡងកម្ពស់"
+                label="ថ្ងៃប្រឡង Midterm"
               />
             </el-col>
             <el-col :span="8">
               <AppInput
                 v-model="row.final_date"
                 type="date"
-                placeholder="ថ្ងៃប្រឡងចុងក្រោយ"
+                placeholder="ថ្ងៃប្រឡង Final"
                 clearable
-                label="ថ្ងៃប្រឡងចុងក្រោយ"
+                label="ថ្ងៃប្រឡង Final"
               />
             </el-col>
             <el-col :span="8">
