@@ -22,6 +22,25 @@ func NewAdmissionController() AdmissionController {
 	}
 }
 
+func (cr *AdmissionController) GetStudentTermFilter(c *gin.Context) {
+	filter := map[string]string{
+		"semester_id":   c.Query("semester_id"),
+		"study_year_id": c.Query("study_year_id"),
+		"term_id":       c.Query("term_id"),
+		"major_id":      c.Query("major_id"),
+	}
+	data, err := cr.service.GetStudentTermFilter(c.Request.Context(), filter)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
+			return
+		}
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.RespondDate(c, 200, data)
+}
+
 func (cr *AdmissionController) GetAdmission(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 

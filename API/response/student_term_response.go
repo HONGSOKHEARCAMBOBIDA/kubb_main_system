@@ -16,3 +16,23 @@ type StudentTermResponse struct {
 	Active      bool   `json:"active" gorm:"column:active"`
 	Status      string `json:"status" gorm:"column:status"`
 }
+
+type StudentTermResponsebyFilter struct {
+	base.ModelBase
+	base.UUIDBase
+	StudentID     int    `json:"student_id"`
+	StudentNameKh string `json:"student_name_kh"`
+	StudentNameEn string `json:"student_name_en"`
+	StudentGender string `json:"student_gender"`
+	SemesterID    int    `json:"semester_id"`
+	SemesterName  string `json:"semester_name"`
+	StudyYearID   int    `json:"study_year_id"`
+	TermID        int    `json:"term_id"`
+	TermCode      string `json:"term_code"`
+	TermName      string `json:"term_name"`
+	MajorID       int    `json:"major_id"`
+	MajorCode     string `json:"major_code"`
+	MajorName     string `json:"major_name"`
+	ProgrammID    int    `json:"programm_id"`
+	ProgrammName  string `json:"programm_name" gorm:"column:programm_name"`
+}

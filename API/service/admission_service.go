@@ -22,6 +22,7 @@ type AdmissionService interface {
 	GetAdmission(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AdmissionResponse, *model.PaginationMetadata, error)
 	CreateStudentTerm(ctx context.Context, input request.StudentTermRequestv2) error
 	CreateEnrollment(ctx context.Context, input request.EnrollmentRequestCreateV2) error
+	GetStudentTermFilter(ctx context.Context, filter map[string]string) ([]response.StudentTermResponsebyFilter, error)
 }
 
 type admissionservice struct {
@@ -34,6 +35,69 @@ func NewAdmissionService() AdmissionService {
 	}
 }
 
+func (s *admissionservice) GetStudentTermFilter(ctx context.Context, filter map[string]string) ([]response.StudentTermResponsebyFilter, error) {
+	var data []response.StudentTermResponsebyFilter
+
+	base := func() *gorm.DB {
+		return s.db.WithContext(ctx).
+			Table("student_terms st").
+			Joins("LEFT JOIN semesters ss ON ss.id = st.semester_id").
+			Joins("LEFT JOIN enrollments e ON e.id = st.enrollment_id").
+			Joins("LEFT JOIN admissions adm ON adm.id = e.admission_id").
+			Joins("LEFT JOIN students s ON s.id = adm.student_id").
+			Joins("LEFT JOIN terms t ON t.id = adm.term_id").
+			Joins("LEFT JOIN academic_degrees ad ON ad.id = adm.academic_degree_id").
+			Joins("LEFT JOIN majors m ON m.id = ad.major_id").
+			Joins("LEFT JOIN departments d ON d.id = m.department_id").
+			Joins("LEFT JOIN faculties f ON f.id = d.faculty_id").
+			Joins("LEFT JOIN programmes p ON p.id = f.programme_id")
+	}
+
+	applyFilters := func(tx *gorm.DB) *gorm.DB {
+		if v, ok := filter["semester_id"]; ok && v != "" {
+			tx = tx.Where("st.semester_id = ?", v)
+		}
+		if v, ok := filter["study_year_id"]; ok && v != "" {
+			tx = tx.Where("st.study_year_id = ?", v)
+		}
+		if v, ok := filter["term_id"]; ok && v != "" {
+			tx = tx.Where("t.id = ?", v)
+		}
+		if v, ok := filter["major_id"]; ok && v != "" {
+			tx = tx.Where("m.id = ?", v)
+		}
+		tx = tx.Where("st	.status = ?", "PENDING")
+
+		return tx
+	}
+
+	dataQuery := applyFilters(base()).
+		Select(`
+			st.id AS id,
+			st.uuid AS uuid,
+			s.id AS student_id,
+			s.name_kh AS student_name_kh,
+			s.name_en AS student_name_en,
+			s.gender AS student_gender,
+			ss.id AS semester_id,
+			ss.name AS semester_name,
+			st.study_year_id AS study_year_id,
+			t.id AS term_id,
+			t.code AS term_code,
+			t.name AS term_name,
+			m.id AS major_id,
+			m.code AS major_code,
+			m.name AS major_name,
+			p.id AS program_id,
+			p.name AS programm_name
+		`)
+
+	if err := dataQuery.Scan(&data).Error; err != nil {
+		return nil, fmt.Errorf("fetch terms: %w", err)
+	}
+
+	return data, nil
+}
 func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AdmissionResponse, *model.PaginationMetadata, error) {
 	helper.NormalizePagination(&pf)
 

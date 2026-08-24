@@ -165,6 +165,7 @@ const (
 
 	// Student Term
 	StudentTermCreate = "student.term.create"
+	StudentTermView   = "student.term.view"
 
 	// Enrollment
 	EnrollmentCreate = "enrollment.create"

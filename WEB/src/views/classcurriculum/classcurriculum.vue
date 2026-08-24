@@ -23,7 +23,7 @@ import AppFilterBar from '../../components/common/AppFilterBar.vue'
 import TableCustom from '../../components/tables/TableCustom.vue'
 import { CreateClassOffering } from '../../services/class_offering.service.js'
 import { getSubjectByMajor } from '../../services/subject.service.js'
-
+import { studentTermGet } from '../../services/studentterm.service.js'
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -153,6 +153,91 @@ async function submitClassOffering() {
 }
 
 /* ---------------- Class Curriculum top-level form ---------------- */
+
+
+// class registration start
+const createclassregistrationvisible = ref(false)
+
+const studentterms = ref([])
+const selectedClassOffering = ref(null)
+
+const classregistrationfilters = reactive({
+    semester_id: null,
+    study_year_id: null,
+    term_id: null,
+    major_id: null
+})
+
+const columnclass_registration = [
+  { prop: 'student_name_kh',slot:'student_name_kh', label: 'ឈ្មោះ', minwidth: 90 },
+   { prop: 'student_gender',label: 'ភេទ', minwidth: 90 },
+   { prop: 'study_year_id',label: 'ឆ្នាំទី', minwidth: 90 },
+   { prop: 'semester_name',label: 'ឆមាសទី', minwidth: 90 },
+   { prop: 'term_name',label: 'វគ្គទី', minwidth: 90 },
+   { prop: 'major_name',slot:'major_name',label: 'ជំនាញ', minwidth: 90 },
+    { prop: 'programm_name',slot:'programm_name',label: 'កម្រិត', minwidth: 90 },
+]
+
+async function fetchStudentTerm(filters) {
+    try {
+        const params = {}
+
+        if (filters.semester_id) {
+            params.semester_id = filters.semester_id
+        }
+
+        if (filters.study_year_id) {
+            params.study_year_id = filters.study_year_id
+        }
+
+        if (filters.term_id) {
+            params.term_id = filters.term_id
+        }
+
+        if (filters.major_id) {
+            params.major_id = filters.major_id
+        }
+
+        const res = await studentTermGet(params)
+
+        return res.data.data || []
+    } catch (e) {
+        notify.error(
+            e?.response?.data?.message ||
+            e.message ||
+            'Failed to load students'
+        )
+
+        return []
+    }
+}
+
+async function openClassRegistrationDialog(
+    detailRow,
+    curriculumRow,
+    class_offering
+) {
+    classregistrationfilters.semester_id = detailRow.semester_id
+    classregistrationfilters.study_year_id = detailRow.study_year_id
+    classregistrationfilters.term_id = curriculumRow.term_id
+    classregistrationfilters.major_id = curriculumRow.major_id
+
+    selectedClassOffering.value = class_offering
+
+    studentterms.value = await fetchStudentTerm(
+        classregistrationfilters
+    )
+
+    createclassregistrationvisible.value = true
+   
+}
+
+function closeClassRegistrationDialog() {
+  createclassregistrationvisible.value = false
+  studentterms.value = []
+}
+
+// class registration end
 function emptyDetailRow() {
   return {
     semester_id: null,
@@ -480,8 +565,8 @@ onMounted(() => {
         <!-- rename inner scope's `row` to `detailRow` so it doesn't shadow the outer curriculum `row` -->
         <template #actions="{ row: detailRow }">
           <AppButton @click="openClassOfferingDialog(detailRow, row)"> ថែមមុខវិជ្ជា </AppButton>
-        </template>
-        <template #expand="{ row }">
+         </template>
+        <template #expand="{  row: detailRow }">
           <el-divider content-position="left">
            <el-text tag="b" style="color: darkcyan;">
              មុខវិជ្ជាត្រូវសិក្សា
@@ -489,7 +574,7 @@ onMounted(() => {
           </el-divider>
           <TableCustom
             show-index
-            :data="row.class_offering"
+            :data="detailRow.class_offering"
             :columns="columnclass_offering"
             :show-pagination="false"
           >
@@ -523,12 +608,20 @@ onMounted(() => {
               {{ row.total_attendance_for_relearn }}
             </el-text>
           </template>
-          <template #actions>
-<AppButton type="warning" @click=""> កែប្រែ </AppButton>
-          </template>
+    <template #actions="{row: class_offering}">
+      <AppButton
+        type="success"
+        @click="openClassRegistrationDialog(detailRow, row, class_offering)"
+      >
+        បញ្ចូលសិស្ស
+      </AppButton>
+    </template>
+    
           </TableCustom>
         </template>
+       
       </TableCustom>
+      
     </template>
   </TableCustom>
 
@@ -841,6 +934,49 @@ onMounted(() => {
       </el-card>
     </AppForm>
   </AppDialog>
+  <AppDialog
+    v-if="createclassregistrationvisible"
+    v-model:visible="createclassregistrationvisible"
+    title="បញ្ចូលសិស្ស"
+    :showDefaultFooter="false"
+    width="70%"
+    @close="closeClassRegistrationDialog"
+  >
+  <TableCustom
+        :data="studentterms"
+        :columns="columnclass_registration"
+        :show-pagination="false"
+  >
+  <template #student_name_kh="{row}">
+    <div>
+      <el-text tag="b" style="color: black;">
+        {{ row.student_name_kh }}
+      </el-text>
+    </div>
+    <div>
+      <el-text type="primary">
+        {{ row.student_name_en }}
+      </el-text>
+    </div>
+  </template>
+  <template #major_name="{row}">
+    <el-text type="warning" tag="b">
+     ({{ row.major_code }}) 
+    </el-text>
+    <el-text tag="b" style="color: darkcyan;">
+      {{ row.major_name}}
+    </el-text>
+  </template>
+
+  <template #programm_name="{row}">
+    <el-text tag="b" style="color: crimson;">
+      {{ row.programm_name }}
+    </el-text>
+  </template>
+
+  </TableCustom>
+  </AppDialog>
+
 </template>
 
 <style scoped>
