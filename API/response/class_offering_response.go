@@ -19,4 +19,5 @@ type ClassOfferingResponse struct {
 	TotalAttendanceForRexam   float64                   `json:"total_attendance_for_rexam" gorm:"column:total_attendance_for_rexam"`
 	TotalAttendanceForRelearn float64                   `json:"total_attendance_for_relearn" gorm:"column:total_attendance_for_relearn"`
 	Description               string                    `json:"description" gorm:"column:description"`
+	StudentResponseSummary    []StudentResponseSummary  `json:"student" gorm:"-"`
 }

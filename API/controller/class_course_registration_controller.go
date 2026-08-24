@@ -1,0 +1,34 @@
+package controller
+
+import (
+	"mysql/constant/share"
+	"mysql/request"
+	"mysql/service"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+type CourseRegistrationController struct {
+	service service.CourseRegistrationService
+}
+
+func NewCourseRegistrationController() CourseRegistrationController {
+	return CourseRegistrationController{
+		service: service.NewCourseRegistrationService(),
+	}
+}
+
+func (cr *CourseRegistrationController) CreateCourseRegistration(c *gin.Context) {
+	var input request.CourseRegistrationRequestCreate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := cr.service.CreateCourseRegistration(c.Request.Context(), input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}

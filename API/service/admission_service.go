@@ -67,6 +67,13 @@ func (s *admissionservice) GetStudentTermFilter(ctx context.Context, filter map[
 			tx = tx.Where("m.id = ?", v)
 		}
 		tx = tx.Where("st	.status = ?", "PENDING")
+		// tx = tx.Where(`
+		// 	NOT EXISTS (
+		// 		SELECT 1
+		// 		FROM course_registrations cr
+		// 		WHERE cr.student_term_id = st.id
+		// 	)
+		// `)
 
 		return tx
 	}
@@ -98,6 +105,7 @@ func (s *admissionservice) GetStudentTermFilter(ctx context.Context, filter map[
 
 	return data, nil
 }
+
 func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.AdmissionResponse, *model.PaginationMetadata, error) {
 	helper.NormalizePagination(&pf)
 

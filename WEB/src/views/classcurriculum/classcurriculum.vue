@@ -24,6 +24,7 @@ import TableCustom from '../../components/tables/TableCustom.vue'
 import { CreateClassOffering } from '../../services/class_offering.service.js'
 import { getSubjectByMajor } from '../../services/subject.service.js'
 import { studentTermGet } from '../../services/studentterm.service.js'
+import { createcourseregistration } from '../../services/course_registration.service.js'
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -33,6 +34,16 @@ const submitting = ref(false)
 const formRef = ref(null)
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
+
+const studentcolumns = [
+{ prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 }, 
+{ prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 }, 
+{ prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 }, 
+{ prop: 'gender',slot:'gender', label: 'ភេទ', minwidth: 120 }, 
+{ prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 120 },
+{ prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
+{ prop: 'occupation', label: 'មុខរបរ', minwidth: 120 },
+]
 
 const columns = [
   { prop: 'name', label: 'ឈ្មោះថ្នាក់', minwidth: 120 },
@@ -57,7 +68,7 @@ const columndetails = [
   { prop: 'academic_shift_name', label: 'វេនសិក្សា', minwidth: 120 },
   { prop: 'midterm_date', label: 'ថ្ងៃប្រឡង Midterm', minwidth: 120 },
   { prop: 'final_date', label: 'ថ្ងៃប្រឡង Final', minwidth: 120 },
-  { prop: 'total_student', label: 'សិស្សសរុប', minwidth: 120 },
+  { prop: 'total_student', label: 'ប្រធានថ្នាក់', minwidth: 120 },
   { prop: 'type_class', slot: 'type_class', label: 'ប្រភេទថ្នាក់', minwidth: 120 },
 ]
 
@@ -68,7 +79,7 @@ const columnclass_offering = [
   { prop: 'passing_score',slot:'passing_score', label: 'ពិន្ទុជាប់', width: 90 },
   { prop: 'total_hour',slot:'total_hour', label: 'ម៉ោងសរុប', width: 90 },
   { prop: 'status', label: 'ស្ថានភាព', width: 90 },
-  { prop: 'total_attendance_for_rexam',slot:'total_attendance_for_rexam', label: 'អវត្តមានត្រូវប្រឡងសង', minwidth: 120 },
+  { prop: 'total_attendance_for_rexam',slot:'total_attendance_for_rexam', label: 'អវត្តមានត្រូវប្រឡងសង', minwidth: 80 },
   { prop: 'total_attendance_for_relearn',slot:'total_attendance_for_relearn', label: 'អវត្តមានត្រូវរៀនសង', minwidth: 120 },
   { prop: 'description', label: 'ផ្សេងៗ', minwidth: 120 },
 ]
@@ -157,7 +168,7 @@ async function submitClassOffering() {
 
 // class registration start
 const createclassregistrationvisible = ref(false)
-
+const selectedRows = ref([]);
 const studentterms = ref([])
 const selectedClassOffering = ref(null)
 
@@ -170,7 +181,7 @@ const classregistrationfilters = reactive({
 
 const columnclass_registration = [
   { prop: 'student_name_kh',slot:'student_name_kh', label: 'ឈ្មោះ', minwidth: 90 },
-   { prop: 'student_gender',label: 'ភេទ', minwidth: 90 },
+   { prop: 'student_gender',slot:'student_gender',label: 'ភេទ', minwidth: 90 },
    { prop: 'study_year_id',label: 'ឆ្នាំទី', minwidth: 90 },
    { prop: 'semester_name',label: 'ឆមាសទី', minwidth: 90 },
    { prop: 'term_name',label: 'វគ្គទី', minwidth: 90 },
@@ -213,28 +224,62 @@ async function fetchStudentTerm(filters) {
 }
 
 async function openClassRegistrationDialog(
-    detailRow,
-    curriculumRow,
-    class_offering
+  detailRow,
+  curriculumRow,
+  class_offering
 ) {
-    classregistrationfilters.semester_id = detailRow.semester_id
-    classregistrationfilters.study_year_id = detailRow.study_year_id
-    classregistrationfilters.term_id = curriculumRow.term_id
-    classregistrationfilters.major_id = curriculumRow.major_id
+  classregistrationfilters.semester_id = detailRow.semester_id
+  classregistrationfilters.study_year_id = detailRow.study_year_id
+  classregistrationfilters.term_id = curriculumRow.term_id
+  classregistrationfilters.major_id = curriculumRow.major_id
 
-    selectedClassOffering.value = class_offering
+  selectedClassOffering.value = class_offering
+  selectedRows.value = []
 
-    studentterms.value = await fetchStudentTerm(
-        classregistrationfilters
-    )
+  studentterms.value = await fetchStudentTerm(
+    classregistrationfilters
+  )
 
-    createclassregistrationvisible.value = true
-   
+  createclassregistrationvisible.value = true
 }
 
 function closeClassRegistrationDialog() {
   createclassregistrationvisible.value = false
   studentterms.value = []
+}
+
+async function submitcourseregistration() {
+  if (!selectedClassOffering.value?.id) {
+    notify.error('Class offering is required')
+    return
+  }
+
+  if (selectedRows.value.length === 0) {
+    notify.error('Please select at least one student')
+    return
+  }
+
+  try {
+    const payload = {
+      class_offering_id: selectedClassOffering.value.id,
+      student_term_id: selectedRows.value.map((row) => ({
+        student_term_id: row.id,
+      })),
+    }
+
+    await createcourseregistration(payload)
+
+    notify.success('ចុះឈ្មោះសិស្សបានជោគជ័យ')
+
+    selectedRows.value = []
+    closeClassRegistrationDialog()
+  } catch (e) {
+    notify.error(
+      e?.response?.data?.message ||
+      e.message ||
+      'Failed to create course registration'
+    )
+  }
 }
 
 // class registration end
@@ -573,10 +618,11 @@ onMounted(() => {
            </el-text>
           </el-divider>
           <TableCustom
-            show-index
+            expandable
             :data="detailRow.class_offering"
             :columns="columnclass_offering"
             :show-pagination="false"
+            actions-width="200px"
           >
           <template #credit="{row}">
             <el-text tag="b" style="color: crimson;">
@@ -610,12 +656,37 @@ onMounted(() => {
           </template>
     <template #actions="{row: class_offering}">
       <AppButton
+      size="small"
         type="success"
         @click="openClassRegistrationDialog(detailRow, row, class_offering)"
       >
         បញ្ចូលសិស្ស
       </AppButton>
+      <AppButton
+      size="small"
+        type="primary"
+      >
+        កាលវិភាគ
+      </AppButton>
     </template>
+<template #expand="{ row: offeringRow }">
+  <el-divider content-position="left">
+    <el-text tag="b" style="color: darkcyan;">សិស្សសរុបកំពុងសិក្សា {{ offeringRow.student.length }} នាក់</el-text>
+  </el-divider>
+  <TableCustom
+    expandable
+    :data="offeringRow.student"
+    :columns="studentcolumns"
+    :show-pagination="false"
+  >
+  <template #gender="{row}">
+    <el-text>
+      {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+    </el-text>
+  </template>
+
+</TableCustom>
+</template>
     
           </TableCustom>
         </template>
@@ -942,10 +1013,19 @@ onMounted(() => {
     width="70%"
     @close="closeClassRegistrationDialog"
   >
-  <TableCustom
+    <AppForm
+      :show-actions="true"
+      @submit="submitcourseregistration"
+      submitText="រក្សាទុក"
+      resetText="ចាកចេញ"   
+    >
+        <TableCustom
+
+  selectable
         :data="studentterms"
         :columns="columnclass_registration"
         :show-pagination="false"
+   @selection-change="selectedRows = $event"
   >
   <template #student_name_kh="{row}">
     <div>
@@ -958,6 +1038,11 @@ onMounted(() => {
         {{ row.student_name_en }}
       </el-text>
     </div>
+  </template>
+  <template #student_gender="{row}">
+    <el-text style="color: black;">
+      {{ row.student_gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+    </el-text>
   </template>
   <template #major_name="{row}">
     <el-text type="warning" tag="b">
@@ -975,6 +1060,7 @@ onMounted(() => {
   </template>
 
   </TableCustom>
+    </AppForm>
   </AppDialog>
 
 </template>

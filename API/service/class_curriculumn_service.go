@@ -231,6 +231,46 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 		return nil, nil, fmt.Errorf("fetch class curriculum detail: %w", err)
 	}
 
+	offerIDs := make([]int, 0, len(classoffer))
+	for _, o := range classoffer {
+		offerIDs = append(offerIDs, o.ID)
+	}
+	var student []response.StudentResponseSummary
+	if len(offerIDs) > 0 {
+		if err := s.db.WithContext(ctx).
+			Table("course_registrations cr").
+			Joins("LEFT JOIN student_terms st ON st.id = cr.student_term_id").
+			Joins("LEFT JOIN enrollments e ON e.id = st.enrollment_id").
+			Joins("LEFT JOIN admissions a ON a.id = e.admission_id").
+			Joins("LEFT JOIN students s ON s.id = a.student_id").
+			Where("cr.class_offering_id IN ?", offerIDs).
+			Select(`
+            cr.class_offering_id AS offer_id,
+            s.name_kh AS name_kh,
+            s.name_en AS name_en,
+            s.date_of_birth AS date_of_birth,
+            s.gender AS gender,
+            s.nationality AS nationality,
+            s.phone AS phone,
+            s.occupation AS occupation
+        `).Scan(&student).Error; err != nil {
+			return nil, nil, fmt.Errorf("fetch student: %w", err)
+		}
+	}
+
+	for i := range student {
+		student[i].DateOfBirth = helper.FormatDate(student[i].DateOfBirth)
+	}
+
+	studentByOffer := make(map[int][]response.StudentResponseSummary, len(classoffer))
+	for _, st := range student {
+		studentByOffer[st.OfferID] = append(studentByOffer[st.OfferID], st)
+	}
+
+	for i := range classoffer {
+		classoffer[i].StudentResponseSummary = studentByOffer[classoffer[i].ID] // add this field if missing
+	}
+
 	offeringsByDetail := make(map[int][]response.ClassOfferingResponse, len(details))
 	for _, o := range classoffer {
 		offeringsByDetail[o.ClassCurriculumnDetailID] = append(offeringsByDetail[o.ClassCurriculumnDetailID], o)

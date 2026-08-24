@@ -159,7 +159,7 @@ async function fetchSubject() {
     }
     const res = await getSubject(params)
     subject.value = res.data.data || []
-    total.value = res.data.total || 0
+    total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load')
   } finally {

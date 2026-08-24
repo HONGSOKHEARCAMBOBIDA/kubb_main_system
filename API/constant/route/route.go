@@ -176,4 +176,7 @@ const (
 
 	// ClassOffering
 	ClassOfferingCreate = "class.offering.create"
+
+	// CourseRegistration
+	CourseRegistrationCreate = "course.registration.create"
 )
