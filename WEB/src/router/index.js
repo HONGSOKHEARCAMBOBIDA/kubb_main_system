@@ -206,6 +206,12 @@ const routes = [
         component: () => import('@/views/admission/admission.vue'),
         meta: { title: 'និស្សិតបានចុះឈ្មោះសិក្សា', icone: 'Document' },
       },
+      {
+        path: 'teacher',
+        name: 'សាស្រ្តាចារ្យ',
+        component: () => import('@/views/teacher/teacher.vue'),
+        meta: { title: 'សាស្រ្តាចារ្យ', icone: 'Document' },
+      },
     ],
   },
   {

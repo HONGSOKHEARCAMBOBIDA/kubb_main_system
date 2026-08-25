@@ -15,7 +15,6 @@ type Teacher struct {
 	Nationality string `json:"nationality" gorm:"column:nationality"`
 	Address     string `json:"address" gorm:"column:address"`
 	Phone       string `json:"phone" gorm:"column:phone"`
-	FacultyID   int    `json:"faculty_id" gorm:"column:faculty_id"`
 }
 
 func (Teacher) TableName() string {

@@ -42,6 +42,7 @@ func SetupRoutes(r *gin.Engine) {
 	classcurriculumcontroller := controller.NewClassCurriculumnController()
 	classofferingcontroller := controller.NewClassOfferingController()
 	courseregistrationcontroller := controller.NewCourseRegistrationController()
+	teachercontroller := controller.NewTeacherController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -214,5 +215,11 @@ func SetupRoutes(r *gin.Engine) {
 
 		// CourseRegistratin
 		auth.POST(route.CourseRegistrationCreate, middleware.PermissionMiddleware(permission.CRUDCOURSEREGISTRATION), courseregistrationcontroller.CreateCourseRegistration)
+
+		// Teacher
+		auth.POST(route.TeacherCreate, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.CreateTeacher)
+		auth.GET(route.TeacherView, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.GetTeacher)
+		auth.PUT(route.TeacherUpdate, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.UpdateTeacher)
+		auth.PUT(route.TeacherToggle, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.Toggle)
 	}
 }

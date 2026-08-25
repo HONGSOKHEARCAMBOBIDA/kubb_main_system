@@ -179,4 +179,11 @@ const (
 
 	// CourseRegistration
 	CourseRegistrationCreate = "course.registration.create"
+
+	// Teacher
+
+	TeacherCreate = "teacher.create"
+	TeacherView   = "teacher.view"
+	TeacherUpdate = "teacher.update/:uuid"
+	TeacherToggle = "teacher.toggle/:uuid"
 )
