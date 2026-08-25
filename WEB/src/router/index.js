@@ -212,6 +212,12 @@ const routes = [
         component: () => import('@/views/teacher/teacher.vue'),
         meta: { title: 'សាស្រ្តាចារ្យ', icone: 'Document' },
       },
+      {
+        path: 'schedule',
+        name: 'កាលវិភាគ',
+        component: () => import('@/views/schedule/schedule.vue'),
+        meta: { title: 'សាស្រ្តាចារ្យ', icone: 'Document' },
+      },
     ],
   },
   {

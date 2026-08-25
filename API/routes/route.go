@@ -209,6 +209,7 @@ func SetupRoutes(r *gin.Engine) {
 		// ClassCurriculumn
 		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)
 		auth.GET(route.ClassCurriculumnView, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumn)
+		auth.GET(route.ClassCurriculumnViewWithTeacherRate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumnWithTeacherRate)
 
 		// ClassOffering
 		auth.POST(route.ClassOfferingCreate, middleware.PermissionMiddleware(permission.CRUDCLASSOFFERING), classofferingcontroller.CreateClassOffering)
@@ -219,6 +220,7 @@ func SetupRoutes(r *gin.Engine) {
 		// Teacher
 		auth.POST(route.TeacherCreate, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.CreateTeacher)
 		auth.GET(route.TeacherView, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.GetTeacher)
+		auth.GET(route.TeacherViewFilter, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.GetTeacherFilter)
 		auth.PUT(route.TeacherUpdate, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.UpdateTeacher)
 		auth.PUT(route.TeacherToggle, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.Toggle)
 	}

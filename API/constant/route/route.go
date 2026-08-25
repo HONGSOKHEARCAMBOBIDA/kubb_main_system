@@ -171,8 +171,9 @@ const (
 	EnrollmentCreate = "enrollment.create"
 
 	// ClassCurriculumn
-	ClassCurriculumnCreate = "class_curriculmn.create"
-	ClassCurriculumnView   = "class_curriculmn.view"
+	ClassCurriculumnCreate              = "class_curriculmn.create"
+	ClassCurriculumnView                = "class_curriculmn.view"
+	ClassCurriculumnViewWithTeacherRate = "class_curriculmn.view.with.teacher.rate"
 
 	// ClassOffering
 	ClassOfferingCreate = "class.offering.create"
@@ -182,8 +183,9 @@ const (
 
 	// Teacher
 
-	TeacherCreate = "teacher.create"
-	TeacherView   = "teacher.view"
-	TeacherUpdate = "teacher.update/:uuid"
-	TeacherToggle = "teacher.toggle/:uuid"
+	TeacherCreate     = "teacher.create"
+	TeacherView       = "teacher.view"
+	TeacherViewFilter = "teacher.view.filter"
+	TeacherUpdate     = "teacher.update/:uuid"
+	TeacherToggle     = "teacher.toggle/:uuid"
 )

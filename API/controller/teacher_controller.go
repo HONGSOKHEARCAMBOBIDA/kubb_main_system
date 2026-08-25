@@ -37,6 +37,35 @@ func (cr *TeacherController) CreateTeacher(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
 }
 
+func (cr *TeacherController) GetTeacherFilter(c *gin.Context) {
+
+	filter := map[string]string{
+		"faculty_id": c.Query("faculty_id"),
+	}
+
+	data, err := cr.service.GetTeacherFilter(
+		c.Request.Context(),
+		filter,
+	)
+
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(err, context.Canceled) {
+			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
+			return
+		}
+
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for i := range data {
+		data[i].Dob = helper.FormatDate(data[i].Dob)
+	}
+
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *TeacherController) GetTeacher(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 

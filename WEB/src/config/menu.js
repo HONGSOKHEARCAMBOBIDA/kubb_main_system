@@ -48,6 +48,7 @@ export const menuConfig = [
       { title: 'និស្សិត', icon: 'Document', path: '/student' },
       { title: 'និស្សិតបានចុះឈ្មោះសិក្សា', icon: 'Document', path: '/admission' },
       { title: 'សាស្រ្តាចារ្យ', icon: 'Document', path: '/teacher' },
+      { title: 'កាលវិភាគ', icon: 'Document', path: '/schedule' },
     ],
   },
 ]

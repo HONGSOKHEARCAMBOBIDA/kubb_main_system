@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import {
   CreateClassCurriculum,
-  GetClassCurriculum,
+  GetClassCurriculumWithTeacherRate,
 } from '../../services/classcurriculmn.service.js'
 import { getAcademics } from '../../services/academic.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
@@ -25,6 +25,7 @@ import { CreateClassOffering } from '../../services/class_offering.service.js'
 import { getSubjectByMajor } from '../../services/subject.service.js'
 import { studentTermGet } from '../../services/studentterm.service.js'
 import { createcourseregistration } from '../../services/course_registration.service.js'
+import { getTeacherFilter } from '../../services/teacher.service.js'
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -91,7 +92,7 @@ async function fetchClassCurriculum() {
       page: page.value,
       page_size: pageSize.value,
     }
-    const res = await GetClassCurriculum(params)
+    const res = await GetClassCurriculumWithTeacherRate(params)
     classcurriculmn.value = res.data.data || []
     total.value = res.data.pagination.total_count || 0
     console.log(classcurriculmn.value)
@@ -181,36 +182,26 @@ const classregistrationfilters = reactive({
 })
 
 const columnclass_registration = [
-  { prop: 'student_name_kh',slot:'student_name_kh', label: 'ឈ្មោះ', minwidth: 90 },
-   { prop: 'student_gender',slot:'student_gender',label: 'ភេទ', minwidth: 90 },
-   { prop: 'study_year_id',label: 'ឆ្នាំទី', minwidth: 90 },
-   { prop: 'semester_name',label: 'ឆមាសទី', minwidth: 90 },
-   { prop: 'term_name',label: 'វគ្គទី', minwidth: 90 },
-   { prop: 'major_name',slot:'major_name',label: 'ជំនាញ', minwidth: 90 },
-    { prop: 'programm_name',slot:'programm_name',label: 'កម្រិត', minwidth: 90 },
+  { prop: 'code', label: 'លេខកូដ', minwidth: 90 },
+   { prop: 'name',label: 'ឈ្មោះ', minwidth: 90 },
+   { prop: 'gender',label: 'ភេទ', minwidth: 90 },
+   { prop: 'phone',label: 'លេខទូរសព្ទ', minwidth: 90 },
+   { prop: 'email',label: 'អុីម៉ែល', width: 200 },
+   { prop: 'date_of_birth',label: 'ថ្ងៃ-ខែ-ឆ្នាំ', minwidth: 90 },
+    { prop: 'place_of_birth',label: 'កន្លែងកំណេីត', minwidth: 90 },
+    { prop: 'nationality',label: 'សញ្ជាតិ', minwidth: 90 },
+      { prop: 'address',label: 'អាស័យដ្ឋាន', minwidth: 90 },
 ]
 
-async function fetchStudentTerm(filters) {
+async function fetchTeacher(filters) {
     try {
         const params = {}
 
-        if (filters.semester_id) {
-            params.semester_id = filters.semester_id
+        if (filters.faculty_id) {
+            params.faculty_id = filters.faculty_id
         }
 
-        if (filters.study_year_id) {
-            params.study_year_id = filters.study_year_id
-        }
-
-        if (filters.term_id) {
-            params.term_id = filters.term_id
-        }
-
-        if (filters.major_id) {
-            params.major_id = filters.major_id
-        }
-
-        const res = await studentTermGet(params)
+        const res = await getTeacherFilter(params)
 
         return res.data.data || []
     } catch (e) {
@@ -229,15 +220,12 @@ async function openClassRegistrationDialog(
   curriculumRow,
   class_offering
 ) {
-  classregistrationfilters.semester_id = detailRow.semester_id
-  classregistrationfilters.study_year_id = detailRow.study_year_id
-  classregistrationfilters.term_id = curriculumRow.term_id
-  classregistrationfilters.major_id = curriculumRow.major_id
+  classregistrationfilters.faculty_id = curriculumRow.faculty_id
 
   selectedClassOffering.value = class_offering
   selectedRows.value = []
 
-  studentterms.value = await fetchStudentTerm(
+  studentterms.value = await fetchTeacher(
     classregistrationfilters
   )
 
@@ -661,7 +649,7 @@ onMounted(() => {
         type="success"
         @click="openClassRegistrationDialog(detailRow, row, class_offering)"
       >
-        បញ្ចូលសិស្ស
+        បញ្ចូលគ្រូ
       </AppButton>
       <AppButton
       size="small"
@@ -1011,7 +999,7 @@ onMounted(() => {
     v-model:visible="createclassregistrationvisible"
     title="បញ្ចូលសិស្ស"
     :showDefaultFooter="false"
-    width="70%"
+    width="75%"
     @close="closeClassRegistrationDialog"
   >
     <AppForm
@@ -1021,6 +1009,7 @@ onMounted(() => {
       resetText="ចាកចេញ"   
     >
         <TableCustom
+  expandable
 
   selectable
         :data="studentterms"
@@ -1028,38 +1017,11 @@ onMounted(() => {
         :show-pagination="false"
    @selection-change="selectedRows = $event"
   >
-  <template #student_name_kh="{row}">
-    <div>
-      <el-text tag="b" style="color: black;">
-        {{ row.student_name_kh }}
-      </el-text>
-    </div>
-    <div>
-      <el-text type="primary">
-        {{ row.student_name_en }}
-      </el-text>
-    </div>
-  </template>
-  <template #student_gender="{row}">
-    <el-text style="color: black;">
-      {{ row.student_gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
-    </el-text>
-  </template>
-  <template #major_name="{row}">
-    <el-text type="warning" tag="b">
-     ({{ row.major_code }}) 
-    </el-text>
-    <el-text tag="b" style="color: darkcyan;">
-      {{ row.major_name}}
-    </el-text>
-  </template>
 
-  <template #programm_name="{row}">
-    <el-text tag="b" style="color: crimson;">
-      {{ row.programm_name }}
-    </el-text>
+  <template #expand="{  }">
+    
   </template>
-
+ 
   </TableCustom>
     </AppForm>
   </AppDialog>

@@ -25,6 +25,7 @@ type TeacherService interface {
 	GetTeacher(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.TeacherResponse, *model.PaginationMetadata, error)
 	UpdateTeacher(ctx context.Context, uuid string, input request.TeacherRequestUpdate) error
 	Toggle(ctx context.Context, uuid string) error
+	GetTeacherFilter(ctx context.Context, filter map[string]string) ([]response.TeacherResponseFilter, error)
 }
 
 type teacherservice struct {
@@ -80,6 +81,60 @@ func (s *teacherservice) CreateTeacher(ctx context.Context, input request.Teache
 		return nil
 	})
 	return err
+}
+
+func (s *teacherservice) GetTeacherFilter(
+	ctx context.Context,
+	filter map[string]string,
+) ([]response.TeacherResponseFilter, error) {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	var data []response.TeacherResponseFilter
+
+	base := func() *gorm.DB {
+		return s.db.WithContext(ctx).
+			Table("teachers AS t")
+	}
+
+	applyFilters := func(tx *gorm.DB) *gorm.DB {
+		if v := filter["faculty_id"]; v != "" {
+			facultyIDs := strings.Split(v, ",")
+
+			tx = tx.Where(`
+			EXISTS (
+				SELECT 1
+				FROM teacher_faculty tf
+				WHERE tf.teacher_id = t.id
+				AND tf.faculty_id IN ?
+			)
+		`, facultyIDs)
+		}
+
+		return tx
+	}
+
+	dataQuery := applyFilters(base()).
+		Select(`
+			t.id AS id,
+			t.uuid AS uuid,
+			t.code AS code,
+			t.email AS email,
+			t.name AS name,
+			t.date_of_birth AS date_of_birth,
+			t.place_of_birth AS place_of_birth,
+			t.gender AS gender,
+			t.nationality AS nationality,
+			t.address AS address,
+			t.phone AS phone
+		`).
+		Order("t.id DESC")
+
+	if err := dataQuery.Scan(&data).Error; err != nil {
+		return nil, fmt.Errorf("fetch teachers: %w", err)
+	}
+
+	return data, nil
 }
 
 func (s *teacherservice) GetTeacher(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.TeacherResponse, *model.PaginationMetadata, error) {
