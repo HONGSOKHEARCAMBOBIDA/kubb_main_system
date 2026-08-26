@@ -73,4 +73,6 @@ const (
 	CRUDCOURSEREGISTRATION = "crud.course.registration"
 
 	CRUDTEACHER = "crud.teacher"
+
+	CRUDSCHEDULE = "crud.schedule"
 )

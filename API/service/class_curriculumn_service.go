@@ -426,6 +426,7 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 		Joins("LEFT JOIN teacher_rates tr ON tr.class_offer_id = co.id").
 		Joins("LEFT JOIN teachers t ON t.id = tr.teacher_id").
 		Where("co.class_curriculum_detail_id IN ?", detailIDs).Select(`
+		tr.id AS teacher_rate_id,
 		co.id AS id,
 		co.uuid AS uuid,
 		co.class_curriculum_detail_id AS class_curriculum_detail_id,
@@ -463,13 +464,16 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 		if err := s.db.WithContext(ctx).
 			Table("schedules s").
 			Joins("LEFT JOIN school_rooms sr ON sr.id = s.room_id").
-			Where("s.class_offering_id IN ?", offerIDs).
+			Joins("LEFT JOIN teacher_rates tr ON tr.id = s.teacher_rate_id").
+			Joins("LEFT JOIN class_offerings co ON co.id = tr.class_offer_id").
+			Where("tr.class_offer_id IN ?", offerIDs).
 			Select(`
+			s.status AS status,
             s.id AS id,
 			s.uuid AS uuid,
-			s.class_offering_id AS class_offering_id,
+			co.id AS class_offering_id,
 			s.schedule_date AS schedule_date,
-			s.teacher_id AS teacher_id,
+			tr.teacher_id AS teacher_id,
 			s.start_time AS start_time,
 			s.end_time AS end_time,
 			s.total_teach_hours AS total_teach_hours,
@@ -484,6 +488,7 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 	}
 
 	for i := range schedule {
+		schedule[i].SchdeduleDate = helper.FormatDate(schedule[i].SchdeduleDate)
 		schedule[i].StartTime = helper.FormatTime(schedule[i].StartTime)
 		schedule[i].EndTime = helper.FormatTime(schedule[i].EndTime)
 	}

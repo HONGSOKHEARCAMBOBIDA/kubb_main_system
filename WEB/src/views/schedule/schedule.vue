@@ -27,6 +27,9 @@ import { studentTermGet } from '../../services/studentterm.service.js'
 import { createcourseregistration } from '../../services/course_registration.service.js'
 import { getTeacherFilter } from '../../services/teacher.service.js'
 import { createTeacherRate } from '../../services/teacher.service.js'
+import { ScheduleCreate } from '../../services/schedule.serivce.js'
+import { getSchoolRooms } from '../../services/school_room.service.js'
+const schoolRooms = ref([])
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -36,6 +39,25 @@ const submitting = ref(false)
 const formRef = ref(null)
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
+
+async function fetchSchoolRooms() {
+  try {
+    const res = await getSchoolRooms({
+    })
+    schoolRooms.value = (res.data.data || []).map((a) => ({ label: a.name, value: a.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load')
+  }
+}
+
+const schedulecolumn = [
+  { prop: 'schedule_date', label: 'ថ្ងៃត្រូវបង្រៀន', minwidth: 120 },
+  { prop: 'start_time', label: 'ម៉ោងចាប់ផ្ដើម', minwidth: 120 },
+  { prop: 'end_time', label: 'ម៉ោងបញ្ចប់', minwidth: 120 },
+   { prop: 'total_teach_hours', label: 'ម៉ោងសរុបត្រូវបង្រៀន', minwidth: 120 },
+   { prop: 'room_name', label: 'បន្ទប់ត្រូវបង្រៀន', minwidth: 120 },
+   { prop: 'status',slot:'status', label: 'ស្ថានភាព', minwidth: 120 },
+]
 
 const studentcolumns = [
   { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 },
@@ -81,8 +103,8 @@ const columnclass_offering = [
   { prop: 'total_hour', slot: 'total_hour', label: 'ម៉ោងសរុប', minwidth: 90 },
   { prop: 'total_hour', slot: 'total_hour', label: 'ម៉ោងនៅសល់', minwidth: 140 },
   { prop: 'status', label: 'ស្ថានភាព', minwidth: 90 },
-  { prop: 'teacher_name',slot:'teacher_name', label: 'គ្រូបង្រៀន', minwidth: 170 },
-  { prop: 'hourly_rate',slot:'hourly_rate', label: 'តម្លៃម៉ោងគ្រូ', minwidth: 90 },
+  { prop: 'teacher_name', slot: 'teacher_name', label: 'គ្រូបង្រៀន', minwidth: 170 },
+  { prop: 'hourly_rate', slot: 'hourly_rate', label: 'តម្លៃម៉ោងគ្រូ', minwidth: 90 },
   { prop: 'effective_date', label: 'ថ្ងៃខែមានប្រសិទ្ធភាព', minwidth: 90 },
 ]
 
@@ -95,6 +117,7 @@ async function fetchClassCurriculum() {
     const res = await GetClassCurriculumWithTeacherRate(params)
     classcurriculmn.value = res.data.data || []
     total.value = res.data.pagination.totalCount || 0
+    console.log(classcurriculmn.value)
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load class curriculums')
   }
@@ -217,12 +240,66 @@ async function fetchTeacher(filters) {
   }
 }
 
+const scheduleform = reactive({
+  teacher_rate_id: null,
+  schedule_date: '',
+  start_time: '',
+  end_time: '',
+  total_teach_hours: 0,
+  description: '',
+  room_id: null
+})
+
 const teacherrateform = reactive({
   teacher_id: null,
   class_offer_id: null,
   hourly_rate: null,
   effective_date: ''
 })
+const selectteacherrate = ref(null)
+const createschedulevisible = ref(false)
+async function openScheduleDialog(detailRow, curriculumRow, class_offering) {
+  selectteacherrate.value = class_offering
+  createschedulevisible.value = true
+}
+
+function closeschedule() {
+  createschedulevisible.value = false
+  Object.assign(scheduleform, {
+    teacher_rate_id: null,
+    schedule_date: '',
+    start_time: '',
+    end_time: '',
+    total_teach_hours: 0,
+    description: '',
+    room_id: null
+  })
+  selectteacherrate.value = null
+}
+
+async function submitschedule() {
+  if (!selectteacherrate.value?.teacher_rate_id) {
+    notify.error('សូមជ្រើសរើសគ្រូ (teacher rate) មុននឹងបង្កើតកាលវិភាគ')
+    return
+  }
+  try {
+    const payload = {
+      teacher_rate_id: selectteacherrate.value.teacher_rate_id,
+      schedule_date: scheduleform.schedule_date,
+      start_time: scheduleform.start_time,
+      end_time: scheduleform.end_time,
+      total_teach_hours: scheduleform.total_teach_hours,
+      description: scheduleform.description,
+      room_id: scheduleform.room_id
+    }
+    await ScheduleCreate(payload)
+    notify.success('បញ្ចូលកាលវិភាគបានជោគជ័យ')
+    closeschedule()
+    fetchClassCurriculum()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to create schedule')
+  }
+}
 
 async function openTeacherRateDialog(
   detailRow,
@@ -543,6 +620,7 @@ function resetForm() {
 }
 
 onMounted(() => {
+  fetchSchoolRooms()
   fetchClassCurriculum()
   fetchProgrammeOptions()
   fetchAcademicOptions()
@@ -595,12 +673,12 @@ onMounted(() => {
           </el-divider>
           <TableCustom expandable :data="detailRow.class_offering" :columns="columnclass_offering"
             :show-pagination="false" actions-width="200px">
-            <template #hourly_rate="{row}">
+            <template #hourly_rate="{ row }">
               <el-text tag="b" style="color: crimson;">
                 {{ row.hourly_rate }} $
               </el-text>
             </template>
-            <template #teacher_name="{row}">
+            <template #teacher_name="{ row }">
               <el-text>
                 {{ row.teacher_name }} ({{ row.teacher_gender }})
               </el-text>
@@ -636,37 +714,35 @@ onMounted(() => {
               </el-text>
             </template>
             <template #actions="{ row: class_offering }">
-              <AppButton size="small" type="success"
-                @click="openTeacherRateDialog(detailRow, row, class_offering)">
+              <AppButton size="small" type="success" @click="openTeacherRateDialog(detailRow, row, class_offering)">
                 បញ្ចូលគ្រូ
               </AppButton>
-              <AppButton size="small" type="primary">
+              <AppButton size="small" type="primary" @click="openScheduleDialog(detailRow, row, class_offering)">
                 កាលវិភាគ
               </AppButton>
             </template>
             <template #expand="{ row: offeringRow }">
               <el-divider content-position="left">
-                <el-text tag="b" style="color: darkcyan;">សិស្សសរុបកំពុងសិក្សា {{ offeringRow.student.length }}
-                  នាក់</el-text>
-              </el-divider>
-              <TableCustom expandable :data="offeringRow.student" :columns="studentcolumns" :show-pagination="false">
-                <template #gender="{ row }">
-                  <el-text>
-                    {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+                <el-text tag="b" style="color: darkcyan;">ចំនួនជេីងបានមកបង្រៀន {{ offeringRow.scheduel.length }} ដង
                   </el-text>
-                </template>
+              </el-divider>
+              <TableCustom expandable :data="offeringRow.scheduel" :columns="schedulecolumn" :show-pagination="false">
+             <template #status="{ row }">
+  <el-text>
+    {{
+      row.status === 'active'
+        ? 'កំពុងបង្រៀន'
+        : row.status === 'cancelled'
+          ? 'បានលុប'
+          : row.status === 'completed'
+            ? 'បានបញ្ចប់'
+            : '-'
+    }}
+  </el-text>
+</template>
 
               </TableCustom>
-            </template>function emptyDetailRow() {
-  return {
-    semester_id: null,
-    study_year_id: null,
-    academic_shift_id: null,
-    midterm_date: '',
-    final_date: '',
-    type_class: '',
-  }
-}
+            </template>
 
           </TableCustom>
         </template>
@@ -839,21 +915,68 @@ onMounted(() => {
 
       <el-row :gutter="20">
         <el-col :span="8">
-          <AppSelect v-model="teacherrateform.teacher_id" :options="studentterms" placeholder="រេីសគ្រូ" label="រេីសគ្រូ" clearable />
+          <AppSelect v-model="teacherrateform.teacher_id" :options="studentterms" placeholder="រេីសគ្រូ"
+            label="រេីសគ្រូ" clearable />
         </el-col>
 
         <el-col :span="8">
-          <AppInput v-model.number="teacherrateform.hourly_rate" placeholder="តម្លៃម៉ោងគ្រូ" label="តម្លៃម៉ោងគ្រូ" clearable type="number" />
+          <AppInput v-model.number="teacherrateform.hourly_rate" placeholder="តម្លៃម៉ោងគ្រូ" label="តម្លៃម៉ោងគ្រូ"
+            clearable type="number" />
         </el-col>
 
 
         <el-col :span="8">
           <el-form-item label="ថ្ងៃមានប្រសិទ្ធភាព" prop="date_of_birth">
-            <el-date-picker v-model="teacherrateform.effective_date" type="date" value-format="YYYY-MM-DD" placeholder="ថ្ងៃមានប្រសិទ្ធភាព"
-              style="width: 100%" />
+            <el-date-picker v-model="teacherrateform.effective_date" type="date" value-format="YYYY-MM-DD"
+              placeholder="ថ្ងៃមានប្រសិទ្ធភាព" style="width: 100%" />
           </el-form-item>
         </el-col>
 
+      </el-row>
+
+    </AppForm>
+  </AppDialog>
+
+  <AppDialog v-if="createschedulevisible" v-model:visible="createschedulevisible" title="បង្កេីតកាលវិភាគ"
+    :showDefaultFooter="false" width="55%" @close="closeschedule">
+    <AppForm :show-actions="true" @submit="submitschedule" submitText="រក្សាទុក" resetText="ចាកចេញ">
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="ថ្ងៃត្រូវបង្រៀន" prop="date_of_birth">
+            <el-date-picker v-model="scheduleform.schedule_date" type="date" value-format="YYYY-MM-DD"
+              placeholder="ថ្ងៃត្រូវបង្រៀន" style="width: 100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="ចាប់ពីម៉ោង" prop="start_time">
+            <el-time-picker v-model="scheduleform.start_time" value-format="HH:mm:ss" format="HH:mm"
+              placeholder="ចាប់ពីម៉ោង" style="width: 100%" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="រហូតដល់ម៉ោង" prop="end_time">
+            <el-time-picker v-model="scheduleform.end_time" value-format="HH:mm:ss" format="HH:mm"
+              placeholder="រហូតដល់ម៉ោង" style="width: 100%" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <AppInput v-model.number="scheduleform.total_teach_hours" placeholder="ម៉ោងត្រូវបង្រៀន" type="number"
+            clearable label="ម៉ោងត្រូវបង្រៀន" />
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <AppInput v-model="scheduleform.description" placeholder="ផ្សេងៗ" clearable label="ផ្សេងៗ" />
+        </el-col>
+        <el-col :span="12">
+          <AppSelect v-model="scheduleform.room_id" :options="schoolRooms" placeholder="រេីសបន្ទប់" label="រេីសបន្ទប់"
+            clearable />
+        </el-col>
       </el-row>
 
     </AppForm>

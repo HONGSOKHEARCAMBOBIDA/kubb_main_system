@@ -36,6 +36,7 @@ type ClassOfferingResponseWithTeacherRate struct {
 	TotalAttendanceForRexam   float64                   `json:"total_attendance_for_rexam" gorm:"column:total_attendance_for_rexam"`
 	TotalAttendanceForRelearn float64                   `json:"total_attendance_for_relearn" gorm:"column:total_attendance_for_relearn"`
 	Description               string                    `json:"description" gorm:"column:description"`
+	TeacherRateID             int                       `json:"teacher_rate_id" gorm:"column:teacher_rate_id"`
 	TeacherID                 int                       `json:"teacher_id"`
 	TeacherName               string                    `json:"teacher_name"`
 	TeacherGender             string                    `json:"teacher_gender"`

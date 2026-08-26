@@ -143,4 +143,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.teacher",
 		Group: "teacher",
 	},
+	{
+		Name:  "crud.schedule",
+		Group: "schedule",
+	},
 }

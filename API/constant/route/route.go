@@ -189,4 +189,7 @@ const (
 	TeacherViewFilter = "teacher.view.filter"
 	TeacherUpdate     = "teacher.update/:uuid"
 	TeacherToggle     = "teacher.toggle/:uuid"
+
+	// Schedule
+	ScheduleCreate = "schedule.create"
 )
