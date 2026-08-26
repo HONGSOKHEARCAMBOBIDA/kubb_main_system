@@ -223,5 +223,6 @@ func SetupRoutes(r *gin.Engine) {
 		auth.GET(route.TeacherViewFilter, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.GetTeacherFilter)
 		auth.PUT(route.TeacherUpdate, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.UpdateTeacher)
 		auth.PUT(route.TeacherToggle, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.Toggle)
+		auth.POST(route.TeacherRateCreate, middleware.PermissionMiddleware(permission.CRUDTEACHER), teachercontroller.CreateTeacherRate)
 	}
 }

@@ -26,6 +26,7 @@ import { getSubjectByMajor } from '../../services/subject.service.js'
 import { studentTermGet } from '../../services/studentterm.service.js'
 import { createcourseregistration } from '../../services/course_registration.service.js'
 import { getTeacherFilter } from '../../services/teacher.service.js'
+import { createTeacherRate } from '../../services/teacher.service.js'
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -37,13 +38,13 @@ const dialogVisible = ref(false)
 const isEditMode = ref(false)
 
 const studentcolumns = [
-{ prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 }, 
-{ prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 }, 
-{ prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 }, 
-{ prop: 'gender',slot:'gender', label: 'ភេទ', minwidth: 120 }, 
-{ prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 120 },
-{ prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
-{ prop: 'occupation', label: 'មុខរបរ', minwidth: 120 },
+  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 },
+  { prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 },
+  { prop: 'gender', slot: 'gender', label: 'ភេទ', minwidth: 120 },
+  { prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 120 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
+  { prop: 'occupation', label: 'មុខរបរ', minwidth: 120 },
 ]
 
 const columns = [
@@ -74,16 +75,15 @@ const columndetails = [
 ]
 
 const columnclass_offering = [
-  { prop: 'subject_code', label: 'កូដ', minwidth: 90 },
-  { prop: 'subject_name',slot:'subject_name', label: 'ឈ្មោះ', minminwidth: 120 },
-  { prop: 'credit',slot:'credit', label: 'ក្រេឌីត', minwidth: 90 },
-  { prop: 'passing_score',slot:'passing_score', label: 'ពិន្ទុជាប់', minwidth: 90 },
-  { prop: 'total_hour',slot:'total_hour', label: 'ម៉ោងសរុប', minwidth: 90 },
-  { prop: 'total_hour',slot:'total_hour', label: 'ម៉ោងនៅសល់', minwidth: 140 },
+  { prop: 'subject_name', slot: 'subject_name', label: 'ឈ្មោះ', minminwidth: 120 },
+  { prop: 'credit', slot: 'credit', label: 'ក្រេឌីត', minwidth: 90 },
+  { prop: 'passing_score', slot: 'passing_score', label: 'ពិន្ទុជាប់', minwidth: 90 },
+  { prop: 'total_hour', slot: 'total_hour', label: 'ម៉ោងសរុប', minwidth: 90 },
+  { prop: 'total_hour', slot: 'total_hour', label: 'ម៉ោងនៅសល់', minwidth: 140 },
   { prop: 'status', label: 'ស្ថានភាព', minwidth: 90 },
-  { prop: 'total_attendance_for_rexam',slot:'total_attendance_for_rexam', label: 'អវត្តមានប្រឡងសង', minwidth: 120 },
-  { prop: 'total_attendance_for_relearn',slot:'total_attendance_for_relearn', label: 'អវត្តមានរៀនសង', minwidth: 120 },
-  { prop: 'description', label: 'ផ្សេងៗ', minwidth: 170 },
+  { prop: 'teacher_name',slot:'teacher_name', label: 'គ្រូបង្រៀន', minwidth: 170 },
+  { prop: 'hourly_rate',slot:'hourly_rate', label: 'តម្លៃម៉ោងគ្រូ', minwidth: 90 },
+  { prop: 'effective_date', label: 'ថ្ងៃខែមានប្រសិទ្ធភាព', minwidth: 90 },
 ]
 
 async function fetchClassCurriculum() {
@@ -94,8 +94,7 @@ async function fetchClassCurriculum() {
     }
     const res = await GetClassCurriculumWithTeacherRate(params)
     classcurriculmn.value = res.data.data || []
-    total.value = res.data.pagination.total_count || 0
-    console.log(classcurriculmn.value)
+    total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load class curriculums')
   }
@@ -175,47 +174,57 @@ const studentterms = ref([])
 const selectedClassOffering = ref(null)
 
 const classregistrationfilters = reactive({
-    semester_id: null,
-    study_year_id: null,
-    term_id: null,
-    major_id: null
+  semester_id: null,
+  study_year_id: null,
+  term_id: null,
+  major_id: null
 })
 
 const columnclass_registration = [
   { prop: 'code', label: 'លេខកូដ', minwidth: 90 },
-   { prop: 'name',label: 'ឈ្មោះ', minwidth: 90 },
-   { prop: 'gender',label: 'ភេទ', minwidth: 90 },
-   { prop: 'phone',label: 'លេខទូរសព្ទ', minwidth: 90 },
-   { prop: 'email',label: 'អុីម៉ែល', width: 200 },
-   { prop: 'date_of_birth',label: 'ថ្ងៃ-ខែ-ឆ្នាំ', minwidth: 90 },
-    { prop: 'place_of_birth',label: 'កន្លែងកំណេីត', minwidth: 90 },
-    { prop: 'nationality',label: 'សញ្ជាតិ', minwidth: 90 },
-      { prop: 'address',label: 'អាស័យដ្ឋាន', minwidth: 90 },
+  { prop: 'name', label: 'ឈ្មោះ', minwidth: 90 },
+  { prop: 'gender', label: 'ភេទ', minwidth: 90 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 90 },
+  { prop: 'email', label: 'អុីម៉ែល', width: 200 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំ', minwidth: 90 },
+  { prop: 'place_of_birth', label: 'កន្លែងកំណេីត', minwidth: 90 },
+  { prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 90 },
+  { prop: 'address', label: 'អាស័យដ្ឋាន', minwidth: 90 },
 ]
 
 async function fetchTeacher(filters) {
-    try {
-        const params = {}
+  try {
+    const params = {}
 
-        if (filters.faculty_id) {
-            params.faculty_id = filters.faculty_id
-        }
-
-        const res = await getTeacherFilter(params)
-
-        return res.data.data || []
-    } catch (e) {
-        notify.error(
-            e?.response?.data?.message ||
-            e.message ||
-            'Failed to load students'
-        )
-
-        return []
+    if (filters.faculty_id) {
+      params.faculty_id = filters.faculty_id
     }
+
+    const res = await getTeacherFilter(params)
+
+    return (res.data.data || []).map((f) => ({
+      label: `${f.name} - (${f.gender})`,
+      value: f.id
+    }))
+  } catch (e) {
+    notify.error(
+      e?.response?.data?.message ||
+      e.message ||
+      'Failed to load students'
+    )
+
+    return []
+  }
 }
 
-async function openClassRegistrationDialog(
+const teacherrateform = reactive({
+  teacher_id: null,
+  class_offer_id: null,
+  hourly_rate: null,
+  effective_date: ''
+})
+
+async function openTeacherRateDialog(
   detailRow,
   curriculumRow,
   class_offering
@@ -232,36 +241,27 @@ async function openClassRegistrationDialog(
   createclassregistrationvisible.value = true
 }
 
-function closeClassRegistrationDialog() {
+function closeTeacherRateDialog() {
   createclassregistrationvisible.value = false
   studentterms.value = []
 }
 
-async function submitcourseregistration() {
-  if (!selectedClassOffering.value?.id) {
-    notify.error('Class offering is required')
-    return
-  }
-
-  if (selectedRows.value.length === 0) {
-    notify.error('Please select at least one student')
-    return
-  }
-
+async function submitteacherrate() {
   try {
     const payload = {
-      class_offering_id: selectedClassOffering.value.id,
-      student_term_id: selectedRows.value.map((row) => ({
-        student_term_id: row.id,
-      })),
+      teacher_id: teacherrateform.teacher_id,
+      class_offer_id: selectedClassOffering.value.id,
+      hourly_rate: teacherrateform.hourly_rate,
+      effective_date: teacherrateform.effective_date
     }
 
-    await createcourseregistration(payload)
+    await createTeacherRate(payload)
 
-    notify.success('ចុះឈ្មោះសិស្សបានជោគជ័យ')
+    notify.success('បញ្ចូលគ្រូបានជោគជ័យ')
 
     selectedRows.value = []
-    closeClassRegistrationDialog()
+    closeTeacherRateDialog()
+    fetchClassCurriculum()
   } catch (e) {
     notify.error(
       e?.response?.data?.message ||
@@ -271,7 +271,6 @@ async function submitcourseregistration() {
   }
 }
 
-// class registration end
 function emptyDetailRow() {
   return {
     semester_id: null,
@@ -557,15 +556,8 @@ onMounted(() => {
     </template>
   </AppFilterBar>
 
-  <TableCustom
-    expandable
-    :data="classcurriculmn"
-    :columns="columns"
-    :total="total"
-    v-model:current-page="page"
-    v-model:page-size="pageSize"
-    @page-change="fetchClassCurriculum"
-  >
+  <TableCustom expandable :data="classcurriculmn" :columns="columns" :total="total" v-model:current-page="page"
+    v-model:page-size="pageSize" @page-change="fetchClassCurriculum">
     <template #programme_name="{ row }">
       <el-text tag="b" style="color: crimson">
         {{ row.programme_name }}
@@ -585,12 +577,7 @@ onMounted(() => {
     <!-- `row` here is the parent class curriculum row -->
     <template #expand="{ row }">
       <el-divider content-position="left">លំអិត</el-divider>
-      <TableCustom
-        expandable
-        :data="row.class_curriculum_detais"
-        :columns="columndetails"
-        :show-pagination="false"
-      >
+      <TableCustom expandable :data="row.class_curriculum_detais" :columns="columndetails" :show-pagination="false">
         <template #type_class="{ row }">
           <el-text>
             {{ row.type_class === 'onclass' ? 'រៀនថ្នាក់ផ្ទាល់' : 'រៀនOnline' }}
@@ -599,197 +586,141 @@ onMounted(() => {
         <!-- rename inner scope's `row` to `detailRow` so it doesn't shadow the outer curriculum `row` -->
         <template #actions="{ row: detailRow }">
           <AppButton @click="openClassOfferingDialog(detailRow, row)"> ថែមមុខវិជ្ជា </AppButton>
-         </template>
-        <template #expand="{  row: detailRow }">
+        </template>
+        <template #expand="{ row: detailRow }">
           <el-divider content-position="left">
-           <el-text tag="b" style="color: darkcyan;">
-             មុខវិជ្ជាត្រូវសិក្សា
-           </el-text>
+            <el-text tag="b" style="color: darkcyan;">
+              មុខវិជ្ជាត្រូវសិក្សា
+            </el-text>
           </el-divider>
-          <TableCustom
-            expandable
-            :data="detailRow.class_offering"
-            :columns="columnclass_offering"
-            :show-pagination="false"
-            actions-width="200px"
-          >
-          <template #credit="{row}">
-            <el-text tag="b" style="color: crimson;">
-              {{ row.credit }}
-            </el-text>
-          </template>
-          <template #passing_score="{row}">
-            <el-text tag="b" style="color: crimson;">
-              {{ row.passing_score }}
-            </el-text>
-          </template>
-          <template #total_hour="{row}">
-            <el-text tag="b" style="color: black;">
-              {{ row.total_hour }} ម៉ោង
-            </el-text>
-          </template>
-          <template #subject_name="{row}">
-            <el-text tag="b" style="color: black;">
-              {{ row.subject_name }}
-            </el-text>
-          </template>
-          <template #total_attendance_for_rexam="{row}">
-            <el-text tag="b" style="color: crimson;">
-              {{ row.total_attendance_for_rexam }}
-            </el-text>
-          </template>
-          <template #total_attendance_for_relearn="{row}">
-            <el-text tag="b" style="color: crimson;">
-              {{ row.total_attendance_for_relearn }}
-            </el-text>
-          </template>
-    <template #actions="{row: class_offering}">
-      <AppButton
-      size="small"
-        type="success"
-        @click="openClassRegistrationDialog(detailRow, row, class_offering)"
-      >
-        បញ្ចូលគ្រូ
-      </AppButton>
-      <AppButton
-      size="small"
-        type="primary"
-      >
-        កាលវិភាគ
-      </AppButton>
-    </template>
-<template #expand="{ row: offeringRow }">
-  <el-divider content-position="left">
-    <el-text tag="b" style="color: darkcyan;">សិស្សសរុបកំពុងសិក្សា {{ offeringRow.student.length }} នាក់</el-text>
-  </el-divider>
-  <TableCustom
-    expandable
-    :data="offeringRow.student"
-    :columns="studentcolumns"
-    :show-pagination="false"
-  >
-  <template #gender="{row}">
-    <el-text>
-      {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
-    </el-text>
-  </template>
+          <TableCustom expandable :data="detailRow.class_offering" :columns="columnclass_offering"
+            :show-pagination="false" actions-width="200px">
+            <template #hourly_rate="{row}">
+              <el-text tag="b" style="color: crimson;">
+                {{ row.hourly_rate }} $
+              </el-text>
+            </template>
+            <template #teacher_name="{row}">
+              <el-text>
+                {{ row.teacher_name }} ({{ row.teacher_gender }})
+              </el-text>
+            </template>
+            <template #credit="{ row }">
+              <el-text tag="b" style="color: crimson;">
+                {{ row.credit }}
+              </el-text>
+            </template>
+            <template #passing_score="{ row }">
+              <el-text tag="b" style="color: crimson;">
+                {{ row.passing_score }}
+              </el-text>
+            </template>
+            <template #total_hour="{ row }">
+              <el-text tag="b" style="color: black;">
+                {{ row.total_hour }} ម៉ោង
+              </el-text>
+            </template>
+            <template #subject_name="{ row }">
+              <el-text tag="b" style="color: black;">
+                {{ row.subject_name }}
+              </el-text>
+            </template>
+            <template #total_attendance_for_rexam="{ row }">
+              <el-text tag="b" style="color: crimson;">
+                {{ row.total_attendance_for_rexam }}
+              </el-text>
+            </template>
+            <template #total_attendance_for_relearn="{ row }">
+              <el-text tag="b" style="color: crimson;">
+                {{ row.total_attendance_for_relearn }}
+              </el-text>
+            </template>
+            <template #actions="{ row: class_offering }">
+              <AppButton size="small" type="success"
+                @click="openTeacherRateDialog(detailRow, row, class_offering)">
+                បញ្ចូលគ្រូ
+              </AppButton>
+              <AppButton size="small" type="primary">
+                កាលវិភាគ
+              </AppButton>
+            </template>
+            <template #expand="{ row: offeringRow }">
+              <el-divider content-position="left">
+                <el-text tag="b" style="color: darkcyan;">សិស្សសរុបកំពុងសិក្សា {{ offeringRow.student.length }}
+                  នាក់</el-text>
+              </el-divider>
+              <TableCustom expandable :data="offeringRow.student" :columns="studentcolumns" :show-pagination="false">
+                <template #gender="{ row }">
+                  <el-text>
+                    {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+                  </el-text>
+                </template>
 
-</TableCustom>
-</template>
-    
+              </TableCustom>
+            </template>function emptyDetailRow() {
+  return {
+    semester_id: null,
+    study_year_id: null,
+    academic_shift_id: null,
+    midterm_date: '',
+    final_date: '',
+    type_class: '',
+  }
+}
+
           </TableCustom>
         </template>
-       
+
       </TableCustom>
-      
+
     </template>
   </TableCustom>
 
-  <AppDialog
-    v-if="dialogVisible"
-    v-model:visible="dialogVisible"
-    :title="isEditMode ? 'កែប្រែព័ត៌មានកម្មវិធីសិក្សា' : 'បង្កើតកម្មវិធីសិក្សាថ្មី'"
-    :showDefaultFooter="false"
-    width="60%"
-    @close="closeDialog"
-  >
-    <AppForm
-      ref="formRef"
-      :model="form"
-      :rules="rules"
-      :loading="submitting"
-      :show-actions="true"
-      @submit="handleSubmit"
-      submitText="រក្សាទុក"
-      resetText="ចាកចេញ"
-    >
+  <AppDialog v-if="dialogVisible" v-model:visible="dialogVisible"
+    :title="isEditMode ? 'កែប្រែព័ត៌មានកម្មវិធីសិក្សា' : 'បង្កើតកម្មវិធីសិក្សាថ្មី'" :showDefaultFooter="false"
+    width="60%" @close="closeDialog">
+    <AppForm ref="formRef" :model="form" :rules="rules" :loading="submitting" :show-actions="true"
+      @submit="handleSubmit" submitText="រក្សាទុក" resetText="ចាកចេញ">
       <el-row :gutter="20">
         <el-col :span="12">
-          <AppInput
-            v-model="form.name"
-            placeholder="បញ្ចូលឈ្មោះកម្មវិធីសិក្សា"
-            clearable
-            prop="name"
-            label="ឈ្មោះកម្មវិធីសិក្សា"
-          />
+          <AppInput v-model="form.name" placeholder="បញ្ចូលឈ្មោះកម្មវិធីសិក្សា" clearable prop="name"
+            label="ឈ្មោះកម្មវិធីសិក្សា" />
         </el-col>
       </el-row>
 
       <!-- cascading select: Academic -> Generation -> Term -->
       <el-row :gutter="20">
         <el-col :span="8">
-          <AppSelect
-            v-model="formAcademicId"
-            :options="academicOptions"
-            placeholder="ជ្រើសរើសឆ្នាំសិក្សា"
-            clearable
-            label="ឆ្នាំសិក្សា"
-          />
+          <AppSelect v-model="formAcademicId" :options="academicOptions" placeholder="ជ្រើសរើសឆ្នាំសិក្សា" clearable
+            label="ឆ្នាំសិក្សា" />
         </el-col>
         <el-col :span="8">
-          <AppSelect
-            v-model="formGenerationId"
-            :options="generationOptions"
-            placeholder="ជ្រើសរើសជំនាន់"
-            clearable
-            label="ជំនាន់"
-            :disabled="!formAcademicId"
-          />
+          <AppSelect v-model="formGenerationId" :options="generationOptions" placeholder="ជ្រើសរើសជំនាន់" clearable
+            label="ជំនាន់" :disabled="!formAcademicId" />
         </el-col>
         <el-col :span="8">
-          <AppSelect
-            v-model="form.term_id"
-            :options="termOptions"
-            placeholder="ជ្រើសរើសវគ្គ"
-            clearable
-            prop="term_id"
-            label="វគ្គ"
-            :disabled="!formGenerationId"
-          />
+          <AppSelect v-model="form.term_id" :options="termOptions" placeholder="ជ្រើសរើសវគ្គ" clearable prop="term_id"
+            label="វគ្គ" :disabled="!formGenerationId" />
         </el-col>
       </el-row>
 
       <!-- cascading select down to major -->
       <el-row :gutter="20">
         <el-col :span="6">
-          <AppSelect
-            v-model="formProgramID"
-            :options="programmesOptions"
-            placeholder="ជ្រើសរើសកម្មវិធីសិក្សា"
-            clearable
-            label="កម្មវិធីសិក្សា"
-          />
+          <AppSelect v-model="formProgramID" :options="programmesOptions" placeholder="ជ្រើសរើសកម្មវិធីសិក្សា" clearable
+            label="កម្មវិធីសិក្សា" />
         </el-col>
         <el-col :span="6">
-          <AppSelect
-            v-model="formFacultyID"
-            :options="formFacultyOptions"
-            placeholder="ជ្រើសរើសមហាវិទ្យាល័យ"
-            clearable
-            label="មហាវិទ្យាល័យ"
-            :disabled="!formProgramID"
-          />
+          <AppSelect v-model="formFacultyID" :options="formFacultyOptions" placeholder="ជ្រើសរើសមហាវិទ្យាល័យ" clearable
+            label="មហាវិទ្យាល័យ" :disabled="!formProgramID" />
         </el-col>
         <el-col :span="6">
-          <AppSelect
-            v-model="formDepartmentID"
-            :options="formDepartmentOptions"
-            placeholder="ជ្រើសរើសដេប៉ាតឺម៉ង់"
-            clearable
-            label="ដេប៉ាតឺម៉ង់"
-            :disabled="!formFacultyID"
-          />
+          <AppSelect v-model="formDepartmentID" :options="formDepartmentOptions" placeholder="ជ្រើសរើសដេប៉ាតឺម៉ង់"
+            clearable label="ដេប៉ាតឺម៉ង់" :disabled="!formFacultyID" />
         </el-col>
         <el-col :span="6">
-          <AppSelect
-            v-model="form.major_id"
-            :options="formMajorOptions"
-            placeholder="ជ្រើសរើសជំនាញ"
-            clearable
-            prop="major_id"
-            label="ជំនាញ"
-            :disabled="!formDepartmentID"
-          />
+          <AppSelect v-model="form.major_id" :options="formMajorOptions" placeholder="ជ្រើសរើសជំនាញ" clearable
+            prop="major_id" label="ជំនាញ" :disabled="!formDepartmentID" />
         </el-col>
       </el-row>
 
@@ -797,84 +728,43 @@ onMounted(() => {
       <div class="detail-section">
         <div class="detail-header">
           <el-text tag="b">ព័ត៌មានលម្អិត (ឆមាស / ឆ្នាំសិក្សា / វេន)</el-text>
-          <AppButton type="default" icon="Plus" size="small" @click="addDetailRow"
-            >ថែមជួរ</AppButton
-          >
+          <AppButton type="default" icon="Plus" size="small" @click="addDetailRow">ថែមជួរ</AppButton>
         </div>
 
         <div v-for="(row, index) in form.class_curriclumn_details" :key="index" class="detail-row">
           <div class="detail-row-header">
             <el-text tag="b" type="info">ឆមាសទី {{ index + 1 }}</el-text>
-            <AppButton
-              icon="Delete"
-              circle
-              size="small"
-              type="default"
-              plain
-              :disabled="form.class_curriclumn_details.length <= 1"
-              @click="removeDetailRow(index)"
-            />
+            <AppButton icon="Delete" circle size="small" type="default" plain
+              :disabled="form.class_curriclumn_details.length <= 1" @click="removeDetailRow(index)" />
           </div>
 
           <el-row :gutter="20">
             <el-col :span="8">
-              <AppSelect
-                v-model="row.study_year_id"
-                :options="studyyearOption"
-                placeholder="ជ្រើសរើសឆ្នាំសិក្សា"
-                clearable
-                label="ឆ្នាំសិក្សា"
-              />
+              <AppSelect v-model="row.study_year_id" :options="studyyearOption" placeholder="ជ្រើសរើសឆ្នាំសិក្សា"
+                clearable label="ឆ្នាំសិក្សា" />
             </el-col>
             <el-col :span="8">
-              <AppSelect
-                v-model="row.semester_id"
-                :options="semesterOptions"
-                placeholder="ជ្រើសរើសឆមាស"
-                clearable
-                label="ឆមាស"
-                :disabled="!formAcademicId"
-              />
+              <AppSelect v-model="row.semester_id" :options="semesterOptions" placeholder="ជ្រើសរើសឆមាស" clearable
+                label="ឆមាស" :disabled="!formAcademicId" />
             </el-col>
             <el-col :span="8">
-              <AppSelect
-                v-model="row.academic_shift_id"
-                :options="academicShiftOptions"
-                placeholder="ជ្រើសរើសវេន"
-                clearable
-                label="វេន"
-                :disabled="!formAcademicId"
-              />
+              <AppSelect v-model="row.academic_shift_id" :options="academicShiftOptions" placeholder="ជ្រើសរើសវេន"
+                clearable label="វេន" :disabled="!formAcademicId" />
             </el-col>
           </el-row>
 
           <el-row :gutter="20">
             <el-col :span="8">
-              <AppInput
-                v-model="row.midterm_date"
-                type="date"
-                placeholder="ថ្ងៃប្រឡង Midterm"
-                clearable
-                label="ថ្ងៃប្រឡង Midterm"
-              />
+              <AppInput v-model="row.midterm_date" type="date" placeholder="ថ្ងៃប្រឡង Midterm" clearable
+                label="ថ្ងៃប្រឡង Midterm" />
             </el-col>
             <el-col :span="8">
-              <AppInput
-                v-model="row.final_date"
-                type="date"
-                placeholder="ថ្ងៃប្រឡង Final"
-                clearable
-                label="ថ្ងៃប្រឡង Final"
-              />
+              <AppInput v-model="row.final_date" type="date" placeholder="ថ្ងៃប្រឡង Final" clearable
+                label="ថ្ងៃប្រឡង Final" />
             </el-col>
             <el-col :span="8">
-              <AppSelect
-                v-model="row.type_class"
-                :options="typeClassOptions"
-                placeholder="ជ្រើសរើសប្រភេទថ្នាក់"
-                clearable
-                label="ប្រភេទថ្នាក់"
-              />
+              <AppSelect v-model="row.type_class" :options="typeClassOptions" placeholder="ជ្រើសរើសប្រភេទថ្នាក់"
+                clearable label="ប្រភេទថ្នាក់" />
             </el-col>
           </el-row>
         </div>
@@ -883,21 +773,10 @@ onMounted(() => {
   </AppDialog>
 
   <!-- Class Offering dialog -->
-  <AppDialog
-    v-if="createclassofferingvisible"
-    v-model:visible="createclassofferingvisible"
-    title="បញ្ចូលមុខវិជ្ជាទៅថ្នាក់រៀន"
-    :showDefaultFooter="false"
-    width="720px"
-    @close="closeClassOfferingDialog"
-  >
-    <AppForm
-      :model="classofferingform"
-      :loading="submittingOffering"
-      :show-actions="true"
-      @submit="submitClassOffering"
-      submitText="បញ្ជូល"
-    >
+  <AppDialog v-if="createclassofferingvisible" v-model:visible="createclassofferingvisible"
+    title="បញ្ចូលមុខវិជ្ជាទៅថ្នាក់រៀន" :showDefaultFooter="false" width="720px" @close="closeClassOfferingDialog">
+    <AppForm :model="classofferingform" :loading="submittingOffering" :show-actions="true" @submit="submitClassOffering"
+      submitText="បញ្ជូល">
       <div class="section-header">
         <el-text tag="b">បញ្ចូលមុខវិជ្ជា</el-text>
         <AppButton type="warning" plain icon="Plus" size="small" @click="newClassOffering">
@@ -905,23 +784,13 @@ onMounted(() => {
         </AppButton>
       </div>
 
-      <el-card
-        v-for="(classf, index) in classofferingform.class_offering"
-        :key="index"
-        :gutter="16"
-        style="margin-bottom: 12px"
-      >
+      <el-card v-for="(classf, index) in classofferingform.class_offering" :key="index" :gutter="16"
+        style="margin-bottom: 12px">
         <template #header>
           <div class="section-header">
             <span>មុខវិជ្ជាទី -{{ index + 1 }}</span>
-            <AppButton
-              type="danger"
-              icon="Delete"
-              size="small"
-              plain
-              :disabled="classofferingform.class_offering.length <= 1"
-              @click="removeClassOfferingRow(index)"
-            >
+            <AppButton type="danger" icon="Delete" size="small" plain
+              :disabled="classofferingform.class_offering.length <= 1" @click="removeClassOfferingRow(index)">
               លុប
             </AppButton>
           </div>
@@ -929,64 +798,34 @@ onMounted(() => {
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppSelect
-              v-model="classf.subject_id"
-              :options="subjectoptions"
-              placeholder="មុខវិជ្ជា"
-              label="មុខវិជ្ជា"
-              clearable
-            />
+            <AppSelect v-model="classf.subject_id" :options="subjectoptions" placeholder="មុខវិជ្ជា" label="មុខវិជ្ជា"
+              clearable />
           </el-col>
           <el-col :span="12">
-            <AppInput
-              v-model.number="classf.credit"
-              placeholder="បញ្ចូលក្រេឌីត"
-              type="number"
-              clearable
-              label="បញ្ចូលក្រេឌីត"
-            />
+            <AppInput v-model.number="classf.credit" placeholder="បញ្ចូលក្រេឌីត" type="number" clearable
+              label="បញ្ចូលក្រេឌីត" />
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppInput
-              v-model.number="classf.passing_score"
-              placeholder="បញ្ចូលពន្ទុជាប់"
-              type="number"
-              clearable
-              label="បញ្ចូលពន្ទុជាប់"
-            />
+            <AppInput v-model.number="classf.passing_score" placeholder="បញ្ចូលពន្ទុជាប់" type="number" clearable
+              label="បញ្ចូលពន្ទុជាប់" />
           </el-col>
           <el-col :span="12">
-            <AppInput
-              v-model.number="classf.total_hour"
-              placeholder="បញ្ចូលចំនួនម៉ោងត្រូវរៀន"
-              type="number"
-              clearable
-              label="បញ្ចូលចំនួនម៉ោងត្រូវរៀន"
-            />
+            <AppInput v-model.number="classf.total_hour" placeholder="បញ្ចូលចំនួនម៉ោងត្រូវរៀន" type="number" clearable
+              label="បញ្ចូលចំនួនម៉ោងត្រូវរៀន" />
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppInput
-              v-model.number="classf.total_attendance_for_relearn"
-              placeholder="បញ្ចូលចំនួនអវត្តមានត្រូវរៀនសង"
-              type="number"
-              clearable
-              label="បញ្ចូលចំនួនអវត្តមានត្រូវរៀនសង"
-            />
+            <AppInput v-model.number="classf.total_attendance_for_relearn" placeholder="បញ្ចូលចំនួនអវត្តមានត្រូវរៀនសង"
+              type="number" clearable label="បញ្ចូលចំនួនអវត្តមានត្រូវរៀនសង" />
           </el-col>
           <el-col :span="12">
-            <AppInput
-              v-model.number="classf.total_attendance_for_rexam"
-              placeholder="បញ្ចូលចំនួនវត្តមានត្រូវប្រឡងសង"
-              type="number"
-              clearable
-              label="បញ្ចូលចំនួនវត្តមានត្រូវប្រឡងសង"
-            />
+            <AppInput v-model.number="classf.total_attendance_for_rexam" placeholder="បញ្ចូលចំនួនវត្តមានត្រូវប្រឡងសង"
+              type="number" clearable label="បញ្ចូលចំនួនវត្តមានត្រូវប្រឡងសង" />
           </el-col>
         </el-row>
 
@@ -994,35 +833,29 @@ onMounted(() => {
       </el-card>
     </AppForm>
   </AppDialog>
-  <AppDialog
-    v-if="createclassregistrationvisible"
-    v-model:visible="createclassregistrationvisible"
-    title="បញ្ចូលសិស្ស"
-    :showDefaultFooter="false"
-    width="75%"
-    @close="closeClassRegistrationDialog"
-  >
-    <AppForm
-      :show-actions="true"
-      @submit="submitcourseregistration"
-      submitText="រក្សាទុក"
-      resetText="ចាកចេញ"   
-    >
-        <TableCustom
-  expandable
+  <AppDialog v-if="createclassregistrationvisible" v-model:visible="createclassregistrationvisible" title="បញ្ចូលសិស្ស"
+    :showDefaultFooter="false" width="55%" @close="closeTeacherRateDialog">
+    <AppForm :show-actions="true" @submit="submitteacherrate" submitText="រក្សាទុក" resetText="ចាកចេញ">
 
-  selectable
-        :data="studentterms"
-        :columns="columnclass_registration"
-        :show-pagination="false"
-   @selection-change="selectedRows = $event"
-  >
+      <el-row :gutter="20">
+        <el-col :span="8">
+          <AppSelect v-model="teacherrateform.teacher_id" :options="studentterms" placeholder="រេីសគ្រូ" label="រេីសគ្រូ" clearable />
+        </el-col>
 
-  <template #expand="{  }">
-    
-  </template>
- 
-  </TableCustom>
+        <el-col :span="8">
+          <AppInput v-model.number="teacherrateform.hourly_rate" placeholder="តម្លៃម៉ោងគ្រូ" label="តម្លៃម៉ោងគ្រូ" clearable type="number" />
+        </el-col>
+
+
+        <el-col :span="8">
+          <el-form-item label="ថ្ងៃមានប្រសិទ្ធភាព" prop="date_of_birth">
+            <el-date-picker v-model="teacherrateform.effective_date" type="date" value-format="YYYY-MM-DD" placeholder="ថ្ងៃមានប្រសិទ្ធភាព"
+              style="width: 100%" />
+          </el-form-item>
+        </el-col>
+
+      </el-row>
+
     </AppForm>
   </AppDialog>
 

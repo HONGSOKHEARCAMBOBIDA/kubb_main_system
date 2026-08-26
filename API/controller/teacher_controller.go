@@ -23,6 +23,24 @@ func NewTeacherController() TeacherController {
 	}
 }
 
+func (cr *TeacherController) CreateTeacherRate(c *gin.Context) {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
+		return
+	}
+	var input request.TeacherRateRequestCreate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CreateTeacherRate(c.Request.Context(), input, userID); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
 func (cr *TeacherController) CreateTeacher(c *gin.Context) {
 	var input request.TeacherRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {

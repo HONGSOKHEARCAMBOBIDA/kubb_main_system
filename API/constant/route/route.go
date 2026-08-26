@@ -184,6 +184,7 @@ const (
 	// Teacher
 
 	TeacherCreate     = "teacher.create"
+	TeacherRateCreate = "teacher.rate.create"
 	TeacherView       = "teacher.view"
 	TeacherViewFilter = "teacher.view.filter"
 	TeacherUpdate     = "teacher.update/:uuid"

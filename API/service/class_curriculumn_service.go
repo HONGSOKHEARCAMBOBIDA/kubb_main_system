@@ -450,6 +450,10 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 		return nil, nil, fmt.Errorf("fetch class curriculum detail: %w", err)
 	}
 
+	for i := range classoffer {
+		classoffer[i].EffectiveDate = helper.FormatDate(classoffer[i].EffectiveDate)
+	}
+
 	offerIDs := make([]int, 0, len(classoffer))
 	for _, o := range classoffer {
 		offerIDs = append(offerIDs, o.ID)

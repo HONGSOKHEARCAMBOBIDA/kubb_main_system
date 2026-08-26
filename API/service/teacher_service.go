@@ -26,6 +26,7 @@ type TeacherService interface {
 	UpdateTeacher(ctx context.Context, uuid string, input request.TeacherRequestUpdate) error
 	Toggle(ctx context.Context, uuid string) error
 	GetTeacherFilter(ctx context.Context, filter map[string]string) ([]response.TeacherResponseFilter, error)
+	CreateTeacherRate(ctx context.Context, input request.TeacherRateRequestCreate, userID int) error
 }
 
 type teacherservice struct {
@@ -36,6 +37,31 @@ func NewTeacherService() TeacherService {
 	return &teacherservice{
 		db: config.DB,
 	}
+}
+
+func (s *teacherservice) CreateTeacherRate(ctx context.Context, input request.TeacherRateRequestCreate, userID int) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	newdata := model.TeacherRate{
+		UUIDBase: base.UUIDBase{
+			UUID: helper.GenerateUUID(),
+		},
+		TeacherID:       input.TeacherID,
+		ClassOfferingID: input.ClassOfferingID,
+		HourlyRate:      input.HourlyRate,
+		EffectiveDate:   input.EffectiveDate,
+		EndDate:         nil,
+		Active:          true,
+		CreateBy:        userID,
+	}
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&newdata).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to create teacher rate", nil)
+		}
+		return nil
+	})
+	return err
 }
 
 func (s *teacherservice) CreateTeacher(ctx context.Context, input request.TeacherRequestCreate) error {
