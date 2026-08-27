@@ -29,6 +29,7 @@ import { getTeacherFilter } from '../../services/teacher.service.js'
 import { createTeacherRate } from '../../services/teacher.service.js'
 import { ScheduleCreate,ScheduleUpdate } from '../../services/schedule.serivce.js'
 import { getSchoolRooms } from '../../services/school_room.service.js'
+import { getcourseregistration } from '../../services/course_registration.service.js'
 const schoolRooms = ref([])
 const notify = useNotification()
 const classcurriculmn = ref([])
@@ -60,15 +61,7 @@ const schedulecolumn = [
     { prop: 'verify_by', label: 'បានផ្ទៀងផ្ទាត់ដោយ', minwidth: 120 },
 ]
 
-const studentcolumns = [
-  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 },
-  { prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 },
-  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 },
-  { prop: 'gender', slot: 'gender', label: 'ភេទ', minwidth: 120 },
-  { prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 120 },
-  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
-  { prop: 'occupation', label: 'មុខរបរ', minwidth: 120 },
-]
+
 
 const columns = [
   { prop: 'name', label: 'ឈ្មោះថ្នាក់', minwidth: 120 },
@@ -193,7 +186,7 @@ async function submitClassOffering() {
 
 // class registration start
 const createclassregistrationvisible = ref(false)
-const selectedRows = ref([]);
+
 const studentterms = ref([])
 const selectedClassOffering = ref(null)
 
@@ -240,6 +233,54 @@ async function fetchTeacher(filters) {
     return []
   }
 }
+
+
+// attendance
+const createattendancevisible = ref(false)
+const selectedRows = ref([]);
+const student = ref([])
+const selectscheduleforattendance = ref(null)
+
+const studentcolumns = [
+  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 },
+  { prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 },
+  { prop: 'gender', slot: 'gender', label: 'ភេទ', minwidth: 120 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
+  {slot:'present', label:'ប្រភេទ',minwidth: 120}
+]
+
+async function fetchCoureRegistration(filters) {
+    try {
+        const params = {}
+
+        if (filters.class_offering_id) {
+            params.class_offering_id = filters.class_offering_id
+        }
+
+        const res = await getcourseregistration(params)
+
+        return res.data.data || []
+    } catch (e) {
+        notify.error(
+            e?.response?.data?.message ||
+            e.message ||
+            'Failed to load students'
+        )
+
+        return []
+    }
+}
+
+async function openAttendanceDialog(row) {
+  student.value = await fetchCoureRegistration({
+    class_offering_id: row.class_offering_id
+  })
+  createattendancevisible.value = true
+}
+
+
+// attendance
 
 const updateschedulevisible = ref(false)
 const schedulestatusOption = [
@@ -351,7 +392,6 @@ async function openTeacherRateDialog(
   classregistrationfilters.faculty_id = curriculumRow.faculty_id
 
   selectedClassOffering.value = class_offering
-  selectedRows.value = []
 
   studentterms.value = await fetchTeacher(
     classregistrationfilters
@@ -378,7 +418,6 @@ async function submitteacherrate() {
 
     notify.success('បញ្ចូលគ្រូបានជោគជ័យ')
 
-    selectedRows.value = []
     closeTeacherRateDialog()
     fetchClassCurriculum()
   } catch (e) {
@@ -444,6 +483,13 @@ const generationOptions = ref([])
 const termOptions = ref([])
 const semesterOptions = ref([])
 const academicShiftOptions = ref([])
+
+const attendanceStatusOption = [
+  { label: 'មករៀន', value: "present" },
+   { label: 'អត់មករៀន', value: "absent" },
+    { label: 'មកយឺត', value: "late" },
+    { label: 'មានច្បាប់', value: "excused" },
+]
 
 const studyyearOption = [
   { label: 'ឆ្នាំទី1', value: 1 },
@@ -773,7 +819,10 @@ onMounted(() => {
                 <el-text tag="b" style="color: darkcyan;">ចំនួនជេីងបានមកបង្រៀន {{ offeringRow.scheduel.length }} ដង
                   </el-text>
               </el-divider>
-              <TableCustom expandable :data="offeringRow.scheduel" :columns="schedulecolumn" :show-pagination="false">
+              <TableCustom 
+              expandable :data="offeringRow.scheduel" :columns="schedulecolumn" :show-pagination="false"
+              actions-width="220px"
+              >
              <template #status="{ row }">
   <el-text>
     {{
@@ -799,6 +848,9 @@ onMounted(() => {
 <template #actions="{ row }">
   <AppButton type="primary" size="small" @click="openScheduleUpdateDialog(row)">
     ផ្ទៀងផ្ទាត់
+  </AppButton>
+    <AppButton type="primary" size="small" @click="openAttendanceDialog(row)">
+    បញ្ចូលវត្តមាន
   </AppButton>
 </template>
 
@@ -1064,6 +1116,56 @@ onMounted(() => {
   </el-row>
 </el-card>
   </AppForm>
+  </AppDialog>
+
+  <AppDialog
+    v-if="createattendancevisible"
+    v-model:visible="createattendancevisible"
+    title="វត្តមានសិស្ស"
+    :showDefaultFooter="false"
+    width="70%"
+   
+  >
+    <AppForm
+      :show-actions="true"
+      
+      submitText="រក្សាទុក"
+      resetText="ចាកចេញ"   
+    >
+        <TableCustom
+
+  selectable
+        :data="student"
+        :columns="studentcolumns"
+        :show-pagination="false"
+   @selection-change="selectedRows = $event"
+  >
+  <template #student_name_kh="{row}">
+    <div>
+      <el-text tag="b" style="color: black;">
+        {{ row.student_name_kh }}
+      </el-text>
+    </div>
+    <div>
+      <el-text type="primary">
+        {{ row.student_name_en }}
+      </el-text>
+    </div>
+  </template>
+  <template #gender="{row}">
+    <el-text style="color: black;">
+      {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+    </el-text>
+  </template>
+
+  <template #present="{row}">
+  <AppSelect  :options="attendanceStatusOption" placeholder="" clearable
+         />
+  </template>
+
+
+  </TableCustom>
+    </AppForm>
   </AppDialog>
 
 </template>

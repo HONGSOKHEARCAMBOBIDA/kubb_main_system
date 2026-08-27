@@ -29,6 +29,7 @@ type StudentService interface {
 	CreateStudent(ctx context.Context, input request.StudentRequestCreate) error
 	GetStudent(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.StudentResponse, *model.PaginationMetadata, error)
 	UpdateStudent(ctx context.Context, studentID int, input request.StudentRequestUpdate, id int) error
+	GetCourseRegistration(ctx context.Context, filter map[string]string) ([]response.CourseRegistrationResponse, error)
 }
 
 type studentService struct {
@@ -586,4 +587,39 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 	}
 
 	return data, helper.BuildPaginationMeta(pf, total), nil
+}
+
+func (s *studentService) GetCourseRegistration(ctx context.Context, filter map[string]string) ([]response.CourseRegistrationResponse, error) {
+	var data []response.CourseRegistrationResponse
+
+	query := s.db.WithContext(ctx).
+		Table("course_registrations cr").
+		Joins("LEFT JOIN student_terms st ON st.id = cr.student_term_id").
+		Joins("LEFT JOIN enrollments e ON e.id = st.enrollment_id").
+		Joins("LEFT JOIN admissions a ON a.id = e.admission_id").
+		Joins("LEFT JOIN students s ON s.id = a.student_id")
+
+	if v, ok := filter["class_offering_id"]; ok && v != "" {
+		query = query.Where("cr.class_offering_id = ?", v)
+	}
+
+	err := query.Select(`
+			cr.id AS id,
+			cr.uuid AS uuid,
+			s.name_kh AS name_kh,
+			s.name_en AS name_en,
+			s.date_of_birth AS date_of_birth,
+			s.gender AS gender,
+			s.phone AS phone
+		`).
+		Order("s.id DESC").
+		Scan(&data).Error
+	if err != nil {
+		return nil, fmt.Errorf("query course registrations: %w", err)
+	}
+	for i := range data {
+		data[i].Dob = helper.FormatDate(data[i].Dob)
+	}
+
+	return data, nil
 }

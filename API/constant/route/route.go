@@ -180,6 +180,7 @@ const (
 
 	// CourseRegistration
 	CourseRegistrationCreate = "course.registration.create"
+	CourseRegistrationView   = "course.registration.view"
 
 	// Teacher
 

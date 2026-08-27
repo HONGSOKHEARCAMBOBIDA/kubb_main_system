@@ -40,6 +40,25 @@ func (cr *StudentController) CreateStudent(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
 }
 
+func (cr *StudentController) GetCourseRegistration(c *gin.Context) {
+	filter := map[string]string{
+		"class_offering_id": c.Query("class_offering_id"),
+	}
+	data, err := cr.service.GetCourseRegistration(c, filter)
+
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(err, context.Canceled) {
+			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
+			return
+		}
+
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *StudentController) GetStudent(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 
