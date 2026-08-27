@@ -32,6 +32,7 @@ type ClassOfferingResponseWithTeacherRate struct {
 	Credit                    int                       `json:"credit" gorm:"column:credit"`
 	PassingScore              float64                   `json:"passing_score" gorm:"column:passing_score"`
 	TotalHour                 float64                   `json:"total_hour" gorm:"column:total_hour"`
+	RemainingHour             float64                   `json:"remaining_hour" gorm:"column:remaining_hour"`
 	Status                    model.StatusClassOffering `json:"status"`
 	TotalAttendanceForRexam   float64                   `json:"total_attendance_for_rexam" gorm:"column:total_attendance_for_rexam"`
 	TotalAttendanceForRelearn float64                   `json:"total_attendance_for_relearn" gorm:"column:total_attendance_for_relearn"`

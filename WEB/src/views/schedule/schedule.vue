@@ -27,7 +27,7 @@ import { studentTermGet } from '../../services/studentterm.service.js'
 import { createcourseregistration } from '../../services/course_registration.service.js'
 import { getTeacherFilter } from '../../services/teacher.service.js'
 import { createTeacherRate } from '../../services/teacher.service.js'
-import { ScheduleCreate } from '../../services/schedule.serivce.js'
+import { ScheduleCreate,ScheduleUpdate } from '../../services/schedule.serivce.js'
 import { getSchoolRooms } from '../../services/school_room.service.js'
 const schoolRooms = ref([])
 const notify = useNotification()
@@ -54,9 +54,10 @@ const schedulecolumn = [
   { prop: 'schedule_date', label: 'ថ្ងៃត្រូវបង្រៀន', minwidth: 120 },
   { prop: 'start_time', label: 'ម៉ោងចាប់ផ្ដើម', minwidth: 120 },
   { prop: 'end_time', label: 'ម៉ោងបញ្ចប់', minwidth: 120 },
-   { prop: 'total_teach_hours', label: 'ម៉ោងសរុបត្រូវបង្រៀន', minwidth: 120 },
-   { prop: 'room_name', label: 'បន្ទប់ត្រូវបង្រៀន', minwidth: 120 },
+   { prop: 'total_teach_hours',slot:'total_teach_hours', label: 'ម៉ោងសរុបត្រូវបង្រៀន', minwidth: 120 },
+   { prop: 'room_name',slot:'room_name', label: 'បន្ទប់ត្រូវបង្រៀន', minwidth: 120 },
    { prop: 'status',slot:'status', label: 'ស្ថានភាព', minwidth: 120 },
+    { prop: 'verify_by', label: 'បានផ្ទៀងផ្ទាត់ដោយ', minwidth: 120 },
 ]
 
 const studentcolumns = [
@@ -101,7 +102,7 @@ const columnclass_offering = [
   { prop: 'credit', slot: 'credit', label: 'ក្រេឌីត', minwidth: 90 },
   { prop: 'passing_score', slot: 'passing_score', label: 'ពិន្ទុជាប់', minwidth: 90 },
   { prop: 'total_hour', slot: 'total_hour', label: 'ម៉ោងសរុប', minwidth: 90 },
-  { prop: 'total_hour', slot: 'total_hour', label: 'ម៉ោងនៅសល់', minwidth: 140 },
+  { prop: 'remaining_hour', slot: 'remaining_hour', label: 'ម៉ោងនៅសល់', minwidth: 140 },
   { prop: 'status', label: 'ស្ថានភាព', minwidth: 90 },
   { prop: 'teacher_name', slot: 'teacher_name', label: 'គ្រូបង្រៀន', minwidth: 170 },
   { prop: 'hourly_rate', slot: 'hourly_rate', label: 'តម្លៃម៉ោងគ្រូ', minwidth: 90 },
@@ -239,6 +240,47 @@ async function fetchTeacher(filters) {
     return []
   }
 }
+
+const updateschedulevisible = ref(false)
+const schedulestatusOption = [
+  { label: 'កំពុងបង្រៀន', value: 'active' },
+  { label: 'បានលុបចេញ', value: 'cancelled' },
+  { label: 'បានបង្រៀន', value: 'completed' },
+]
+const selectschedule = ref(null)
+async function openScheduleUpdateDialog(row) {
+  selectschedule.value = row
+  scheduelUpdateForm.total_teach_hours = row.total_teach_hours
+  scheduelUpdateForm.status = row.status
+  updateschedulevisible.value = true
+}
+function closescheduleupdatedialog() {
+  updateschedulevisible.value = false
+  selectschedule.value = null
+  
+}
+
+
+async function updateschedule() {
+  submitting.value = true // optional loading flag
+  try {
+    const payload = {
+      total_teach_hours: scheduelUpdateForm.total_teach_hours,
+      status: scheduelUpdateForm.status,
+    }
+    await ScheduleUpdate(selectschedule.value.uuid, payload) 
+    notify.success('បញ្ចូលកាលវិភាគបានជោគជ័យ')
+    closescheduleupdatedialog()
+    fetchClassCurriculum()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to update schedule')
+  }
+}
+
+const scheduelUpdateForm = reactive({
+  total_teach_hours:0,
+  status: null
+})
 
 const scheduleform = reactive({
   teacher_rate_id: null,
@@ -698,6 +740,11 @@ onMounted(() => {
                 {{ row.total_hour }} ម៉ោង
               </el-text>
             </template>
+            <template #remaining_hour="{row}">
+              <el-text tag="b" style="color: black;">
+                {{ row.remaining_hour }} ម៉ោង
+              </el-text>
+            </template>
             <template #subject_name="{ row }">
               <el-text tag="b" style="color: black;">
                 {{ row.subject_name }}
@@ -739,6 +786,20 @@ onMounted(() => {
             : '-'
     }}
   </el-text>
+</template>
+<template #total_teach_hours="{row}">
+  <el-text tag="b" style="color: crimson;">
+    {{ row.total_teach_hours }}  ម៉ោង
+  </el-text>
+</template>
+
+<template #room_name="{row}">
+  <el-text tag="b" style="color: darkcyan;">{{ row.room_name }}</el-text>
+</template>
+<template #actions="{ row }">
+  <AppButton type="primary" size="small" @click="openScheduleUpdateDialog(row)">
+    ផ្ទៀងផ្ទាត់
+  </AppButton>
 </template>
 
               </TableCustom>
@@ -937,7 +998,8 @@ onMounted(() => {
     </AppForm>
   </AppDialog>
 
-  <AppDialog v-if="createschedulevisible" v-model:visible="createschedulevisible" title="បង្កេីតកាលវិភាគ"
+  <AppDialog 
+  v-if="createschedulevisible" v-model:visible="createschedulevisible" title="បង្កេីតកាលវិភាគ"
     :showDefaultFooter="false" width="55%" @close="closeschedule">
     <AppForm :show-actions="true" @submit="submitschedule" submitText="រក្សាទុក" resetText="ចាកចេញ">
 
@@ -980,6 +1042,28 @@ onMounted(() => {
       </el-row>
 
     </AppForm>
+  </AppDialog>
+
+  <AppDialog
+  v-if="updateschedulevisible" v-model:visible="updateschedulevisible" title="ផ្ទៀងផ្ទាត់ម៉ោងគ្រូបង្រៀន"
+    :showDefaultFooter="false" width="55%" @close="closescheduleupdatedialog"
+  >
+  <AppForm
+  :show-actions="true" @submit="updateschedule" submitText="រក្សាទុក" resetText="ចាកចេញ"
+  >
+<el-card>
+  <el-row :gutter="20">
+    <el-col :span="12">
+           <AppInput v-model.number="scheduelUpdateForm.total_teach_hours" placeholder="ម៉ោងត្រូវបង្រៀន" type="number"
+            clearable label="ម៉ោងត្រូវបង្រៀន" />     
+    </el-col>
+    <el-col :span="12">
+        <AppSelect v-model="scheduelUpdateForm.status" :options="schedulestatusOption" placeholder="រេីសស្ថានភាព" label="រេីសស្ថានភាព"
+            clearable />
+    </el-col>
+  </el-row>
+</el-card>
+  </AppForm>
   </AppDialog>
 
 </template>

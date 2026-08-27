@@ -463,11 +463,13 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 	if len(offerIDs) > 0 {
 		if err := s.db.WithContext(ctx).
 			Table("schedules s").
+			Joins("LEFT JOIN user u ON u.id = s.verify_by").
 			Joins("LEFT JOIN school_rooms sr ON sr.id = s.room_id").
 			Joins("LEFT JOIN teacher_rates tr ON tr.id = s.teacher_rate_id").
 			Joins("LEFT JOIN class_offerings co ON co.id = tr.class_offer_id").
 			Where("tr.class_offer_id IN ?", offerIDs).
 			Select(`
+			u.name_kh AS verify_by,
 			s.status AS status,
             s.id AS id,
 			s.uuid AS uuid,
@@ -498,8 +500,16 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 		scheduleByOffer[st.ClassOfferingID] = append(scheduleByOffer[st.ClassOfferingID], st)
 	}
 
+	completedHoursByOffer := make(map[int]float64, len(classoffer))
+	for _, st := range schedule {
+		if st.Status == model.ScheduleStatusCompleted {
+			completedHoursByOffer[st.ClassOfferingID] += st.TotalTeachHour
+		}
+	}
+
 	for i := range classoffer {
 		classoffer[i].ScheduleResponse = scheduleByOffer[classoffer[i].ID] // add this field if missing
+		classoffer[i].RemainingHour = classoffer[i].TotalHour - completedHoursByOffer[classoffer[i].ID]
 	}
 
 	offeringsByDetail := make(map[int][]response.ClassOfferingResponseWithTeacherRate, len(details))

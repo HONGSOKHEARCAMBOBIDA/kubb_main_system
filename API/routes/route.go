@@ -228,5 +228,6 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Schedule
 		auth.POST(route.ScheduleCreate, middleware.PermissionMiddleware(permission.CRUDSCHEDULE), schedulecontroller.CreateSchedule)
+		auth.PUT(route.ScheduleUpdate, middleware.PermissionMiddleware(permission.CRUDSCHEDULE), schedulecontroller.UpdateSchedule)
 	}
 }

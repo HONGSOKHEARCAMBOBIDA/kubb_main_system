@@ -14,4 +14,5 @@ type Schedule struct {
 	Active         bool           `json:"active" gorm:"column:active"`
 	RoomID         int            `json:"room_id" gorm:"column:room_id"`
 	Status         ScheduleStatus `gorm:"type:enum('active','cancelled','completed');not null"`
+	VerifyBy       *int           `json:"verify_by" gorm:"column:verify_by"`
 }

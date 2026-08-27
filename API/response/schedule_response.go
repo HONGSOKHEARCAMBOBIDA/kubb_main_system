@@ -20,4 +20,5 @@ type ScheduleResponse struct {
 	RoomCode        string               `json:"room_code"`
 	RoomName        string               `json:"room_name"`
 	Status          model.ScheduleStatus `json:"status"`
+	VerifyBy        string               `json:"verify_by"`
 }

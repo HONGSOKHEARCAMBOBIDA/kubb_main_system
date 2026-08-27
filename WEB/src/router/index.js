@@ -216,7 +216,7 @@ const routes = [
         path: 'schedule',
         name: 'កាលវិភាគ',
         component: () => import('@/views/schedule/schedule.vue'),
-        meta: { title: 'សាស្រ្តាចារ្យ', icone: 'Document' },
+        meta: { title: 'កាលវិភាគ', icone: 'Document' },
       },
     ],
   },

@@ -1,5 +1,7 @@
 package request
 
+import "mysql/model"
+
 type ScheduleRequest struct {
 	TeacherRateID  int     `json:"teacher_rate_id" gorm:"column:teacher_rate_id"`
 	ScheduleDate   string  `json:"schedule_date" gorm:"column:schedule_date"`
@@ -9,4 +11,9 @@ type ScheduleRequest struct {
 	Description    string  `json:"description" gorm:"column:description"`
 	Active         bool    `json:"active" gorm:"column:active"`
 	RoomID         int     `json:"room_id" gorm:"column:room_id"`
+}
+
+type ScheduleRequestUpdate struct {
+	TotalTeachHour float64              `json:"total_teach_hours" gorm:"column:total_teach_hours"`
+	Status         model.ScheduleStatus `json:"status"`
 }
