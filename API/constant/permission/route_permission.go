@@ -75,4 +75,6 @@ const (
 	CRUDTEACHER = "crud.teacher"
 
 	CRUDSCHEDULE = "crud.schedule"
+
+	CRUDATTENDANCE = "crud.attendance"
 )

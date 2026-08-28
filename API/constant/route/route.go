@@ -194,4 +194,7 @@ const (
 	// Schedule
 	ScheduleCreate = "schedule.create"
 	ScheduleUpdate = "schedule.update/:uuid"
+
+	// Attendance
+	AttendanceCreate = "attendance.create"
 )
