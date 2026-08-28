@@ -21,4 +21,5 @@ type ScheduleResponse struct {
 	RoomName        string               `json:"room_name"`
 	Status          model.ScheduleStatus `json:"status"`
 	VerifyBy        string               `json:"verify_by"`
+	AttedanceID     int                  `json:"attendance_id" gorm:"column:attendance_id"`
 }

@@ -596,23 +596,33 @@ func (s *studentService) GetCourseRegistration(ctx context.Context, filter map[s
 		Table("course_registrations cr").
 		Joins("LEFT JOIN student_terms st ON st.id = cr.student_term_id").
 		Joins("LEFT JOIN enrollments e ON e.id = st.enrollment_id").
-		Joins("LEFT JOIN admissions a ON a.id = e.admission_id").
-		Joins("LEFT JOIN students s ON s.id = a.student_id")
+		Joins("LEFT JOIN admissions ad ON ad.id = e.admission_id").
+		Joins("LEFT JOIN students stu ON stu.id = ad.student_id")
 
 	if v, ok := filter["class_offering_id"]; ok && v != "" {
 		query = query.Where("cr.class_offering_id = ?", v)
 	}
 
+	if v, ok := filter["attendance_id"]; ok && v != "" {
+		query = query.Where(`
+			NOT EXISTS (
+				SELECT 1 FROM attendance_details adx
+				WHERE adx.course_registration_id = cr.id
+				AND adx.attendance_id = ?
+			)
+		`, v)
+	}
+
 	err := query.Select(`
 			cr.id AS id,
 			cr.uuid AS uuid,
-			s.name_kh AS name_kh,
-			s.name_en AS name_en,
-			s.date_of_birth AS date_of_birth,
-			s.gender AS gender,
-			s.phone AS phone
+			stu.name_kh AS name_kh,
+			stu.name_en AS name_en,
+			stu.date_of_birth AS date_of_birth,
+			stu.gender AS gender,
+			stu.phone AS phone
 		`).
-		Order("s.id DESC").
+		Order("stu.id DESC").
 		Scan(&data).Error
 	if err != nil {
 		return nil, fmt.Errorf("query course registrations: %w", err)

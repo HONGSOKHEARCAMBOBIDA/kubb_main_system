@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+	"errors"
 	"mysql/constant/share"
 	"mysql/request"
 	"mysql/service"
@@ -31,4 +33,23 @@ func (cr *AttendanceController) CreateAttendance(c *gin.Context) {
 		return
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
+func (cr *AttendanceController) GetAttendance(c *gin.Context) {
+	filter := map[string]string{
+		"schedule_id": c.Query("schedule_id"),
+	}
+	data, err := cr.service.GetAttendance(c, filter)
+
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(err, context.Canceled) {
+			share.ResponseError(c, http.StatusGatewayTimeout, err.Error())
+			return
+		}
+
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
 }

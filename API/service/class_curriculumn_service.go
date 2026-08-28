@@ -463,6 +463,7 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 	if len(offerIDs) > 0 {
 		if err := s.db.WithContext(ctx).
 			Table("schedules s").
+			Joins("LEFT JOIN attendances a ON a.schedule_id = s.id").
 			Joins("LEFT JOIN user u ON u.id = s.verify_by").
 			Joins("LEFT JOIN school_rooms sr ON sr.id = s.room_id").
 			Joins("LEFT JOIN teacher_rates tr ON tr.id = s.teacher_rate_id").
@@ -483,7 +484,8 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 			s.active AS active,
 			sr.id AS room_id,
 			sr.code AS room_code,
-			sr.name AS room_name
+			sr.name AS room_name,
+			a.id AS attendance_id
         `).Scan(&schedule).Error; err != nil {
 			return nil, nil, fmt.Errorf("fetch student: %w", err)
 		}

@@ -43,6 +43,7 @@ func (cr *StudentController) CreateStudent(c *gin.Context) {
 func (cr *StudentController) GetCourseRegistration(c *gin.Context) {
 	filter := map[string]string{
 		"class_offering_id": c.Query("class_offering_id"),
+		"attendance_id":     c.Query("attendance_id"),
 	}
 	data, err := cr.service.GetCourseRegistration(c, filter)
 

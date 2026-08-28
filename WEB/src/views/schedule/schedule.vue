@@ -30,7 +30,8 @@ import { createTeacherRate } from '../../services/teacher.service.js'
 import { ScheduleCreate, ScheduleUpdate } from '../../services/schedule.serivce.js'
 import { getSchoolRooms } from '../../services/school_room.service.js'
 import { getcourseregistration } from '../../services/course_registration.service.js'
-import { attendanceCreate } from '../../services/attendance.service.js'
+import { attendanceCreate, attendanceView } from '../../services/attendance.service.js'
+
 const schoolRooms = ref([])
 const notify = useNotification()
 const classcurriculmn = ref([])
@@ -240,6 +241,70 @@ async function fetchTeacher(filters) {
     return []
   }
 }
+// attendance detail
+const attendanceviewvisible = ref(false)
+const attendancedata = ref([])
+const attendancecolumns = [
+  { prop: 'attendance_date', label: 'កាលបរិច្ឆេទចុះវត្តមាន', minwidth: 120 },
+  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 },
+  { prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 },
+  { prop: 'gender', slot: 'gender', label: 'ភេទ', minwidth: 120 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
+  { slot: 'present', label: 'ប្រភេទ', minwidth: 120 },
+]
+async function fetchAttendance(filters) {
+  try {
+    const params = {}
+    if (filters.schedule_id) {
+      params.schedule_id = filters.schedule_id
+    }
+    const res = await attendanceView(params)
+    return res.data.data || []
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load attendance')
+    return []
+  }
+}
+
+async function openFetchAttendanceDialog(row) {
+  const attendances = await fetchAttendance({ schedule_id: row.id })
+  attendancedata.value = attendances.flatMap((att) =>
+    (att.detail || []).map((d) => ({
+      ...d,
+      attendance_date: att.attendance_date,
+      topic: att.topic,
+    }))
+  )
+
+  attendanceviewvisible.value = true
+}
+
+function attendanceStatusLabel(status) {
+  const found = attendanceStatusOption.find((o) => o.value === status)
+  return found ? found.label : '-'
+}
+
+function attendanceStatusTagType(status) {
+  switch (status) {
+    case 'present':
+      return 'success'
+    case 'absent':
+      return 'danger'
+    case 'late':
+      return 'warning'
+    case 'excused':
+      return 'info'
+    default:
+      return ''
+  }
+}
+
+function closeFetchAttendanceDialog() {
+  attendanceviewvisible.value = false
+  attendancedata.value = []
+}
+// attendance detail
 
 // attendance
 const createattendancevisible = ref(false)
@@ -263,6 +328,9 @@ async function fetchCoureRegistration(filters) {
     if (filters.class_offering_id) {
       params.class_offering_id = filters.class_offering_id
     }
+    if (filters.attendance_id) {
+      params.attendance_id = filters.attendance_id
+    }
 
     const res = await getcourseregistration(params)
 
@@ -277,6 +345,7 @@ async function fetchCoureRegistration(filters) {
 async function openAttendanceDialog(row) {
   const raw = await fetchCoureRegistration({
     class_offering_id: row.class_offering_id,
+    attendance_id: row.attendance_id,
   })
 
   // give each row local editable fields for the table
@@ -882,7 +951,7 @@ onMounted(() => {
                 :data="offeringRow.scheduel"
                 :columns="schedulecolumn"
                 :show-pagination="false"
-                actions-width="220px"
+                actions-width="300px"
               >
                 <template #status="{ row }">
                   <el-text>
@@ -912,6 +981,9 @@ onMounted(() => {
                   </AppButton>
                   <AppButton type="primary" size="small" @click="openAttendanceDialog(row)">
                     បញ្ចូលវត្តមាន
+                  </AppButton>
+                  <AppButton type="primary" size="small" @click="openFetchAttendanceDialog(row)">
+                    មើលវត្តមាន
                   </AppButton>
                 </template>
               </TableCustom>
@@ -1454,6 +1526,29 @@ onMounted(() => {
         </template>
       </TableCustom>
     </AppForm>
+  </AppDialog>
+
+  <AppDialog
+    v-if="attendanceviewvisible"
+    v-model:visible="attendanceviewvisible"
+    title="វត្តមានសិស្ស "
+    :showDefaultFooter="false"
+    width="75%"
+    @close="closeFetchAttendanceDialog"
+  >
+    <TableCustom :data="attendancedata" :columns="attendancecolumns" :show-pagination="false">
+      <template #gender="{ row }">
+        <el-text style="color: black">
+          {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+        </el-text>
+      </template>
+
+      <template #present="{ row }">
+        <el-tag :type="attendanceStatusTagType(row.status)">
+          {{ attendanceStatusLabel(row.status) }}
+        </el-tag>
+      </template>
+    </TableCustom>
   </AppDialog>
 </template>
 

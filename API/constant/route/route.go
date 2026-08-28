@@ -197,4 +197,5 @@ const (
 
 	// Attendance
 	AttendanceCreate = "attendance.create"
+	AttendanceView   = "attendance.view"
 )
