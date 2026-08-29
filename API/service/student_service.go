@@ -30,6 +30,7 @@ type StudentService interface {
 	GetStudent(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.StudentResponse, *model.PaginationMetadata, error)
 	UpdateStudent(ctx context.Context, studentID int, input request.StudentRequestUpdate, id int) error
 	GetCourseRegistration(ctx context.Context, filter map[string]string) ([]response.CourseRegistrationResponse, error)
+	GetStudentCategory(ctx context.Context) ([]model.StudentCategory, error)
 }
 
 type studentService struct {
@@ -40,6 +41,17 @@ func NewStudentService() StudentService {
 	return &studentService{
 		db: config.DB,
 	}
+}
+
+func (s *studentService) GetStudentCategory(ctx context.Context) ([]model.StudentCategory, error) {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	var data []model.StudentCategory
+	err := s.db.WithContext(ctx).Order("id DESC").Find(&data).Error
+	if err != nil {
+		return nil, apperror.Internal("failed to fetch filingcabinet", err)
+	}
+	return data, nil
 }
 
 func (s *studentService) UpdateStudent(ctx context.Context, studentID int, input request.StudentRequestUpdate, id int) error {
@@ -71,6 +83,7 @@ func (s *studentService) UpdateStudent(ctx context.Context, studentID int, input
 		}
 
 		student.GroupID = input.GroupID
+		student.StudentCategoryID = input.StudentCategoryID
 		student.NameKh = input.NameKh
 		student.NameEn = input.NameEn
 		student.DateOfBirth = input.DateOfBirth
@@ -185,21 +198,22 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 	defer cancel()
 
 	student := model.Student{
-		GroupID:          input.GroupID,
-		UserName:         username,
-		Email:            email,
-		Password:         utils.HasPassword("KUBB"),
-		NameKh:           input.NameKh,
-		NameEn:           input.NameEn,
-		DateOfBirth:      input.DateOfBirth,
-		Gender:           input.Gender,
-		Nationality:      input.Nationality,
-		Phone:            input.Phone,
-		Status:           share.Created,
-		VillageID:        &input.VillageID,
-		Occupation:       input.Occupation,
-		AcademicStreamID: input.AcademicStreamID,
-		TelegramUsername: nil,
+		GroupID:           input.GroupID,
+		StudentCategoryID: input.StudentCategoryID,
+		UserName:          username,
+		Email:             email,
+		Password:          utils.HasPassword("KUBB"),
+		NameKh:            input.NameKh,
+		NameEn:            input.NameEn,
+		DateOfBirth:       input.DateOfBirth,
+		Gender:            input.Gender,
+		Nationality:       input.Nationality,
+		Phone:             input.Phone,
+		Status:            share.Created,
+		VillageID:         &input.VillageID,
+		Occupation:        input.Occupation,
+		AcademicStreamID:  input.AcademicStreamID,
+		TelegramUsername:  nil,
 	}
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -428,6 +442,7 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 	base := func() *gorm.DB {
 		return s.db.WithContext(ctx).
 			Table("students s").
+			Joins("LEFT JOIN student_category sg ON sg.id = s.student_category_id").
 			Joins("LEFT JOIN fee_discount_groups f ON f.id = s.group_id").
 			Joins("LEFT JOIN academic_streams asd ON asd.id = s.academic_stream_id").
 			Joins("LEFT JOIN villages sv ON sv.id = s.village_id").
@@ -456,6 +471,8 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 
 	dataQuery := applyFilters(base()).
 		Select(`
+			sg.id AS student_category_id,
+			sg.name AS student_category_name,
 			s.id AS id,
 			f.id AS group_id,
 			f.code AS group_code,

@@ -25,6 +25,15 @@ func NewStudentController() StudentController {
 	}
 }
 
+func (cr *StudentController) GetStudentCategory(c *gin.Context) {
+	data, err := cr.service.GetStudentCategory(c)
+	if err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *StudentController) CreateStudent(c *gin.Context) {
 	var input request.StudentRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {

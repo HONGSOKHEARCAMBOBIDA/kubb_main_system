@@ -147,9 +147,10 @@ const (
 	AcademicStreamView = "academic.stream.view"
 
 	// Student
-	StudentCreate = "student.create"
-	StudentView   = "student.view"
-	StudentUpdate = "student.update/:id"
+	StudentCreate       = "student.create"
+	StudentView         = "student.view"
+	StudentUpdate       = "student.update/:id"
+	StudentCategoryView = "student.category.view"
 
 	// SchoolarshipGroup
 	SchoolarshipGroupView   = "SchoolarshipGroup.view"

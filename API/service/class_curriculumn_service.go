@@ -246,6 +246,7 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 			Joins("LEFT JOIN students s ON s.id = a.student_id").
 			Where("cr.class_offering_id IN ?", offerIDs).
 			Select(`
+			cr.id AS course_registration_id,
             cr.class_offering_id AS offer_id,
             s.name_kh AS name_kh,
             s.name_en AS name_en,
@@ -259,8 +260,69 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 		}
 	}
 
+	courseregistrationIDs := make([]int, 0, len(student))
+	for _, c := range student {
+		courseregistrationIDs = append(courseregistrationIDs, c.CourseRegistrationID)
+	}
+	var studentgrades []response.StudentGradeResponse
+	if len(courseregistrationIDs) > 0 {
+		if err := s.db.WithContext(ctx).
+			Table("student_grades sg").
+			Where("sg.course_registration_id IN ?", courseregistrationIDs).
+			Select(`
+			sg.id AS id,
+			sg.uuid AS uuid,
+			sg.course_registration_id AS course_registration_id,
+			sg.total_score AS total_score,
+			sg.letter_grade AS letter_grade,
+			sg.grade_point AS grade_point
+		`).Scan(&studentgrades).Error; err != nil {
+			return nil, nil, fmt.Errorf("fetch student grade: %w", err)
+		}
+	}
+
+	studentgradeIDs := make([]int, 0, len(studentgrades))
+	for _, s := range studentgrades {
+		studentgradeIDs = append(studentgradeIDs, s.ID)
+	}
+	var studentgradedetails []response.StudentGradeDetailResponse
+	if len(studentgradeIDs) > 0 {
+		if err := s.db.WithContext(ctx).
+			Table("student_grade_details sgd").
+			Joins("LEFT JOIN grade_components gc ON gc.id = sgd.grade_component_id").
+			Where("sgd.student_grade_id IN ?", studentgradeIDs).
+			Select(`
+			sgd.id AS id,
+			sgd.uuid AS uuid,
+			sgd.student_grade_id AS student_grade_id,
+			sgd.score AS score,
+			gc.id AS grade_component_id,
+			gc.name AS grade_component_name
+		`).Scan(&studentgradedetails).Error; err != nil {
+			return nil, nil, fmt.Errorf("fetch student grade: %w", err)
+		}
+	}
+
+	studentGradeDetailByGrade := make(map[int][]response.StudentGradeDetailResponse, len(studentgradedetails))
+	for _, sgd := range studentgradedetails {
+		studentGradeDetailByGrade[sgd.StudentGradeID] = append(studentGradeDetailByGrade[sgd.StudentGradeID], sgd)
+	}
+
+	for i := range studentgrades {
+		studentgrades[i].StudentGradeDetailResponse = studentGradeDetailByGrade[studentgrades[i].ID]
+	}
+
+	gradesByCourseRegistration := make(map[int][]response.StudentGradeResponse, len(student))
+	for _, sg := range studentgrades {
+		gradesByCourseRegistration[sg.CourseRegistrationID] = append(gradesByCourseRegistration[sg.CourseRegistrationID], sg)
+	}
+
 	for i := range student {
 		student[i].DateOfBirth = helper.FormatDate(student[i].DateOfBirth)
+	}
+
+	for i := range student {
+		student[i].StudentGradeResponse = gradesByCourseRegistration[student[i].CourseRegistrationID]
 	}
 
 	studentByOffer := make(map[int][]response.StudentResponseSummary, len(classoffer))

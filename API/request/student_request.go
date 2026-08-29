@@ -1,16 +1,17 @@
 package request
 
 type StudentRequestCreate struct {
-	GroupID          int    `json:"group_id" validate:"required"`
-	NameKh           string `json:"name_kh" validate:"required,min=2,max=150"`
-	NameEn           string `json:"name_en" validate:"required,min=2,max=150"`
-	DateOfBirth      string `json:"date_of_birth" validate:"required"`
-	Gender           string `json:"gender" validate:"required,min=2,max=30"`
-	Nationality      string `json:"nationality" validate:"required,min=2,max=150"`
-	Phone            string `json:"phone" validate:"required,min=2,max=150"`
-	VillageID        int    `json:"village_id" validate:"omitempty"`
-	Occupation       string `json:"occupation" validate:"omitempty,min=2,max=150"`
-	AcademicStreamID int    `json:"academic_stream_id" validate:"required"`
+	GroupID           int    `json:"group_id" validate:"required"`
+	StudentCategoryID int    `json:"student_category_id" gorm:"column:student_category_id"`
+	NameKh            string `json:"name_kh" validate:"required,min=2,max=150"`
+	NameEn            string `json:"name_en" validate:"required,min=2,max=150"`
+	DateOfBirth       string `json:"date_of_birth" validate:"required"`
+	Gender            string `json:"gender" validate:"required,min=2,max=30"`
+	Nationality       string `json:"nationality" validate:"required,min=2,max=150"`
+	Phone             string `json:"phone" validate:"required,min=2,max=150"`
+	VillageID         int    `json:"village_id" validate:"omitempty"`
+	Occupation        string `json:"occupation" validate:"omitempty,min=2,max=150"`
+	AcademicStreamID  int    `json:"academic_stream_id" validate:"required"`
 
 	StudentEducationRequestCreate []StudentEducationRequestCreate `json:"student_educations" validate:"omitempty,dive"`
 	StudentDocumentRequestCreate  []StudentDocumentRequestCreate  `json:"student_documents" validate:"omitempty,dive"`
@@ -59,16 +60,17 @@ type StudentDocumentRequestCreate struct {
 }
 
 type StudentRequestUpdate struct {
-	GroupID          int    `json:"group_id" validate:"required"`
-	NameKh           string `json:"name_kh" validate:"required,min=2,max=150"`
-	NameEn           string `json:"name_en" validate:"required,min=2,max=150"`
-	DateOfBirth      string `json:"date_of_birth" validate:"required,datetime=2006-01-02"`
-	Gender           string `json:"gender" validate:"required,min=2,max=30"`
-	Nationality      string `json:"nationality" validate:"required,min=2,max=150"`
-	Phone            string `json:"phone" validate:"required,min=2,max=150"`
-	VillageID        int    `json:"village_id" validate:"required"`
-	Occupation       string `json:"occupation" validate:"omitempty,min=2,max=150"`
-	AcademicStreamID int    `json:"academic_stream_id" validate:"required"`
+	GroupID           int    `json:"group_id" validate:"required"`
+	StudentCategoryID int    `json:"student_category_id" gorm:"column:student_category_id"`
+	NameKh            string `json:"name_kh" validate:"required,min=2,max=150"`
+	NameEn            string `json:"name_en" validate:"required,min=2,max=150"`
+	DateOfBirth       string `json:"date_of_birth" validate:"required,datetime=2006-01-02"`
+	Gender            string `json:"gender" validate:"required,min=2,max=30"`
+	Nationality       string `json:"nationality" validate:"required,min=2,max=150"`
+	Phone             string `json:"phone" validate:"required,min=2,max=150"`
+	VillageID         int    `json:"village_id" validate:"required"`
+	Occupation        string `json:"occupation" validate:"omitempty,min=2,max=150"`
+	AcademicStreamID  int    `json:"academic_stream_id" validate:"required"`
 
 	StudentEducationRequestUpdate []StudentEducationRequestCreate `json:"student_educations" validate:"omitempty,dive"`
 	StudentDocumentRequestUpdate  []StudentDocumentRequestCreate  `json:"student_documents" validate:"omitempty,dive"`

@@ -180,6 +180,17 @@ const classregistrationfilters = reactive({
     major_id: null
 })
 
+const studentgradecolumn = [
+  { prop: 'total_score',label: 'Total Score', minwidth: 120 },
+  { prop: 'letter_grade',label: 'Letter Grade', minwidth: 120 },
+  { prop: 'grade_point',label: 'Grade Point', minwidth: 120 },
+]
+
+const studentgradedetailcolumn = [
+  { prop: 'grade_component_name',label: 'ប្រភេទ', minwidth: 120 },
+  { prop: 'score',label: 'ពិន្ទុ', minwidth: 120 },
+]
+
 const columnclass_registration = [
   { prop: 'student_name_kh',slot:'student_name_kh', label: 'ឈ្មោះ', minwidth: 90 },
    { prop: 'student_gender',slot:'student_gender',label: 'ភេទ', minwidth: 90 },
@@ -684,6 +695,34 @@ onMounted(() => {
     <el-text>
       {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
     </el-text>
+  </template>
+
+  <template #expand="{ row: studentgrade }">
+    <el-divider>
+      Student Grade
+    </el-divider>
+    <TableCustom
+    expandable
+    :data="studentgrade.student_grade"
+    :columns="studentgradecolumn"
+    :show-pagination="false"
+    >
+
+    <template #expand="{ row: studentgradedetail }">
+    <el-divider>
+      Detail
+    </el-divider>
+    <TableCustom
+    expandable
+    :data="studentgradedetail.detail"
+    :columns="studentgradedetailcolumn"
+    :show-pagination="false"
+    >
+
+    </TableCustom>
+    </template>
+
+    </TableCustom>
   </template>
 
 </TableCustom>

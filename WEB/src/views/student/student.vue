@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { createStudent, getStudent, updateStudent } from '../../services/student.service'
+import { createStudent, getStudent, updateStudent,getStudentCategory } from '../../services/student.service'
 import { getFeediscountGroup } from '../../services/feediscountgroup.service'
 import { getProvince, getDistrict, getCommunce, getVillage } from '../../services/location.service'
 import { getAcademicStream } from '../../services/academic_stream'
@@ -72,6 +72,7 @@ const columns = [
   { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', minwidth: 130 },
   { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 130 },
   { prop: 'group_name', label: 'ប្រភេទនិស្សិត', minwidth: 150 },
+  { prop: 'student_category_name', label: 'ក្រុមនិស្សិត', minwidth: 150 },
   { prop: 'academic_stream_name', label: 'សញ្ញាបត្រ', minwidth: 130 },
   {slot:'exam_in',label:'ប្រឡងចូល',minwidth: 150},
   {slot:'exam_out',label:'ប្រឡងចេញ',minwidth: 190},
@@ -102,6 +103,7 @@ const columndocumentdetail = [
 
 function resetForm() {
   form.group_id = null
+  form.student_category_id = null
   form.name_kh = ''
   form.name_en = ''
   form.date_of_birth = null
@@ -163,6 +165,7 @@ async function openEdit(row) {
   resetForm()
 
   form.group_id = row.group_id
+  form.student_category_id = row.student_category_id
   form.name_kh = row.name_kh
   form.name_en = row.name_en
   form.date_of_birth = row.date_of_birth
@@ -297,6 +300,7 @@ const generationOptions = ref([])
 const termOptions = ref([])
 const academicDegreeOptions = ref([])
 const programmesOptions = ref([])
+const studentcategoryOptions = ref([])
 
 const admissionAcademicID = ref(null)
 const admissionGenerationID = ref(null)
@@ -332,6 +336,15 @@ const studyyearOption = [
   { label: 'ឆ្នាំទី3', value: 3 },
   { label: 'ឆ្នាំទី4', value: 4 },
 ]
+
+async function fetchStudentCategory() {
+  try {
+    const res = await getStudentCategory()
+    studentcategoryOptions.value = (res.data.data || []).map((a) => ({ label: a.name, value: a.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load programmes')
+  }
+}
 
 async function fetchProgrammeOptions() {
   try {
@@ -549,7 +562,7 @@ async function onCommunceChange() {
 // ---------------------------------------------------------------------------
 const form = reactive({
   group_id: null,
-
+  student_category_id:null,
   name_kh: '',
   name_en: '',
   date_of_birth: '',
@@ -793,6 +806,7 @@ onMounted(() => {
   fetchAcademicOption()
   fetchSchoolarship()
   fetchProgrammeOptions()
+  fetchStudentCategory()
 })
 </script>
 
@@ -1056,7 +1070,7 @@ onMounted(() => {
                 </el-col>
               </el-row>
               <el-row :gutter="20">
-                <el-col :span="12">
+                <el-col :span="8">
                       <AppSelect
                     v-model="form.group_id"
                     :options="groupOptions"
@@ -1066,7 +1080,16 @@ onMounted(() => {
                     clearable
                   />
                 </el-col>
-                <el-col :span="12">
+                <el-col :span="8">
+                      <AppSelect
+                    v-model="form.student_category_id"
+                    :options="studentcategoryOptions"
+                    placeholder="ក្រុមនិស្សិត"
+                    label="ក្រុមនិស្សិត"
+                    clearable
+                  />
+                </el-col>
+                <el-col :span="8">
                   <el-form-item label="ថ្ងៃខែឆ្នាំកំណេីត" prop="date_of_birth">
                     <el-date-picker
                       v-model="form.date_of_birth"

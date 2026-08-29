@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"mysql/config"
 	"mysql/constant/apperror"
 	"mysql/helper"
@@ -85,6 +86,8 @@ func (s *couseregistrationservice) CreateCourseRegistration(ctx context.Context,
 		if err := tx.Where("subject_id = ?", classoffer.SubjectID).Find(&gradecomponent).Error; err != nil {
 			return apperror.New(apperror.CodeInternal, "failed to fetch grade components", err)
 		}
+
+		fmt.Println("classoffer.SubjectID:", classoffer.SubjectID, "gradecomponent count:", len(gradecomponent))
 
 		if len(gradecomponent) > 0 {
 			studentgradedetails := make([]model.StudentGradeDetail, 0, len(studentgrades)*len(gradecomponent))
