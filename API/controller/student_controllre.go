@@ -73,7 +73,11 @@ func (cr *StudentController) GetStudent(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 
 	filter := map[string]string{
-		"name": c.Query("name"),
+		"name":                c.Query("name"),
+		"student_category_id": c.Query("student_category_id"),
+		"group_id":            c.Query("group_id"),
+		"phone":               c.Query("phone"),
+		"stream_id":           c.Query("stream_id"),
 	}
 
 	data, meta, err := cr.service.GetStudent(

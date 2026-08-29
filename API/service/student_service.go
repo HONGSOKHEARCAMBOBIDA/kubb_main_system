@@ -453,7 +453,23 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 
 	applyFilters := func(tx *gorm.DB) *gorm.DB {
 		if v, ok := filter["name"]; ok && v != "" {
-			tx = tx.Where("s.name_kh LIKE ?", "%"+v+"%")
+			tx = tx.Where(
+				"s.name_kh LIKE ? OR s.name_en LIKE ?",
+				"%"+v+"%",
+				"%"+v+"%",
+			)
+		}
+		if v, ok := filter["student_category_id"]; ok && v != "" {
+			tx = tx.Where("s.student_category_id = ?", v)
+		}
+		if v, ok := filter["group_id"]; ok && v != "" {
+			tx = tx.Where("s.group_id = ?", v)
+		}
+		if v, ok := filter["phone"]; ok && v != "" {
+			tx = tx.Where("s.phone LIKE ?", "%"+v+"%")
+		}
+		if v, ok := filter["stream_id"]; ok && v != "" {
+			tx = tx.Where("s.academic_stream_id = ?", v)
 		}
 		return tx
 	}
