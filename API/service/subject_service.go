@@ -23,6 +23,7 @@ type SubjectService interface {
 	GetSubjectByMajor(ctx context.Context, majorID int) ([]response.SubjectResponseByMajor, error)
 	Toggle(ctx context.Context, id string) error
 	UpdateSubject(ctx context.Context, id string, input request.SubjectRequestUpdate) error
+	CreateGradeComponent(ctx context.Context, input request.GradeComponentRequestCreate) error
 }
 
 type subjectservice struct {
@@ -159,6 +160,38 @@ func (s *subjectservice) GetSubject(ctx context.Context, pf request.Pagination, 
 		return nil, nil, fmt.Errorf("fetch terms: %w", err)
 	}
 
+	subjectIDs := make([]int, 0, len(data))
+	for _, s := range data {
+		subjectIDs = append(subjectIDs, s.ID)
+	}
+
+	var gradeComponents []response.GradeComponentResponse
+	if len(subjectIDs) > 0 {
+		if err := s.db.WithContext(ctx).
+			Table("grade_components gc").
+			Where("gc.subject_id IN ?", subjectIDs).
+			Select(`
+				gc.id AS id,
+				gc.uuid AS uuid,
+				gc.subject_id AS subject_id,
+				gc.name AS name,
+				gc.weight_percentage AS weight_percentage,
+				gc.active AS active
+			`).
+			Scan(&gradeComponents).Error; err != nil {
+			return nil, nil, fmt.Errorf("fetch grade components: %w", err)
+		}
+	}
+	gradeComponentsBySubject := make(map[int][]response.GradeComponentResponse)
+	for _, gc := range gradeComponents {
+		gradeComponentsBySubject[gc.SubjectID] =
+			append(gradeComponentsBySubject[gc.SubjectID], gc)
+	}
+	for i := range data {
+		data[i].GradeComponentResponse =
+			gradeComponentsBySubject[data[i].ID]
+	}
+
 	return data, helper.BuildPaginationMeta(pf, total), nil
 }
 
@@ -286,4 +319,31 @@ func (s *subjectservice) UpdateSubject(ctx context.Context, id string, input req
 	}
 
 	return nil
+}
+
+func (s *subjectservice) CreateGradeComponent(ctx context.Context, input request.GradeComponentRequestCreate) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if len(input.GradeComponentRequest) > 0 {
+			data := make([]model.GradeComponent, 0, len(input.GradeComponentRequest))
+			for _, g := range input.GradeComponentRequest {
+				data = append(data, model.GradeComponent{
+					UUIDBase: base.UUIDBase{
+						UUID: helper.GenerateUUID(),
+					},
+					SubjectID:        input.SubjectID,
+					Name:             g.Name,
+					WeightPercentage: g.WeightPercentage,
+					Active:           true,
+				})
+			}
+			if err := tx.Create(&data).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to create grade component", nil)
+			}
+		}
+		return nil
+	})
+	return err
 }

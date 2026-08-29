@@ -198,4 +198,7 @@ const (
 	// Attendance
 	AttendanceCreate = "attendance.create"
 	AttendanceView   = "attendance.view"
+
+	// Grade Component
+	GradeComponentCreate = "grade.component.create"
 )

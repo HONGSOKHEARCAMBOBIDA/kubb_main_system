@@ -359,6 +359,19 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 					if err := tx.Create(&newstudentterm).Error; err != nil {
 						return err
 					}
+
+					newgparecord := model.GpaRecord{
+						UUIDBase: base.UUIDBase{
+							UUID: helper.GenerateUUID(),
+						},
+						StudentTermID: newstudentterm.ID,
+						TotalCredit:   0.00,
+						SemesterGpa:   0.00,
+						CumulativeGpa: 0.00,
+					}
+					if err := tx.Create(&newgparecord).Error; err != nil {
+						return err
+					}
 				}
 
 			}

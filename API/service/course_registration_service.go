@@ -27,10 +27,9 @@ func NewCourseRegistrationService() CourseRegistrationService {
 		db: config.DB,
 	}
 }
-
 func (s *couseregistrationservice) CreateCourseRegistration(ctx context.Context, input request.CourseRegistrationRequestCreate) error {
 	if input.ClassOfferingID == 0 {
-		return apperror.New(apperror.CodeInvalidInput, "class offerig is required", nil)
+		return apperror.New(apperror.CodeInvalidInput, "class offering is required", nil)
 	}
 
 	if len(input.CourseRegistrationRequest) == 0 {
@@ -41,12 +40,12 @@ func (s *couseregistrationservice) CreateCourseRegistration(ctx context.Context,
 	defer cancel()
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		coursregister := make([]model.CourseRegistrations, 0, len(input.CourseRegistrationRequest))
+		courseregister := make([]model.CourseRegistrations, 0, len(input.CourseRegistrationRequest))
 		for _, c := range input.CourseRegistrationRequest {
 			if c.StudentTermID == 0 {
 				return apperror.New(apperror.CodeInvalidInput, "student term is required", nil)
 			}
-			coursregister = append(coursregister, model.CourseRegistrations{
+			courseregister = append(courseregister, model.CourseRegistrations{
 				UUIDBase: base.UUIDBase{
 					UUID: helper.GenerateUUID(),
 				},
@@ -56,9 +55,56 @@ func (s *couseregistrationservice) CreateCourseRegistration(ctx context.Context,
 				Status:           "PENDING",
 			})
 		}
-		if err := tx.Create(&coursregister).Error; err != nil {
+		if err := tx.Create(&courseregister).Error; err != nil {
 			return apperror.New(apperror.CodeInternal, "failed to create", err)
 		}
+
+		studentgrades := make([]model.StudentGrade, 0, len(courseregister))
+		for _, cr := range courseregister {
+			studentgrades = append(studentgrades, model.StudentGrade{
+				UUIDBase: base.UUIDBase{
+					UUID: helper.GenerateUUID(),
+				},
+				CourseRegistrationID: cr.ID,
+				TotalScore:           nil,
+				LetterGrade:          nil,
+				GradePoint:           nil,
+				Status:               "PENDING",
+			})
+		}
+		if err := tx.Create(&studentgrades).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to create", err)
+		}
+
+		var classoffer model.ClassOffering
+		if err := tx.First(&classoffer, input.ClassOfferingID).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to fetch class offering", err)
+		}
+
+		var gradecomponent []model.GradeComponent
+		if err := tx.Where("subject_id = ?", classoffer.SubjectID).Find(&gradecomponent).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to fetch grade components", err)
+		}
+
+		if len(gradecomponent) > 0 {
+			studentgradedetails := make([]model.StudentGradeDetail, 0, len(studentgrades)*len(gradecomponent))
+			for _, sg := range studentgrades {
+				for _, gc := range gradecomponent {
+					studentgradedetails = append(studentgradedetails, model.StudentGradeDetail{
+						UUIDBase: base.UUIDBase{
+							UUID: helper.GenerateUUID(),
+						},
+						StudentGradeID:   sg.ID,
+						GradeComponentID: gc.ID,
+						Score:            nil,
+					})
+				}
+			}
+			if err := tx.Create(&studentgradedetails).Error; err != nil {
+				return apperror.New(apperror.CodeInternal, "failed to create", err)
+			}
+		}
+
 		return nil
 	})
 	return err

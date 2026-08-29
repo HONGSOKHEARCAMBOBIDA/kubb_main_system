@@ -235,5 +235,8 @@ func SetupRoutes(r *gin.Engine) {
 		// Attendance
 		auth.POST(route.AttendanceCreate, middleware.PermissionMiddleware(permission.CRUDATTENDANCE), attendancecontroller.CreateAttendance)
 		auth.GET(route.AttendanceView, middleware.PermissionMiddleware(permission.CRUDATTENDANCE), attendancecontroller.GetAttendance)
+
+		// Grade Component
+		auth.POST(route.GradeComponentCreate, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.CreateGradeComponent)
 	}
 }

@@ -5,6 +5,7 @@ import {
   createSubject,
   updateSubject,
   toggleSubject,
+  creategradecomponent
 } from '../../services/subject.service.js'
 import { getMajorByDepartment } from '../../services/major.service.js'
 import { getprogrammes } from '../../services/programmes.service.js'
@@ -59,6 +60,12 @@ const columns = [
   { prop: 'active', label: 'ស្ថានភាព', slot: 'isActive', width: 100 },
 ]
 
+const gradecomponentcolmn = [
+  { prop: 'name', label: 'ឈ្មោះ', minwidth: 120 },
+  { prop: 'weight_percentage',slot:'weight_percentage', label: 'ភាគរយ', minwidth: 120 },
+  { prop: 'active',slot:'active', label: 'ស្ថានភាព', minwidth: 120 },
+]
+
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const submitting = ref(false)
@@ -83,6 +90,86 @@ const rules = {
   passing_score: [{ required: true, message: 'សូមបញ្ចូលពិន្ទុជាប់', trigger: 'blur' }],
   description: [{ required: true, message: 'សូមបញ្ចូលការពិពណ៌នា', trigger: 'blur' }],
 }
+
+// =====================================================================
+// Grade Component dialog state
+// =====================================================================
+const gradeDialogVisible = ref(false)
+const gradeSubmitting = ref(false)
+const gradeSubjectID = ref(null)      // int, matches GradeComponentRequestCreate.SubjectID
+const gradeSubjectLabel = ref('')     // just for the dialog title
+const gradeComponents = reactive([])  // [{ name, weight_percentage }]
+
+const gradeTotalWeight = computed(() =>
+  gradeComponents.reduce((sum, g) => sum + (Number(g.weight_percentage) || 0), 0)
+)
+
+function makeEmptyGradeRow() {
+  return { name: '', weight_percentage: null }
+}
+
+function defaultGradeRows() {
+  return [
+    { name: 'Quiz', weight_percentage: 10 },
+    { name: 'Attendance', weight_percentage: 10 },
+    { name: 'Assignment', weight_percentage: 10 },
+    { name: 'Midterm', weight_percentage: 30 },
+    { name: 'Final', weight_percentage: 40 },
+  ]
+}
+
+function openGradeDialog(row) {
+  gradeSubjectID.value = row.id
+  gradeSubjectLabel.value = `${row.code} - ${row.name}`
+  gradeComponents.splice(0, gradeComponents.length, ...defaultGradeRows())
+  gradeDialogVisible.value = true
+}
+
+function addGradeRow() {
+  gradeComponents.push(makeEmptyGradeRow())
+}
+
+function removeGradeRow(index) {
+  gradeComponents.splice(index, 1)
+  if (gradeComponents.length === 0) {
+    gradeComponents.push(makeEmptyGradeRow())
+  }
+}
+
+function closeGradeDialog() {
+  gradeDialogVisible.value = false
+}
+
+async function submitGradeComponents() {
+  const grade = gradeComponents
+    .filter((g) => g.name && g.name.trim() !== '')
+    .map((g) => ({
+      name: g.name.trim(),
+      weight_percentage: Number(g.weight_percentage) || 0,
+    }))
+
+  if (grade.length === 0) {
+    notify.error('សូមបញ្ចូលធាតុពិន្ទុយ៉ាងហោចណាស់មួយ')
+    return
+  }
+
+  gradeSubmitting.value = true
+  try {
+    const payload = {
+      subject_id: gradeSubjectID.value,
+      grade,
+    }
+    await creategradecomponent(payload)
+    notify.success('រក្សាទុកធាតុពិន្ទុបានជោគជ័យ')
+    gradeDialogVisible.value = false
+    fetchSubject()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to save grade components')
+  } finally {
+    gradeSubmitting.value = false
+  }
+}
+// =====================================================================
 
 async function fetchProgrammeOptions() {
   try {
@@ -160,6 +247,7 @@ async function fetchSubject() {
     const res = await getSubject(params)
     subject.value = res.data.data || []
     total.value = res.data.pagination.totalCount || 0
+    console.log(subject.value)
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load')
   } finally {
@@ -372,6 +460,7 @@ onMounted(() => {
     </AppFilterBar>
 
     <TableCustom
+      expandable
       :data="subject"
       :columns="columns"
       :loading="loading"
@@ -414,6 +503,9 @@ onMounted(() => {
         <el-tooltip content="កែប្រែ" placement="top">
           <AppButton icon="Edit" circle size="small" type="default" plain @click="openEdit(row)" />
         </el-tooltip>
+        <el-tooltip content="Grade Component" placement="top">
+          <AppButton icon="Tickets" circle size="small" type="default" plain @click="openGradeDialog(row)" />
+        </el-tooltip>
         <el-tooltip content="បិទ/បេីក" placement="top">
           <AppButton
             :icon="row.active ? 'CircleClose' : 'CircleCheck'"
@@ -424,6 +516,26 @@ onMounted(() => {
             @click="toggleStatus(row)"
           />
         </el-tooltip>
+      </template>
+      <template #expand="{ row }">
+         <el-divider content-position="left">Grade Component</el-divider>
+         <TableCustom
+         expandable
+        
+                 :data="row.grade_component"
+        :columns="gradecomponentcolmn"
+        :show-pagination="false"
+         >
+
+         <template #weight_percentage="{row}">
+          <el-text tag="b" style="color: crimson;">{{ row.weight_percentage }} %</el-text>
+         </template>
+
+         <template #active="{row}">
+          <el-text>{{ row.active === true ? 'សកម្ម' : 'អសកម្ម' }}</el-text>
+         </template>
+          
+         </TableCustom>
       </template>
     </TableCustom>
 
@@ -538,6 +650,64 @@ onMounted(() => {
         />
       </AppForm>
     </AppDialog>
+
+    <!-- Grade Component dialog -->
+    <AppDialog
+      v-model:visible="gradeDialogVisible"
+      :title="`Grade Component - ${gradeSubjectLabel}`"
+      :showDefaultFooter="false"
+      width="58%"
+    >
+      <div class="grade-component-list">
+        <el-row
+          v-for="(g, idx) in gradeComponents"
+          :key="idx"
+          :gutter="12"
+          class="grade-component-row"
+        >
+          <el-col :span="12">
+            <AppInput
+              v-model="g.name"
+              placeholder="ឈ្មោះ (ឧ. Midterm)"
+              clearable
+              label="ឈ្មោះ"
+            />
+          </el-col>
+          <el-col :span="9">
+            <AppInput
+              v-model.number="g.weight_percentage"
+              placeholder="ភាគរយ"
+              type="number"
+              clearable
+              label="ភាគរយ (%)"
+            />
+          </el-col>
+          <el-col :span="3" class="grade-component-row-actions">
+            <AppButton
+              icon="Delete"
+              circle
+              size="small"
+              type="danger"
+              plain
+              @click="removeGradeRow(idx)"
+            />
+          </el-col>
+        </el-row>
+
+        <AppButton type="default" icon="Plus" @click="addGradeRow">បន្ថែមធាតុពិន្ទុ</AppButton>
+
+        <div class="grade-component-total" :class="{ 'is-off': gradeTotalWeight !== 100 }">
+          សរុប: {{ gradeTotalWeight }}%
+        </div>
+      </div>
+
+      <div class="grade-component-footer">
+        <AppButton type="default" plain @click="closeGradeDialog">ចាកចេញ</AppButton>
+        <AppButton type="default" :loading="gradeSubmitting" @click="submitGradeComponents">
+          រក្សាទុក
+        </AppButton>
+      </div>
+    </AppDialog>
   </div>
 </template>
 
@@ -546,5 +716,36 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.grade-component-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grade-component-row {
+  align-items: center;
+}
+
+.grade-component-row-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.grade-component-total {
+  font-weight: bold;
+  text-align: right;
+}
+
+.grade-component-total.is-off {
+  color: #d93025;
+}
+
+.grade-component-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 </style>

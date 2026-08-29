@@ -313,6 +313,12 @@ const columnstudentterms = [
   { label: 'សកម្ម', slot: 'stActive', minwidth: 90 },
 ]
 
+const columngparecord = [
+  { prop: 'total_credit', label: 'Total Credit', minwidth: 160 },
+  { prop: 'semester_gpa', label: 'Semester GPA', minwidth: 130 },
+  { prop: 'cumulative_gpa', label: 'Cumulative GPA', minwidth: 120 },
+]
+
 const columnfees = [
   { prop: 'date', label: 'ថ្ងៃបង្កេីត', minwidth: 110 },
   { label: 'តម្លៃដេីម', slot: 'feeAmount', minwidth: 100 },
@@ -524,7 +530,7 @@ onMounted(() => {
               </AppButton>
             </el-divider>
             <TableCustom
-              show-index
+              expandable
               :data="row.student_term"
               :columns="columnstudentterms"
               :show-pagination="false"
@@ -541,6 +547,19 @@ onMounted(() => {
                 <el-tag :type="row.active ? 'success' : 'danger'" size="small">
                   {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
                 </el-tag>
+              </template>
+              <template #expand="{ row }">
+                <el-divider content-position="left">
+                  GPA Record
+                </el-divider>
+                <TableCustom
+                expandable
+                :data="row.gpa_record"
+                :columns="columngparecord"
+                :show-pagination="false"
+                >
+
+                </TableCustom>
               </template>
             </TableCustom>
 

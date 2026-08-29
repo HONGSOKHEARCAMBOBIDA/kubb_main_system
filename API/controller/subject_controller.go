@@ -75,6 +75,19 @@ func (cr *SubjectController) CreateSubject(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
 }
 
+func (cr *SubjectController) CreateGradeComponent(c *gin.Context) {
+	var input request.GradeComponentRequestCreate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CreateGradeComponent(c.Request.Context(), input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
 func (cr *SubjectController) UpdateSubject(c *gin.Context) {
 	id, ok := utils.GetParamUUID(c)
 	if !ok {

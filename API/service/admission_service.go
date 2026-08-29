@@ -256,6 +256,28 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 		}
 	}
 
+	studentTermIDs := make([]int, 0, len(studentTerms))
+	for _, studentterm := range studentTerms {
+		studentTermIDs = append(studentTermIDs, studentterm.ID)
+	}
+
+	var gparesponse []response.GpaRecordResponse
+	if len(studentTermIDs) > 0 {
+		if err := s.db.WithContext(ctx).
+			Table("gpa_records gr").
+			Where("gr.student_term_id IN ?", studentTermIDs).
+			Select(`
+			gr.id AS id,
+			gr.uuid AS uuid,
+			gr.student_term_id AS student_term_id,
+			gr.total_credit AS total_credit,
+			gr.semester_gpa AS semester_gpa,
+			gr.cumulative_gpa AS cumulative_gpa
+		`).Scan(&gparesponse).Error; err != nil {
+			return nil, nil, fmt.Errorf("fetch student terms: %w", err)
+		}
+	}
+
 	var fees []response.FeeResponse
 	if len(enrollmentIDs) > 0 {
 		if err := s.db.WithContext(ctx).
@@ -335,9 +357,14 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 		feesByEnrollment[fee.EnrollmentID] = append(feesByEnrollment[fee.EnrollmentID], fee)
 	}
 
+	gpaByStudentTerm := make(map[int][]response.GpaRecordResponse, len(gparesponse))
+	for _, gpa := range gparesponse {
+		gpaByStudentTerm[gpa.StudentTermID] = append(gpaByStudentTerm[gpa.StudentTermID], gpa)
+	}
+
 	studentTermsByEnrollment := make(map[int][]response.StudentTermResponse, len(studentTerms))
 	for _, st := range studentTerms {
-		//st.FeeResponse = feesByEnrollment[st.EnrollmentID]
+		st.GpaRecordResponse = gpaByStudentTerm[st.ID]
 		studentTermsByEnrollment[st.EnrollmentID] = append(studentTermsByEnrollment[st.EnrollmentID], st)
 	}
 
@@ -390,6 +417,18 @@ func (s *admissionservice) CreateStudentTerm(
 				"failed to finish previous student terms",
 				nil,
 			)
+		}
+		newgparecord := model.GpaRecord{
+			UUIDBase: base.UUIDBase{
+				UUID: helper.GenerateUUID(),
+			},
+			StudentTermID: studentTerm.ID,
+			TotalCredit:   0.00,
+			SemesterGpa:   0.00,
+			CumulativeGpa: 0.00,
+		}
+		if err := tx.Create(&newgparecord).Error; err != nil {
+			return err
 		}
 
 		return nil
@@ -531,6 +570,18 @@ func (s *admissionservice) CreateEnrollment(ctx context.Context, input request.E
 			}
 			if err := tx.Create(&newstudentterm).Error; err != nil {
 				return apperror.New(apperror.CodeInternal, "failed to create student term", nil)
+			}
+			newgparecord := model.GpaRecord{
+				UUIDBase: base.UUIDBase{
+					UUID: helper.GenerateUUID(),
+				},
+				StudentTermID: newstudentterm.ID,
+				TotalCredit:   0.00,
+				SemesterGpa:   0.00,
+				CumulativeGpa: 0.00,
+			}
+			if err := tx.Create(&newgparecord).Error; err != nil {
+				return err
 			}
 		}
 
