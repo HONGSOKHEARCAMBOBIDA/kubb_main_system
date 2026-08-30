@@ -78,6 +78,11 @@ func (cr *StudentController) GetStudent(c *gin.Context) {
 		"group_id":            c.Query("group_id"),
 		"phone":               c.Query("phone"),
 		"stream_id":           c.Query("stream_id"),
+		"academic_id":         c.Query("academic_id"),
+		"generation_id":       c.Query("generation_id"),
+		"programme_id":        c.Query("programme_id"),
+		"term_id":             c.Query("term_id"),
+		"major_id":            c.Query("major_id"),
 	}
 
 	data, meta, err := cr.service.GetStudent(

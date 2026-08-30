@@ -46,7 +46,7 @@ const students = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
-const filters = reactive({ name: '',student_category_id:null,group_id:null,phone:'',stream_id:null })
+const filters = reactive({ name: '',student_category_id:null,group_id:null,phone:'',stream_id:null,academic_id: null,generation_id: null,programme_id:null,term_id:null,major_id:null })
 let searchTimer = null
 
 // Detail
@@ -65,18 +65,19 @@ function closeDetail() {
 }
 
 const columns = [
-  { prop: 'code', label: 'លេខកូដ', width: 130 },
-  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 200 },
-  { prop: 'name_en', label: 'ឈ្មោះឡាតាំង', minwidth: 200 },
-  { prop: 'gender', label: 'ភេទ', slot: 'gender', width: 90 },
-  { prop: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត', minwidth: 130 },
-  { prop: 'phone', slot: 'phone', label: 'លេខទូរសព្ទ', minwidth: 130 },
-  { prop: 'discount_type', slot: 'discount_type', label: 'ប្រភេទនិស្សិត', minwidth: 180 },
-  { prop: 'student_category_name', slot: 'student_category_name', label: 'ក្រុមនិស្សិត', minwidth: 150 },
-  { prop: 'academic_stream_name', label: 'សញ្ញាបត្រទី12', minwidth: 130 },
-  { slot: 'exam_in', label: 'ប្រឡងចូល', minwidth: 150 },
-  { slot: 'exam_out', label: 'ប្រឡងចេញ', minwidth: 190 },
-  { prop: 'status', label: 'ស្ថានភាព', minwidth: 150, slot: 'status' },
+  { prop: 'name_kh',slot:'name_kh', label: 'ឈ្មោះ', minwidth: 200 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំ', width: 100 },
+  { prop: 'phone', slot: 'phone', label: 'លេខទូរសព្ទ', width: 100 },
+  { prop: 'discount_type', slot: 'discount_type', label: 'ប្រភេទនិស្សិត', width: 210 },
+  { prop: 'student_category_name', slot: 'student_category_name', label: 'ក្រុមនិស្សិត', width: 100 },
+  { prop: 'academic_stream_name', label: 'សញ្ញាបត្រទី12', width: 110 },
+  { slot: 'exam_in', label: 'ប្រឡងចូល', width: 120 },
+  { slot: 'exam_out', label: 'ប្រឡងចេញ', width: 120 },
+  { slot: 'address', label: 'អាសយដ្ឋាន', width: 130 },
+  // { prop: 'status', label: 'ស្ថានភាព', minwidth: 150, slot: 'status' },
+  { prop: 'generation_name',slot:'generation_name', label: 'ជំនាន់', width: 90 },
+  { prop: 'term_name', label: 'វគ្គ', width: 90 },
+  { prop: 'major_name',slot:'major_name', label: 'ជំនាញ', width: 150 },
 ]
 
 const columneducationdetail = [
@@ -283,9 +284,15 @@ async function fetchStudent() {
     if (filters.group_id) params.group_id = filters.group_id
     if (filters.phone) params.phone = filters.phone
     if (filters.stream_id) params.stream_id = filters.stream_id
+    if (filters.academic_id) params.academic_id = filters.academic_id
+    if (filters.generation_id) params.generation_id = filters.generation_id
+    if (filters.programme_id) params.programme_id = filters.programme_id
+    if (filters.term_id) params.term_id = filters.term_id
+    if (filters.major_id) params.major_id = filters.major_id
     const res = await getStudent(params)
     students.value = res.data.data || []
     total.value = res.data.pagination.totalCount || 0
+    console.log(students.value)
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load students')
   }
@@ -305,11 +312,20 @@ const academicDegreeOptions = ref([])
 const programmesOptions = ref([])
 const studentcategoryOptions = ref([])
 
+// Filter
+const academicFilter = ref(null)
+const academicDegreeFilter= ref([])
+const GenerationFilter = ref([])
+const GenerationFilterID = ref(null)
+const TermFilterOptions = ref([])
+// Filter
+
 const admissionAcademicID = ref(null)
 const admissionGenerationID = ref(null)
 const admissionGenerationOptions = ref([])
 const admissionTermOptions = ref([])
 const admissionDegreeOptions = ref([])
+
 
 
 const filteradmissionDegreeOptions = reactive({
@@ -399,6 +415,22 @@ async function loadAcademicdegree() {
   }
 }
 
+async function loadAcademicdegreeFilter() {
+  try {
+    const params = {}
+    if (filters.programme_id) params.programme_id = filters.programme_id
+    if (filters.academic_id) params.academic_id = filters.academic_id
+    const res = await getAcademicDegreeByAcademic(params)
+    academicDegreeFilter.value = (res.data.data || []).map((g) => ({
+      label: `${g.major_code} - ${g.programme_name} មួយឆ្នាំ ${g.yearly_fee}$`,
+      value: g.major_id,
+    }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+
 async function loadSemester(academicID) {
   if (!academicID) return []
   try {
@@ -426,7 +458,7 @@ async function loadGeneration(academicID) {
 
 async function loadTerm(geneationID) {
   if (!geneationID) return []
-  try {filter
+  try {
     const res = await getTermByGeneation(geneationID)
     return (res.data.data || []).map((g) => ({ label: g.name, value: g.id }))
   } catch (e) {
@@ -445,6 +477,19 @@ async function onAdmissionAcademicChange() {
   admissionGenerationOptions.value = await loadGeneration(admissionAcademicID.value)
   semesterOptions.value = await loadSemester(admissionAcademicID.value)
   filteradmissionDegreeOptions.academic_id = admissionAcademicID.value
+}
+
+async function onAcademicFilterChange() {
+  academicDegreeFilter.value = []
+  // admissionDegreeOptions.value = await loadAcademicdegree(admissionAcademicID.value)
+  GenerationFilter.value = await loadGeneration(academicFilter.value)
+  filters.academic_id = academicFilter.value
+}
+
+async function onGenerationFilterChange() {
+  filters.generation_id = GenerationFilterID.value
+  filters.term_id = null
+  TermFilterOptions.value = await loadTerm(GenerationFilterID.value)
 }
 
 async function onAdmissionGenerationChange() {
@@ -774,6 +819,57 @@ async function handleSubmit() {
 }
 
 watch(
+  () => filters.generation_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+     fetchStudent()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
+
+watch(
+  () => filters.academic_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+     loadAcademicdegreeFilter()
+     fetchStudent()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
+
+watch(
+  () => filters.programme_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      loadAcademicdegreeFilter()
+      fetchStudent()
+    },400)
+    
+    
+  }
+)
+
+watch(
+  () => filters.term_id,
+  () => {
+    fetchStudent()
+  }
+)
+
+watch(
+  () => filters.major_id,
+  () => {
+    fetchStudent()
+  }
+)
+
+watch(
   () => filteradmissionDegreeOptions.programme_id,
   () => {
     loadAcademicdegree()
@@ -865,7 +961,13 @@ onMounted(() => {
       { slot: 'category', span: 4 },
       { slot: 'group', span: 4 },
       { slot: 'stream', span: 4 },
-      { slot: 'create', span: 4 },
+      
+      { slot: 'academic', span: 4 },
+       { slot: 'generation', span: 4 },
+        { slot: 'term', span: 4 },
+         { slot: 'programme', span: 4 },
+          { slot: 'major', span: 4 },
+          { slot: 'create', span: 4 },
     ]">
       <template #name>
         <AppInput v-model="filters.name" placeholder="ស្វែងរកតាមឈ្មោះខ្មែរ" clearable />
@@ -888,27 +990,55 @@ onMounted(() => {
       <template #create>
         <AppButton type="primary" icon="Plus" @click="openCreate">បង្កើតនិស្សិតថ្មី</AppButton>
       </template>
+      <template #academic>
+ <AppSelect v-model="academicFilter" :options="academicOptions" placeholder="ឆ្នាំសិក្សា"
+                     clearable @change="onAcademicFilterChange" />       
+      </template>
+            <template #generation>
+ <AppSelect v-model="GenerationFilterID" :options="GenerationFilter" placeholder="ជំនាន់"
+                     clearable @change="onGenerationFilterChange" />       
+      </template>
+      <template #term>
+ <AppSelect v-model="filters.term_id" :options="TermFilterOptions" placeholder="វគ្គ"
+                     clearable @change="" />       
+      </template>
+          <template #programme>
+ <AppSelect v-model="filters.programme_id" :options="programmesOptions" placeholder="កម្រិត"
+                     clearable @change="" />       
+      </template>  
+      <template #major>
+ <AppSelect v-model="filters.major_id" :options="academicDegreeFilter" placeholder="ជំនាញ"
+                     clearable @change="" />       
+      </template> 
     </AppFilterBar>
 
-    <TableCustom :data="students" :columns="columns" :total="total" v-model:current-page="page"
-      v-model:page-size="pageSize" @page-change="fetchStudent">
+    <TableCustom expandable :data="students" :columns="columns" :total="total" v-model:current-page="page"
+      v-model:page-size="pageSize" @page-change="fetchStudent"
+      actions-width="120px"
+      >
+      <template #name_kh="{row}">
+        <div><el-text size="small" style="color: black;">{{ row.name_kh }} | {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }} | {{ row.nationality }}</el-text></div>
+        <div><el-text size="small" type="primary">{{ row.name_en }}</el-text> | <el-text size="small">{{ row.code }}</el-text> | <el-text size="small">{{ row.occupation }}</el-text></div>
+      </template>
       <template #discount_type="{ row }">
-        <el-text tag="b" style="color: black;">
+        <el-text  style="color: black;">
           {{
             row.discount_type === 'percentage'
-              ? `${row.group_name} - ${row.discount_percentage} %`
-              : `${row.group_name} - ${row.discount_amount} $`
+              ? `${row.group_name} - បញ្ចុះតម្លៃ ${row.discount_percentage} %`
+              : `${row.group_name} - បញ្ចុះតម្លៃ ${row.discount_amount} $`
           }}
         </el-text>
       </template>
       <template #phone="{ row }">
-        <el-text tag="b" type="danger">{{ row.phone }}</el-text>
+        <div><el-text size="default" >{{ row.phone }}</el-text></div>
+        <!-- <div><el-text size="small" type="primary" >{{ row.email }}</el-text></div> -->
+      </template>
+      <template #address="{row}">
+        <div><el-text size="small">{{ row.villlage_name_kh }}, {{ row.communce_name }}</el-text></div>
+        <div><el-text size="small">{{ row.distirct_name }}, <el-text size="small" type="primary">{{ row.province_name }}</el-text></el-text></div>
       </template>
       <template #student_category_name="{ row }">
-        <el-text tag="b" type="primary">{{ row.student_category_name }}</el-text>
-      </template>
-      <template #gender="{ row }">
-        {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+        <el-text  type="primary">{{ row.student_category_name }}</el-text>
       </template>
 
       <template #status="{ row }">
@@ -918,15 +1048,25 @@ onMounted(() => {
       </template>
 
       <template #exam_in="{ row }">
-        <el-text tag="b" :type="row.exam_in ? 'success' : 'danger'">
-          {{ row.exam_in ? 'បានប្រឡងចូល' : 'មិនទាន់ប្រឡងចូល' }}
+        <el-text >
+          {{ row.exam_in ? 'បាន' : 'មិនទាន់' }}
         </el-text>
       </template>
 
       <template #exam_out="{ row }">
-        <el-text tag="b" :type="row.exam_out ? 'success' : 'danger'">
-          {{ row.exam_out ? 'បានប្រឡងចេញ' : 'មិនទាន់ប្រឡងចេញ' }}
+        <el-text >
+          {{ row.exam_out ? 'បាន' : 'មិនទាន់' }}
         </el-text>
+      </template>
+
+      <template #generation_name="{row}">
+        <div><el-text>{{ row.generation_name }}</el-text></div>
+        <div><el-text size="small" type="primary">{{ row.academic_name }}</el-text></div>
+      </template>
+
+      <template #major_name="{row}">
+        <div><el-text>{{ row.major_name }}</el-text></div>
+        <div><el-text size="small" type="primary">{{ row.programme_name }}</el-text></div>
       </template>
 
       <template #actions="{ row }">

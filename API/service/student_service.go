@@ -442,6 +442,15 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 	base := func() *gorm.DB {
 		return s.db.WithContext(ctx).
 			Table("students s").
+			Joins("LEFT JOIN admissions a ON a.student_id = s.id").
+			Joins("LEFT JOIN terms t ON t.id = a.term_id").
+			Joins("LEFT JOIN generations g ON g.id = t.generation_id").
+			Joins("LEFT JOIN academics ac ON ac.id = g.academic_id").
+			Joins("LEFT JOIN academic_degrees ad ON ad.id = a.academic_degree_id").
+			Joins("LEFT JOIN majors m ON m.id = ad.major_id").
+			Joins("LEFT JOIN departments d ON d.id = m.department_id").
+			Joins("LEFT JOIN faculties fc ON fc.id = d.faculty_id").
+			Joins("LEFT JOIN programmes p ON p.id = fc.programme_id").
 			Joins("LEFT JOIN student_category sg ON sg.id = s.student_category_id").
 			Joins("LEFT JOIN fee_discount_groups f ON f.id = s.group_id").
 			Joins("LEFT JOIN academic_streams asd ON asd.id = s.academic_stream_id").
@@ -470,6 +479,21 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 		}
 		if v, ok := filter["stream_id"]; ok && v != "" {
 			tx = tx.Where("s.academic_stream_id = ?", v)
+		}
+		if v, ok := filter["academic_id"]; ok && v != "" {
+			tx = tx.Where("ac.id = ?", v)
+		}
+		if v, ok := filter["generation_id"]; ok && v != "" {
+			tx = tx.Where("g.id = ?", v)
+		}
+		if v, ok := filter["programme_id"]; ok && v != "" {
+			tx = tx.Where("p.id = ?", v)
+		}
+		if v, ok := filter["term_id"]; ok && v != "" {
+			tx = tx.Where("t.id = ?", v)
+		}
+		if v, ok := filter["major_id"]; ok && v != "" {
+			tx = tx.Where("m.id = ?", v)
 		}
 		return tx
 	}
@@ -518,7 +542,17 @@ func (s *studentService) GetStudent(ctx context.Context, pf request.Pagination, 
 			sp.name_kh AS province_name,
 			s.occupation AS occupation,
 			asd.id AS academic_stream_id,
-			asd.name AS academic_stream_name
+			asd.name AS academic_stream_name,
+			t.id AS term_id,
+			t.name AS term_name,
+			g.id AS generation_id,
+			g.name AS generation_name,
+			ac.id AS academic_id,
+			ac.name AS academic_name,
+			m.id AS major_id,
+			m.name AS major_name,
+			p.id AS programme_id,
+			p.name AS programme_name
 		`).Order("s.id DESC").Offset(offset).Limit(pf.PageSize)
 
 	if err := dataQuery.Scan(&data).Error; err != nil {

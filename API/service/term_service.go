@@ -71,7 +71,7 @@ func (s *termservice) GetTermByGeneration(ctx context.Context, generationID int)
 			t.end_date AS end_date,
 			t.description AS description,
 			t.active AS active
-		`).Where("t.generation_id = ? AND t.active = ?", generationID, true)
+		`).Where("t.generation_id = ?", generationID)
 	if err := dataQuery.Scan(&data).Error; err != nil {
 		return nil, err
 	}
