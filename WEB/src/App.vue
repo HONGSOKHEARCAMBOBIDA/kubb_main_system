@@ -17,10 +17,10 @@ onMounted(() => {
 
 <template>
   <router-view v-slot="{ Component, route }">
-    <transition name="app-fade" mode="out-in">
+    <!-- <transition name="app-fade" mode="out-in">
       <component :is="Component" :key="route.fullPath" />
-    </transition>
-    
+    </transition> -->
+    <component :is="Component" :key="route.fullPath" />
   </router-view>
 
   <!-- Global loading overlay, toggled by the loading store / axios interceptors -->

@@ -330,7 +330,7 @@ async function fetchStudent() {
     const res = await getStudent(params)
     students.value = res.data.data || []
     total.value = res.data.pagination.totalCount || 0
-    console.log(students.value)
+    
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load students')
   }

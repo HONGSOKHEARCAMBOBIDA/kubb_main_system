@@ -159,7 +159,8 @@ const (
 	SchoolarshipGroupToggle = "SchoolarshipGroup.toggle/:uuid"
 
 	// Admission
-	AdmissionView = "admission.view"
+	AdmissionView   = "admission.view"
+	AdmissionUpdate = "admission.update/:uuid"
 
 	// Invoice
 	InvoiceCreate = "invoice.create"

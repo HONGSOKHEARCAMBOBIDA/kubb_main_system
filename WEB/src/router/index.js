@@ -202,9 +202,9 @@ const routes = [
       },
       {
         path: 'admission',
-        name: 'និស្សិតបានចុះឈ្មោះសិក្សា',
+        name: 'និស្សិតបង់ថ្លៃសិក្សាសិក្សា',
         component: () => import('@/views/admission/admission.vue'),
-        meta: { title: 'និស្សិតបានចុះឈ្មោះសិក្សា', icone: 'Document' },
+        meta: { title: 'និស្សិតបង់ថ្លៃសិក្សាសិក្សា', icone: 'Document' },
       },
       {
         path: 'teacher',

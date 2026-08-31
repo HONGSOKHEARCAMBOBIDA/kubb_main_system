@@ -7,6 +7,7 @@ import (
 	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
+	"mysql/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -94,4 +95,23 @@ func (cr *AdmissionController) CreateEnrollment(c *gin.Context) {
 		return
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Created)
+}
+
+func (cr *AdmissionController) UpdateAdmission(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+
+	var input request.AdmissionRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	//log.Printf("Update request: %+v", input)
+	if err := cr.service.UpdateAdmission(c.Request.Context(), id, input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
 }

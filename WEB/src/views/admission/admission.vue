@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { getAdmission } from '../../services/admission.service'
+import { getAdmission,updateAdmission } from '../../services/admission.service'
 import { invoicecreate } from '../../services/invoice.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
@@ -15,6 +15,8 @@ import { getSemesterByAcademic } from '../../services/semester.service.js'
 import { getAcademics } from '../../services/academic.service.js'
 import { EnrollmentCreate } from '../../services/enrollment.service.js'
 import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
+import { getGenerationByAcademic } from '../../services/generation.service.js'
+import { getTermByGeneation } from '../../services/term.service'
 const notify = useNotification()
 
 const admissions = ref([])
@@ -139,6 +141,96 @@ const formenrollment = reactive({
     study_year_id: null,
   },
 })
+
+// formupdateadmission
+const updateAdmissionVisible = ref(false)
+const admissionUpdateID = ref(null)
+const selectacademicforupdateadmission = ref(null)
+const selectgenerationforupdateadmission = ref(null)
+const selecttermforupdateadmission = ref(null)
+const generationOptions = ref([])
+const termOptions = ref([])
+const formupdateadmission = reactive({
+  term_id: null,
+  state: ''
+})
+async function openUpdateAdmission(row) {
+  admissionUpdateID.value = row.uuid
+  formupdateadmission.state = row.state
+  formupdateadmission.term_id = row.term_id ?? null
+
+  selectacademicforupdateadmission.value = row.academic_id ?? null
+  generationOptions.value = selectacademicforupdateadmission.value
+    ? await loadGeneration(selectacademicforupdateadmission.value)
+    : []
+
+  selectgenerationforupdateadmission.value = row.generation_id ?? null
+  termOptions.value = selectgenerationforupdateadmission.value
+    ? await loadTerm(selectgenerationforupdateadmission.value)
+    : []
+
+  updateAdmissionVisible.value = true
+}
+
+function closeUpdateAdmission() {
+  updateAdmissionVisible.value = false
+  admissionUpdateID.value = null
+}
+
+async function submitUpdateAdmission() {
+  try {
+    await updateAdmission(admissionUpdateID.value, {
+      term_id: formupdateadmission.term_id,
+      state: formupdateadmission.state,
+    })
+    notify.success('កែប្រែពាក្យសុំដោយជោគជ័យ')
+    updateAdmissionVisible.value = false
+    fetchAdmissions()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to update admission')
+  }
+}
+
+const admissionStateOptions = [
+  { label: 'កំពុងរង់ចាំ', value: 'created' },
+  { label: 'ត្រូវបានទទួលយក', value: 'approved' },
+  { label: 'បដិសេធ', value: 'rejected' },
+]
+
+
+async function loadGeneration(academicID) {
+  if (!academicID) return []
+  try {
+    const res = await getGenerationByAcademic(academicID)
+    return (res.data.data || []).map((g) => ({ label: g.name, value: g.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}     
+
+async function loadTerm(geneationID) {
+  if (!geneationID) return []
+  try {
+    const res = await getTermByGeneation(geneationID)
+    return (res.data.data || []).map((g) => ({ label: g.name, value: g.id }))
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
+    return []
+  }
+}
+
+async function onAcademicChange() {
+  selectgenerationforupdateadmission.value = null
+  generationOptions.value = await loadGeneration(selectacademicforupdateadmission.value)
+}
+
+async function onGenerationChange() {
+  selecttermforupdateadmission.value = null
+  termOptions.value = await loadTerm(selectgenerationforupdateadmission.value)
+}
+
+// formupdateadmission
 
 const addenrollmentvisible = ref(false)
 function openCreateEnrollment(admission) {
@@ -286,16 +378,16 @@ function formatMoney(v) {
 
 const columns = [
   { slot: 'student_name', label: 'ឈ្មោះ', minwidth: 160 },
-  { prop: 'term_name', label: 'វគ្គ', minwidth: 140 },
-  { prop: 'generation_name', label: 'ជំនាន់', slot: 'generation', minwidth: 130 },
-  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', slot: 'academic', minwidth: 130 },
+  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', slot: 'academic', width: 130 },
+  { prop: 'generation_name', label: 'ជំនាន់', slot: 'generation', width: 130 },
+  { prop: 'term_name', label: 'វគ្គ', width: 80 },
+
   { slot: 'major_name', label: 'ជំនាញ', minwidth: 150 },
-  { prop: 'programme_name', label: 'កម្រិត', minwidth: 150 },
+  { prop: 'programme_name', label: 'កម្រិត', width: 110 },
   { slot: 'group', label: 'ក្រុមបញ្ចុះតម្លៃ', minwidth: 150 },
-  { prop: 'date', label: 'ថ្ងៃដាក់ពាក្យ', minwidth: 120 },
-  { label: 'ស្ថានភាពពាក្យសុំ', slot: 'state', minwidth: 130 },
-  { label: 'ចំនួនដាក់ពាក្យ', slot: 'enrollCount', minwidth: 130 },
-  { label: 'ស្ថានភាព', slot: 'isActive', minwidth: 100 },
+  { prop: 'date', label: 'ថ្ងៃដាក់ពាក្យ', width: 100 },
+  { label: 'ស្ថានភាពពាក្យ', slot: 'state', width: 120 },
+  { label: 'ចំនួនដាក់ពាក្យ', slot: 'enrollCount', width: 130 },
 ]
 
 const columnenrollments = [
@@ -368,8 +460,7 @@ async function fetchAdmissions() {
 
     const res = await getAdmission(params)
     admissions.value = res.data.data || []
-    total.value = res.data.total || 0
-    console.log(admissions.value)
+    total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load admissions')
   } finally {
@@ -429,15 +520,19 @@ onMounted(() => {
       <template #student_name="{ row }">
         <el-text>
           <div>
-            {{ row.student_name_kh }} (<el-text type="warning">{{ row.student_gender }}</el-text
-            >)
+            <el-text size="small"
+              >{{ row.student_name_kh }} |
+              <el-text size="small">{{ row.student_gender }}</el-text></el-text
+            >
           </div>
-          <div>{{ row.student_name_en }}</div>
+          <div>
+            <el-text type="primary">{{ row.student_name_en }}</el-text>
+          </div>
         </el-text>
       </template>
 
       <template #generation="{ row }">
-        <el-text tag="b" style="color: darkcyan">{{ row.generation_name || '-' }}</el-text>
+        <el-text>{{ row.generation_name || '-' }}</el-text>
       </template>
 
       <template #academic="{ row }">
@@ -449,35 +544,46 @@ onMounted(() => {
       </template>
 
       <template #enrollCount="{ row }">
-        <el-text tag="b" style="color: dodgerblue">
-          {{ (row.enrollment || []).length }} ដង
-        </el-text>
+        <el-text> {{ (row.enrollment || []).length }} ដង </el-text>
       </template>
 
       <template #major_name="{ row }">
         <el-text>
-          <div>{{ row.major_name }}</div>
           <div>
-            <el-text type="primary">{{ row.yearly_fee }}$ /Year</el-text>
+            <el-text>{{ row.major_name }} | {{ row.major_code }}</el-text>
+          </div>
+          <div>
+            <el-text size="small" type="primary"
+              >{{ row.yearly_fee }}$ /ឆ្នាំ | {{ row.semesterly_fee }}$ /ឆមាស |
+              {{ row.quarterly_fee }}$ /ត្រីមាស | {{ row.monthly_fee }}$ /ខែ</el-text
+            >
           </div>
         </el-text>
       </template>
 
+      >
       <template #group="{ row }">
-        <el-text tag="b" style="color: crimson">
+        <el-text style="color: black">
           {{
             row.discount_type === 'percentage'
-              ? `${row.discount_percentage}%`
-              : `${formatMoney(row.discount_amount)}$`
+              ? `${row.group_name} - បញ្ចុះតម្លៃ ${row.discount_percentage} %`
+              : `${row.group_name} - បញ្ចុះតម្លៃ ${row.discount_amount} $`
           }}
         </el-text>
       </template>
 
-      <template #isActive="{ row }">
-        <el-tag :type="row.active ? 'success' : 'danger'">
-          {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
-        </el-tag>
-      </template>
+<template #actions="{ row }">
+  <el-tooltip content="កែប្រែ" placement="top">
+    <AppButton
+      icon="Edit"
+      circle
+      size="small"
+      plain
+      type="warning"
+      @click="openUpdateAdmission(row)"
+    />
+  </el-tooltip>
+</template>
 
       <!-- Level 1: enrollments -->
       <template #expand="{ row }">
@@ -549,16 +655,13 @@ onMounted(() => {
                 </el-tag>
               </template>
               <template #expand="{ row }">
-                <el-divider content-position="left">
-                  GPA Record
-                </el-divider>
+                <el-divider content-position="left"> GPA Record </el-divider>
                 <TableCustom
-                expandable
-                :data="row.gpa_record"
-                :columns="columngparecord"
-                :show-pagination="false"
+                  expandable
+                  :data="row.gpa_record"
+                  :columns="columngparecord"
+                  :show-pagination="false"
                 >
-
                 </TableCustom>
               </template>
             </TableCustom>
@@ -852,6 +955,66 @@ onMounted(() => {
         </el-row>
       </AppForm>
     </AppDialog>
+<AppDialog
+  v-if="updateAdmissionVisible"
+  v-model:visible="updateAdmissionVisible"
+  title="កែប្រែពាក្យសុំចូលរៀន"
+  :showDefaultFooter="false"
+  width="600px"
+  @close="closeUpdateAdmission"
+>
+  <AppForm
+    :model="formupdateadmission"
+    :show-actions="true"
+    @submit="submitUpdateAdmission"
+    submitText="រក្សាទុក"
+  >
+    <el-row :gutter="20">
+      <el-col :span="8">
+        <AppSelect
+          v-model="selectacademicforupdateadmission"
+          :options="academicOptions"
+          placeholder="ឆ្នាំសិក្សា"
+          label="ឆ្នាំសិក្សា"
+          clearable
+          @change="onAcademicChange"
+        />
+      </el-col>
+      <el-col :span="8">
+        <AppSelect
+          v-model="selectgenerationforupdateadmission"
+          :options="generationOptions"
+          :disabled="!selectacademicforupdateadmission"
+          placeholder="ជំនាន់"
+          label="ជំនាន់"
+          clearable
+          @change="onGenerationChange"
+        />
+      </el-col>
+      <el-col :span="8">
+        <AppSelect
+          v-model="formupdateadmission.term_id"
+          :options="termOptions"
+          :disabled="!selectgenerationforupdateadmission"
+          placeholder="វគ្គ"
+          label="វគ្គ"
+          clearable
+        />
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col>
+        <AppSelect
+          v-model="formupdateadmission.state"
+          :options="admissionStateOptions"
+          placeholder="ស្ថានភាពពាក្យ"
+          label="ស្ថានភាពពាក្យ"
+          clearable
+        />
+      </el-col>
+    </el-row>
+  </AppForm>
+</AppDialog>
   </div>
 </template>
 

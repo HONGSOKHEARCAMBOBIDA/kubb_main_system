@@ -10,3 +10,8 @@ type AdmissionRequestCreate struct {
 	Description      string               `json:"description" gorm:"column:description"`
 	ReferralSchool   string               `json:"referral_school" gorm:"column:referral_school"`
 }
+
+type AdmissionRequestUpdate struct {
+	TermID         int                  `json:"term_id" gorm:"column:term_id"`
+	AdmissionState model.AdmissionState `json:"state"`
+}

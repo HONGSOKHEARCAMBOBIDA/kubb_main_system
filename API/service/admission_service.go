@@ -23,6 +23,7 @@ type AdmissionService interface {
 	CreateStudentTerm(ctx context.Context, input request.StudentTermRequestv2) error
 	CreateEnrollment(ctx context.Context, input request.EnrollmentRequestCreateV2) error
 	GetStudentTermFilter(ctx context.Context, filter map[string]string) ([]response.StudentTermResponsebyFilter, error)
+	UpdateAdmission(ctx context.Context, uuid string, input request.AdmissionRequestUpdate) error
 }
 
 type admissionservice struct {
@@ -33,6 +34,27 @@ func NewAdmissionService() AdmissionService {
 	return &admissionservice{
 		db: config.DB,
 	}
+}
+
+func (s *admissionservice) UpdateAdmission(ctx context.Context, uuid string, input request.AdmissionRequestUpdate) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var admission model.Admission
+		if err := tx.Where("uuid = ?", uuid).First(&admission).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "admission not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch admission", nil)
+		}
+		admission.TermID = input.TermID
+		admission.State = input.AdmissionState
+		if err := tx.Save(&admission).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+		return nil
+	})
+	return err
 }
 
 func (s *admissionservice) GetStudentTermFilter(ctx context.Context, filter map[string]string) ([]response.StudentTermResponsebyFilter, error) {
@@ -164,6 +186,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 			s.name_kh AS student_name_kh,
 			s.name_en AS student_name_en,
 			s.gender AS student_gender,
+			fd.name AS group_name,
 			fd.discount_type AS discount_type,
 			fd.discount_percentage AS discount_percentage,
 			fd.discount_amount AS discount_amount,

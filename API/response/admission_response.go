@@ -12,6 +12,7 @@ type AdmissionResponse struct {
 	StudentNameKh             string               `json:"student_name_kh"`
 	StudentNameEn             string               `json:"student_name_en"`
 	StudentGender             string               `json:"student_gender"`
+	StudentGroupName          string               `json:"group_name" gorm:"column:group_name"`
 	StudentDiscountType       model.DiscountType   `json:"discount_type"`
 	StudentDiscountPercentage float64              `json:"discount_percentage" gorm:"column:discount_percentage"`
 	StudentDiscountAmount     float64              `json:"discount_amount" gorm:"column:discount_amount"`
