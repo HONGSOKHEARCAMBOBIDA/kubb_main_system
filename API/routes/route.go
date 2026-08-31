@@ -209,6 +209,7 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Enrollment
 		auth.POST(route.EnrollmentCreate, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.CreateEnrollment)
+		auth.PUT(route.EnrollmentUpdate, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.UpdateEnrollment)
 
 		// ClassCurriculumn
 		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)

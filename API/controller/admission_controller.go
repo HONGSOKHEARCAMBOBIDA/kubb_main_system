@@ -46,7 +46,11 @@ func (cr *AdmissionController) GetAdmission(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 
 	filter := map[string]string{
-		"name": c.Query("name"),
+		"student_id":    c.Query("student_id"),
+		"student_name":  c.Query("student_name"),
+		"academic_id":   c.Query("academic_id"),
+		"generation_id": c.Query("generation_id"),
+		"term_id":       c.Query("term_id"),
 	}
 
 	data, meta, err := cr.service.GetAdmission(c.Request.Context(), request.Pagination{
@@ -110,6 +114,25 @@ func (cr *AdmissionController) UpdateAdmission(c *gin.Context) {
 	}
 	//log.Printf("Update request: %+v", input)
 	if err := cr.service.UpdateAdmission(c.Request.Context(), id, input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
+}
+
+func (cr *AdmissionController) UpdateEnrollment(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+
+	var input request.EnrollmentRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	//log.Printf("Update request: %+v", input)
+	if err := cr.service.UpdateEnrollment(c.Request.Context(), id, input); err != nil {
 		share.RespondServiceError(c, err)
 		return
 	}

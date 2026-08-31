@@ -13,3 +13,7 @@ type EnrollmentRequestCreateV2 struct {
 	FeeInterval              model.FeeInterval         `json:"fee_interval"`
 	StudentTermRequestCreate *StudentTermRequestCreate `json:"student_term"`
 }
+
+type EnrollmentRequestUpdate struct {
+	Description string `json:"description"`
+}

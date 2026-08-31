@@ -171,6 +171,7 @@ const (
 
 	// Enrollment
 	EnrollmentCreate = "enrollment.create"
+	EnrollmentUpdate = "enrollment.update/:uuid"
 
 	// ClassCurriculumn
 	ClassCurriculumnCreate              = "class_curriculmn.create"

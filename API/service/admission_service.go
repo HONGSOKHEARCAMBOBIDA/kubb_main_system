@@ -24,6 +24,7 @@ type AdmissionService interface {
 	CreateEnrollment(ctx context.Context, input request.EnrollmentRequestCreateV2) error
 	GetStudentTermFilter(ctx context.Context, filter map[string]string) ([]response.StudentTermResponsebyFilter, error)
 	UpdateAdmission(ctx context.Context, uuid string, input request.AdmissionRequestUpdate) error
+	UpdateEnrollment(ctx context.Context, uuid string, input request.EnrollmentRequestUpdate) error
 }
 
 type admissionservice struct {
@@ -34,6 +35,26 @@ func NewAdmissionService() AdmissionService {
 	return &admissionservice{
 		db: config.DB,
 	}
+}
+
+func (s *admissionservice) UpdateEnrollment(ctx context.Context, uuid string, input request.EnrollmentRequestUpdate) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var enrollment model.Enrollment
+		if err := tx.Where("uuid = ?", uuid).First(&enrollment).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "enrollment not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch enrollment", nil)
+		}
+		enrollment.Description = &input.Description
+		if err := tx.Save(&enrollment).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+		return nil
+	})
+	return err
 }
 
 func (s *admissionservice) UpdateAdmission(ctx context.Context, uuid string, input request.AdmissionRequestUpdate) error {
@@ -151,7 +172,16 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 
 	applyFilters := func(tx *gorm.DB) *gorm.DB {
 		if v, ok := filter["student_id"]; ok && v != "" {
-			tx = tx.Where("s.id = ?", v)
+			tx = tx.Where("s.code = ?", v)
+		}
+		if v, ok := filter["academic_id"]; ok && v != "" {
+			tx = tx.Where("a.id = ?", v)
+		}
+		if v, ok := filter["generation_id"]; ok && v != "" {
+			tx = tx.Where("g.id = ?", v)
+		}
+		if v, ok := filter["term_id"]; ok && v != "" {
+			tx = tx.Where("t.id = ?", v)
 		}
 		if v, ok := filter["student_name"]; ok && v != "" {
 			tx = tx.Where(
@@ -183,6 +213,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 			adm.referral_school AS referral_school,
 			adm.active AS active,
 			s.id AS student_id,
+			s.code AS student_code,
 			s.name_kh AS student_name_kh,
 			s.name_en AS student_name_en,
 			s.gender AS student_gender,
@@ -192,8 +223,10 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 			fd.discount_amount AS discount_amount,
 			t.id AS term_id,
 			t.name AS term_name,
+			g.id AS generation_id,
 			g.code AS generation_code,
 			g.name AS generation_name,
+			a.id AS academic_id,
 			a.code AS academic_code,
 			a.name AS academic_name,
 			ad.id AS academic_degree_id,
@@ -239,12 +272,12 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 			s.discount_percentage AS schoolarship_discount_percentage,
 			e.fee_interval AS fee_interval,
 			e.description AS description,
-				(
-		SELECT st.study_year_id
-		FROM student_terms st
-		WHERE st.enrollment_id = e.id
-		LIMIT 1
-	) AS year_id
+			(
+				SELECT st.study_year_id
+				FROM student_terms st
+				WHERE st.enrollment_id = e.id
+				LIMIT 1
+			) AS year_id
 		`).Scan(&enrollments).Error; err != nil {
 		return nil, nil, fmt.Errorf("fetch enrollments: %w", err)
 	}
@@ -470,7 +503,6 @@ func (s *admissionservice) CreateEnrollment(ctx context.Context, input request.E
 		},
 		AdmissionID:    input.AdmissionID,
 		SchoolarshipID: input.SchoolarshipID,
-		SectionID:      nil,
 		FeeInterval:    input.FeeInterval,
 	}
 

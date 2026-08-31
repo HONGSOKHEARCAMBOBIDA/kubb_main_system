@@ -13,12 +13,12 @@ import AppSelect from '../../components/common/AppSelect.vue'
 import { studentTermCreate } from '../../services/studentterm.service.js'
 import { getSemesterByAcademic } from '../../services/semester.service.js'
 import { getAcademics } from '../../services/academic.service.js'
-import { EnrollmentCreate } from '../../services/enrollment.service.js'
-import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
+import { EnrollmentCreate,EnrollmentUpdate } from '../../services/enrollment.service.js'
+import { getSchoolarshipGroup } from '../../services/schoolarship.service.js' 
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
 const notify = useNotification()
-
+let searchTimer = null
 const admissions = ref([])
 const loading = ref(false)
 const total = ref(0)
@@ -94,7 +94,39 @@ async function submitstudentterm() {
 const filters = reactive({
   student_id: '',
   student_name: '',
+  academic_id: null,
+  generation_id: null,
+  term_id: null
 })
+
+const updateenrollmentvisible = ref(false)
+const enrollmentuuid = ref(null)
+const formupdateenrollment = reactive({
+  description: ''
+})
+
+async function openenrollment(row){
+  enrollmentuuid.value = row.uuid           
+  formupdateenrollment.description = row.description  
+  updateenrollmentvisible.value = true
+}
+
+async function closeenrollment(row){
+  updateenrollmentvisible.value = false
+}
+
+async function submitUpdateEnrollment() {
+  try {
+    await EnrollmentUpdate(enrollmentuuid.value, {
+      description: formupdateenrollment.description,
+    })
+    notify.success('កែប្រែដោយជោគជ័យ')
+    updateenrollmentvisible.value = false
+    fetchAdmissions()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to update admission')
+  }
+}
 
 const form = reactive({
   installment_uuid: '',
@@ -141,6 +173,14 @@ const formenrollment = reactive({
     study_year_id: null,
   },
 })
+
+// Filter
+const generationFilterOptions = ref([])
+const termFilterOptions = ref([])
+const academicfilter = ref(null)
+const generationfilter = ref(null)
+const termfilter = ref(null)
+// Filter
 
 // formupdateadmission
 const updateAdmissionVisible = ref(false)
@@ -219,6 +259,20 @@ async function loadTerm(geneationID) {
     return []
   }
 }
+
+async function onAcademicFilterChange() {
+  filters.generation_id = null
+  filters.term_id = null
+  generationFilterOptions.value = await loadGeneration(filters.academic_id)
+  termFilterOptions.value = []
+}
+
+async function onGenerationFilterChange() {
+  filters.term_id = null
+  termFilterOptions.value = await loadTerm(filters.generation_id)
+}
+
+
 
 async function onAcademicChange() {
   selectgenerationforupdateadmission.value = null
@@ -457,7 +511,9 @@ async function fetchAdmissions() {
     }
     if (filters.student_id) params.student_id = filters.student_id
     if (filters.student_name) params.student_name = filters.student_name
-
+    if (filters.academic_id) params.academic_id = filters.academic_id
+    if (filters.generation_id) params.generation_id = filters.generation_id
+    if (filters.term_id) params.term_id = filters.term_id
     const res = await getAdmission(params)
     admissions.value = res.data.data || []
     total.value = res.data.pagination.totalCount || 0
@@ -468,10 +524,60 @@ async function fetchAdmissions() {
   }
 }
 
-function onFilterChange() {
-  page.value = 1
-  fetchAdmissions()
-}
+watch(
+  () => filters.generation_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      fetchAdmissions()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
+
+watch(
+  () => filters.term_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      fetchAdmissions()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
+
+watch(
+  () => filters.academic_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      fetchAdmissions()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
+
+watch(
+  () => filters.student_id,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      fetchAdmissions()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
+
+watch(
+  () => filters.student_name,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      page.value = 1
+      fetchAdmissions()
+    }, 400) // debounce so we don't hit the API on every keystroke
+  }
+)
 
 onMounted(() => {
   fetchAdmissions()
@@ -484,17 +590,20 @@ onMounted(() => {
   <div class="admission-page">
     <AppFilterBar
       :fields="[
-        { slot: 'studentId', span: 5 },
-        { slot: 'studentName', span: 5 },
+        { slot: 'studentId', span: 3 },
+        { slot: 'studentName', span: 3 },
+        { slot: 'academic', span: 3 },
+        { slot: 'generation', span: 3 },
+         { slot: 'term', span: 3 },
       ]"
-      :action-span="3"
+     
     >
       <template #studentId>
         <AppInput
           v-model="filters.student_id"
           placeholder="លេខសម្គាល់សិស្ស"
           clearable
-          @change="onFilterChange"
+         
         />
       </template>
       <template #studentName>
@@ -502,7 +611,22 @@ onMounted(() => {
           v-model="filters.student_name"
           placeholder="ស្វែងរកតាមឈ្មោះសិស្ស"
           clearable
-          @change="onFilterChange"
+          
+        />
+      </template>
+      <template #academic>
+<AppSelect v-model="filters.academic_id" :options="academicOptions" @change="onAcademicFilterChange" clearable placeholder="ឆ្នាំសិក្សា" />
+      </template>
+      <template #generation>
+<AppSelect v-model="filters.generation_id" :options="generationFilterOptions" @change="onGenerationFilterChange" clearable placeholder="ជំនាន់"/>
+      </template>
+      <template #term>
+        <AppSelect
+          v-model="filters.term_id"
+          :options="termFilterOptions"
+          placeholder="វគ្គ"
+          clearable
+          @change=""
         />
       </template>
     </AppFilterBar>
@@ -526,7 +650,7 @@ onMounted(() => {
             >
           </div>
           <div>
-            <el-text type="primary">{{ row.student_name_en }}</el-text>
+            <el-text size="small" tag="b" type="primary">{{ row.student_name_en }} | <el-text size="small">{{ row.student_code }}</el-text></el-text>
           </div>
         </el-text>
       </template>
@@ -579,7 +703,7 @@ onMounted(() => {
       circle
       size="small"
       plain
-      type="warning"
+      type="primary"
       @click="openUpdateAdmission(row)"
     />
   </el-tooltip>
@@ -590,6 +714,7 @@ onMounted(() => {
         <el-divider content-position="left"
           >ព័ត៌មានដាក់ពាក្យ
           <AppButton
+            plain
             v-if="row.enrollment?.length < 5"
             @click="openCreateEnrollment(row)"
             type="primary"
@@ -604,22 +729,24 @@ onMounted(() => {
           :show-pagination="false"
         >
           <template #year_id="{ row }">
-            <el-text tag="b"> ឆ្នាំទី {{ row.year_id }} </el-text>
+            <el-text > ឆ្នាំទី {{ row.year_id }} </el-text>
           </template>
           <template #schoolarship="{ row }">
-            <el-text v-if="row.schoolarship_id" tag="b" style="color: crimson">
-              {{ row.schoolarship_name }} —
-              {{
+            <el-text v-if="row.schoolarship_id"  >
+              {{ row.schoolarship_name }} |
+              <el-text type="primary">
+                              {{
                 row.schoolarship_discount_type === 'percentage'
                   ? `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_percentage}%`
                   : `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_amount}$`
               }}
+              </el-text>
             </el-text>
             <el-text v-else type="info">គ្មាន</el-text>
           </template>
 
           <template #fee_interval="{ row }">
-            <el-text tag="b" type="success">{{
+            <el-text>{{
               labelOf(feeIntervalLabels, row.fee_interval)
             }}</el-text>
           </template>
@@ -627,6 +754,18 @@ onMounted(() => {
           <template #description="{ row }">
             <el-text>{{ row.description || '-' }}</el-text>
           </template>
+
+<template #actions="{ row }">
+  <AppButton
+    size="small"
+    circle
+    plain
+    icon="Edit"
+    type="primary"
+    @click="openenrollment(row)"
+  >
+  </AppButton>
+</template>
 
           <template #expand="{ row }">
             <el-divider content-position="left">
@@ -1013,6 +1152,30 @@ onMounted(() => {
         />
       </el-col>
     </el-row>
+  </AppForm>
+</AppDialog>
+
+<AppDialog
+  v-if="updateenrollmentvisible"
+  v-model:visible="updateenrollmentvisible"
+  title="កែប្រែ"
+  :showDefaultFooter="false"
+  width="600px"
+  @close="closeenrollment"
+>
+  <AppForm
+    :model="formupdateenrollment"
+    :show-actions="true"
+    @submit="submitUpdateEnrollment"
+    submitText="រក្សាទុក"
+  >
+              <AppInput
+              type="area"
+              v-model="formupdateenrollment.description"
+              label="សេចក្តីលម្អិត"
+              placeholder="សេចក្តីលម្អិត"
+            >
+            </AppInput>
   </AppForm>
 </AppDialog>
   </div>

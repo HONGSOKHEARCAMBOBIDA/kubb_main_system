@@ -279,9 +279,9 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 					},
 					AdmissionID:    admission.ID,
 					SchoolarshipID: input.EnrollmentRequestCreate.SchoolarshipID,
-					SectionID:      nil,
-					FeeInterval:    input.EnrollmentRequestCreate.FeeInterval,
-					Description:    nil,
+
+					FeeInterval: input.EnrollmentRequestCreate.FeeInterval,
+					Description: nil,
 				}
 				if err := tx.Create(&enrollment).Error; err != nil {
 					return err

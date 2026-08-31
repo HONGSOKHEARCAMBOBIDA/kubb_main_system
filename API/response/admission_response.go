@@ -8,6 +8,7 @@ import (
 type AdmissionResponse struct {
 	base.ModelBase
 	base.UUIDBase
+	StudentCode               string               `json:"student_code"`
 	StudentID                 int                  `json:"student_id"`
 	StudentNameKh             string               `json:"student_name_kh"`
 	StudentNameEn             string               `json:"student_name_en"`
@@ -18,8 +19,10 @@ type AdmissionResponse struct {
 	StudentDiscountAmount     float64              `json:"discount_amount" gorm:"column:discount_amount"`
 	TermID                    int                  `json:"term_id"`
 	TermName                  string               `json:"term_name"`
+	GenerationID              int                  `json:"generation_id"`
 	GenerationCode            string               `json:"generation_code"`
 	GenerationName            string               `json:"generation_name"`
+	AcademicID                int                  `json:"academic_id"`
 	AcademicCode              string               `json:"academic_code"`
 	AcademicName              string               `json:"academic_name"`
 	AcademicDegreeID          int                  `json:"academic_degree_id"`
