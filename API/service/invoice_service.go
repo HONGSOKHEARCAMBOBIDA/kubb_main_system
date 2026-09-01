@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"mysql/config"
 	"mysql/constant/apperror"
 	"mysql/helper"
@@ -87,9 +86,25 @@ func (s *invoiceservice) CreateInvoice(ctx context.Context, input request.Invoic
 		if result.Error != nil {
 			return helper.MapAcademicError(result.Error, "update")
 		}
-		fmt.Println("rows affected:", result.RowsAffected, "installment uuid:", input.InstallmentUUID)
 		if result.RowsAffected == 0 {
 			return apperror.New(apperror.CodeNotFound, "installment not found", nil)
+		}
+
+		var totalPaid float64
+		if err := tx.Model(&model.Installment{}).
+			Where("fee_id = ? AND status = ?", input.FeeID, model.InstallmentStatusPaid).
+			Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid).Error; err != nil {
+			return helper.MapAcademicError(err, "sum installments")
+		}
+		var fee model.Fee
+		if err := tx.Where("id = ?", input.FeeID).First(&fee).Error; err != nil {
+			return helper.MapAcademicError(err, "find fee")
+		}
+		if totalPaid >= fee.Total {
+			if err := tx.Model(&model.Fee{}).Where("id = ?", input.FeeID).
+				Update("active", false).Error; err != nil {
+				return helper.MapAcademicError(err, "deactivate fee")
+			}
 		}
 		return nil
 	})

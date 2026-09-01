@@ -72,6 +72,7 @@ func (s *admissionservice) UpdateStudentTerm(ctx context.Context, uuid string, i
 		}
 		studentterm.SemesterID = input.SemesterID
 		studentterm.StudyYearID = input.StudyYearID
+		studentterm.Status = input.Status
 		if err := tx.Save(&studentterm).Error; err != nil {
 			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
 		}
@@ -413,7 +414,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 		if err := s.db.WithContext(ctx).
 			Table("installments it").
 			Joins("INNER JOIN fees f ON f.id = it.fee_id").
-			Joins("LEFT JOIN invoices i ON i.id = invoice_id").
+			Joins("LEFT JOIN invoices i ON i.id = it.invoice_id").
 			Joins("LEFT JOIN payments p ON p.invoice_id = i.id").
 			Where("it.fee_id IN ?", feeIDs).
 			Select(`
@@ -431,7 +432,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 				i.total AS invoice_total,
 				i.tax AS invoice_tax,
 				i.grant_total AS invoice_grant_total,
-				i.message_on_invoice AS invoice_message_on_invoice,
+				i.message_on_invoice AS message_on_invoice,
 				p.id AS payment_id,
 				p.code AS payment_code,
 				p.reference AS payment_reference,

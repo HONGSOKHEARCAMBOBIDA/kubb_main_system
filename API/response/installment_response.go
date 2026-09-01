@@ -20,7 +20,7 @@ type InstallmentResponse struct {
 	InvoiceTotal            float64                 `json:"invoice_total"`
 	InvoiceTax              float64                 `json:"invoice_tax"`
 	InvoiceGranTotal        float64                 `json:"invoice_grant_total" gorm:"column:invoice_grant_total"`
-	InvoiceMessageOnInvoice string                  `json:"invoice_message_on_invoice"`
+	InvoiceMessageOnInvoice string                  `json:"message_on_invoice" gorm:"column:message_on_invoice"`
 	PaymentID               int                     `json:"payment_id"`
 	PaymentCode             string                  `json:"payment_code"`
 	PaymentReference        string                  `json:"payment_reference"`

@@ -10,14 +10,19 @@ import AppButton from '../../components/button/AppButton.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
-import { studentTermCreate,studentTermUpdate } from '../../services/studentterm.service.js'
+import { studentTermCreate, studentTermUpdate } from '../../services/studentterm.service.js'
 import { getSemesterByAcademic } from '../../services/semester.service.js'
 import { getAcademics } from '../../services/academic.service.js'
-import { EnrollmentCreate, EnrollmentUpdate,EnrollmentDelete } from '../../services/enrollment.service.js'
+import {
+  EnrollmentCreate,
+  EnrollmentUpdate,
+  EnrollmentDelete,
+} from '../../services/enrollment.service.js'
 import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
-
+const url =
+  '/logo.png'
 const notify = useNotification()
 let searchTimer = null
 const admissions = ref([])
@@ -25,10 +30,30 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const showA4visible = ref(false)
+const datashowA4 = ref(null)
+async function openshowA4(row) {
+  datashowA4.value = row
+  showA4visible.value = true
+}
+
+function printA4() {
+  window.print()
+}
 
 const invoiceDialogVisible = ref(false)
 const invoiceSubmitting = ref(false)
 const invoiceFormRef = ref(null)
+
+const getStatusLabel = (status) => {
+  const labels = {
+    PENDING: 'កំពុងសិក្សា',
+    FINISH: 'បានបញ្ចប់',
+    SUSPENDED: 'ផ្អាកការសិក្សា',
+  }
+
+  return labels[status] ?? ''
+}
 
 // add new student term
 
@@ -93,30 +118,37 @@ async function submitstudentterm() {
 //student term
 
 // update studentterm
+const enrollmentStateOptions = [
+  { label: 'កំពុងរៀន', value: 'PENDING' },
+  { label: 'បានរៀនចប់', value: 'FINISH' },
+  { label: 'ព្យួរ / ផ្អាកការសិក្សា', value: 'SUSPENDED' },
+]
 const AcademicIDUpdateStudentTerm = ref(null)
 const updatestudenttermform = reactive({
   semester_id: null,
   study_year_id: null,
+  status: '',
 })
 const studenttermupdateuuid = ref(null)
 const updatestudenttermvisible = ref(false)
 async function openstudenttermupdate(row) {
-AcademicIDUpdateStudentTerm.value = row.academic_id
-studenttermupdateuuid.value = row.uuid
-updatestudenttermform.semester_id = row.semester_id
-updatestudenttermform.study_year_id = row.study_year_id
-updatestudenttermvisible.value = true
+  AcademicIDUpdateStudentTerm.value = row.academic_id
+  studenttermupdateuuid.value = row.uuid
+  updatestudenttermform.semester_id = row.semester_id
+  updatestudenttermform.study_year_id = row.study_year_id
+  updatestudenttermform.status = row.status
+  updatestudenttermvisible.value = true
 }
 async function closestudenttermupdate(row) {
-
-studenttermupdateuuid.value = null
-updatestudenttermvisible.value = false
+  studenttermupdateuuid.value = null
+  updatestudenttermvisible.value = false
 }
 async function submitUpdateStudentTerm() {
   try {
     await studentTermUpdate(studenttermupdateuuid.value, {
-     semester_id : updatestudenttermform.semester_id,
-     study_year_id: updatestudenttermform.study_year_id
+      semester_id: updatestudenttermform.semester_id,
+      study_year_id: updatestudenttermform.study_year_id,
+      status: updatestudenttermform.status,
     })
     notify.success('កែប្រែដោយជោគជ័យ')
     updatestudenttermvisible.value = false
@@ -327,7 +359,7 @@ async function openDeleteEnrollment(row) {
   deleteenrollmentvisible.value = true
 }
 
-function closedeleteenrollment(){
+function closedeleteenrollment() {
   deleteenrollmentvisible.value = false
 }
 
@@ -347,7 +379,7 @@ const addenrollmentvisible = ref(false)
 function openCreateEnrollment(admission) {
   formenrollment.admision_id = admission.id
   AcademicID.value = admission.academic_id
-  
+
   addenrollmentvisible.value = true
 }
 function closeCreateEnrollment() {
@@ -541,15 +573,16 @@ const columninvoices = [
 
 const columninstallments = [
   { prop: 'sequence_no', label: 'លេីកទី', width: 70 },
-  { prop: 'due_date', label: 'ថ្ងៃត្រូវបង់', minwidth: 110 },
-  { label: 'ចំនួនត្រូវបង់', slot: 'instAmount', minwidth: 100 },
-  { label: 'ស្ថានភាព', slot: 'instStatus', minwidth: 110 },
+  { prop: 'due_date', label: 'ថ្ងៃត្រូវបង់', width: 110 },
+  { label: 'ចំនួនត្រូវបង់', slot: 'instAmount', width: 100 },
+  { label: 'ស្ថានភាព', slot: 'instStatus', width: 110 },
   { prop: 'invoice_code', label: 'លេខកូដវិក័យបត្រ', minwidth: 110 },
-  { prop: 'invoice_date', label: 'ថ្ងៃចេញវិក័យបត្រ', minwidth: 110 },
-  { slot: 'invoice_grant_total', label: 'ចំនួនទទួលបានសរុប', minwidth: 110 },
+  { prop: 'invoice_date', label: 'ថ្ងៃចេញវិក័យបត្រ', width: 120 },
+  { slot: 'invoice_grant_total', label: 'ចំនួនទទួលបានសរុប', width: 140 },
   { prop: 'payment_code', label: 'លេខកូដទូទាត់', minwidth: 110 },
   { prop: 'payment_reference', label: 'លេខយោង', minwidth: 110 },
-  { slot: 'payment_method', label: 'វិធីសាស្រ្តទូទាត់', minwidth: 110 },
+  { slot: 'payment_method', label: 'វិធីសាស្រ្តទូទាត់', width: 120 },
+  { prop: 'message_on_invoice', label: 'ផ្សេងៗ', minwidth: 120 },
 ]
 
 const columnpayments = [
@@ -786,11 +819,7 @@ onMounted(() => {
       <template #expand="{ row }">
         <el-divider content-position="left"
           >ព័ត៌មានដាក់ពាក្យ
-          <AppButton
-            plain
-            @click="openCreateEnrollment(row)"
-            type="primary"
-          >
+          <AppButton plain @click="openCreateEnrollment(row)" type="primary">
             ដាក់ពាក្យថ្មី
           </AppButton>
         </el-divider>
@@ -826,34 +855,38 @@ onMounted(() => {
           </template>
 
           <template #actions="{ row }">
-<el-tooltip content="កែប្រែ" placement="top">
-            <AppButton
-              size="small"
-              circle
-              plain
-              icon="Edit"
-              type="primary"
-              @click="openenrollment(row)"
-            >
-            </AppButton>
-</el-tooltip>
-<el-tooltip content="លុប" placement="top">
-            <AppButton
-              size="small"
-              circle
-              plain
-              icon="Delete"
-              type="danger"
-              @click="openDeleteEnrollment(row)"
-            >
-            </AppButton>
-</el-tooltip>
+            <el-tooltip content="កែប្រែ" placement="top">
+              <AppButton
+                size="small"
+                circle
+                plain
+                icon="Edit"
+                type="primary"
+                @click="openenrollment(row)"
+              >
+              </AppButton>
+            </el-tooltip>
+            <el-tooltip content="លុប" placement="top">
+              <AppButton
+                size="small"
+                circle
+                plain
+                icon="Delete"
+                type="danger"
+                @click="openDeleteEnrollment(row)"
+              >
+              </AppButton>
+            </el-tooltip>
           </template>
 
           <template #expand="{ row }">
             <el-divider content-position="left">
               កំពុងសិក្សា
-              <AppButton plain v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
+              <AppButton
+                plain
+                v-if="row.student_term?.length < 2"
+                @click="openCreateStudentTerm(row)"
+              >
                 ថែមឆមាសថ្មី
               </AppButton>
             </el-divider>
@@ -864,25 +897,25 @@ onMounted(() => {
               :show-pagination="false"
             >
               <template #semester="{ row }">
-                <el-text  class="ml-2">{{ row.semester_name }}</el-text>
+                <el-text class="ml-2">{{ row.semester_name }}</el-text>
               </template>
               <template #stStatus="{ row }">
                 <el-text>
-                  {{ row.status == 'PENDING' ? 'កំពុងសិក្សា' : 'បានបញ្ចប់' }}
+                  {{ getStatusLabel(row.status) }}
                 </el-text>
               </template>
               <template #actions="{ row }">
-<el-tooltip content="កែប្រែ" placement="top">
-            <AppButton
-              size="small"
-              circle
-              plain
-              icon="Edit"
-              type="primary"
-              @click="openstudenttermupdate(row)"
-            >
-            </AppButton>
-</el-tooltip>
+                <el-tooltip content="កែប្រែ" placement="top">
+                  <AppButton
+                    size="small"
+                    circle
+                    plain
+                    icon="Edit"
+                    type="primary"
+                    @click="openstudenttermupdate(row)"
+                  >
+                  </AppButton>
+                </el-tooltip>
               </template>
               <template #expand="{ row }">
                 <el-divider content-position="left"> GPA Record </el-divider>
@@ -904,23 +937,23 @@ onMounted(() => {
               :show-pagination="false"
             >
               <template #feeAmount="{ row }">
-                <el-text tag="b" style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
+                <el-text style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
               </template>
               <template #feeDiscount="{ row }">
-                <el-text tag="b" style="color: crimson">{{ formatMoney(row.discount) }}$</el-text>
+                <el-text style="color: crimson">{{ formatMoney(row.discount) }}$</el-text>
               </template>
               <template #feeTotal="{ row }">
-                <el-text tag="b" type="primary">{{ formatMoney(row.total) }}$</el-text>
+                <el-text>{{ formatMoney(row.total) }}$</el-text>
               </template>
               <template #feeActive="{ row }">
-                <el-tag :type="row.active ? 'success' : 'danger'" size="small">
-                  {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
+                <el-tag :type="row.active ? 'danger' : 'info'" size="small">
+                  {{ row.active ? 'បង់មិនទាន់គ្រប់' : 'បង់គ្រប់' }}
                 </el-tag>
               </template>
 
               <template #expand="{ row: feeRow }">
                 <div>
-                  <el-divider content-position="left"> ការបង់រំលស់ </el-divider>
+                  <el-divider content-position="left"> ការបង់ប្រាក់ </el-divider>
                   <TableCustom
                     expandable
                     :data="feeRow.installment || []"
@@ -929,18 +962,18 @@ onMounted(() => {
                     actions-width="180"
                   >
                     <template #instAmount="{ row }">
-                      <el-text tag="mark">{{ formatMoney(row.amount) }}$ </el-text>
+                      <el-text>{{ formatMoney(row.amount) }}$ </el-text>
                     </template>
                     <template #instStatus="{ row }">
-                      <el-text tag="b" :type="row.status === 'pending' ? 'danger' : 'success'">
+                      <el-text :type="row.status === 'pending' ? 'danger' : 'success'">
                         {{ labelOf(installmentStatusLabels, row.status) }}
                       </el-text>
                     </template>
                     <template #invoice_grant_total="{ row }">
-                      <el-text tag="b">{{ row.invoice_grant_total }}$</el-text>
+                      <el-text>{{ formatMoney(row.invoice_grant_total) }}$</el-text>
                     </template>
                     <template #payment_method="{ row }">
-                      <el-text tag="b" style="color: black">{{ row.payment_method }}</el-text>
+                      <el-text style="color: black">{{ row.payment_method }}</el-text>
                     </template>
                     <template #actions="{ row: installmentRow }">
                       <AppButton
@@ -950,13 +983,13 @@ onMounted(() => {
                       >
                         បង់ប្រាក់
                       </AppButton>
-                      <AppButton
-                        :disabled="installmentRow.status === 'pending'"
-                        type="primary"
-                        @click=""
-                      >
-                        បោះពុម្ព
-                      </AppButton>
+<AppButton
+  :disabled="installmentRow.status === 'pending'"
+  type="primary"
+  @click="openshowA4(installmentRow)"
+>
+  បោះពុម្ព
+</AppButton>
                     </template>
                   </TableCustom>
                 </div>
@@ -1278,14 +1311,10 @@ onMounted(() => {
       width="600px"
       @close="closedeleteenrollment"
     >
-      <AppForm
-        :show-actions="true"
-        @submit="submitDeleteEnrollment"
-        submitText="លុប"
-      >
-      <el-alert type="warning">គ្រប់ព័ត៏មាននិងត្រូវបានលុប!</el-alert>
+      <AppForm :show-actions="true" @submit="submitDeleteEnrollment" submitText="លុប">
+        <el-alert type="warning">គ្រប់ព័ត៏មាននិងត្រូវបានលុប!</el-alert>
       </AppForm>
-    </AppDialog>   
+    </AppDialog>
 
     <AppDialog
       v-if="updatestudenttermvisible"
@@ -1307,7 +1336,6 @@ onMounted(() => {
           placeholder="រេីសឆ្នាំសិក្សា"
           label="ឆ្នាំសិក្សា"
           clearable
-        
         />
 
         <el-row :gutter="20">
@@ -1331,12 +1359,216 @@ onMounted(() => {
             />
           </el-col>
         </el-row>
+        <AppSelect
+          v-model="updatestudenttermform.status"
+          :options="enrollmentStateOptions"
+          placeholder="ស្ថានភាព"
+          label="ស្ថានភាព"
+          clearable
+        />
       </AppForm>
     </AppDialog>
+
+<AppDialog
+  v-if="showA4visible"
+  v-model:visible="showA4visible"
+  :showDefaultFooter="false"
+  width="58%"
+>
+  <AppForm
+    :show-actions="true"
+    @submit="printA4"
+    submitText="បោះពុម្ព"
+  >
+    <div class="a4-preview-wrapper">
+      <div class="a4-landscape">
+
+        <!-- Header -->
+        <div class="print-header">
+
+          <!-- Logo -->
+          <div class="header-logo">
+            <el-image
+              :src="url"
+              fit="contain"
+              class="university-logo"
+            />
+          </div>
+
+          <!-- University Information -->
+          <div class="header-info">
+            <div class="university-name-kh">
+            
+                សាកលវិទ្យាល័យ ខេមរាវិទូ
+              
+            </div>
+
+            <div class="university-name-en">
+              KHEMARAVITU UNIVERSITY
+            </div>
+
+            <div class="university-branch">
+              សាខាខេត្តបាត់ដំបង
+            </div>
+            <div class="university-branch">
+              បង្កាន់ដៃទទួលប្រាក់
+            </div>
+
+            <div class="university-name-en">
+              Receipt
+            </div>
+          </div>
+
+          <!-- Right Section -->
+          <div class="header-right">
+            <div class="document-box">
+             <el-row class="pl-5 pt-2">
+              <el-text>
+                No:  {{ datashowA4.invoice_code }}
+              </el-text>
+             </el-row>
+             <el-row class="pl-5 pb-2">
+              <el-text>
+                Date:  {{ datashowA4.invoice_date }}
+              </el-text>
+             </el-row>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Content -->
+        <div class="print-content">
+          <!-- Your content here -->
+        </div>
+
+      </div>
+    </div>
+  </AppForm>
+</AppDialog>
   </div>
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+.a4-preview-wrapper {
+  width: 100%;
+  padding: 20px;
+  background: #f5f6f8;
+  overflow: auto;
+}
+
+.a4-landscape {
+  width: 297mm;
+  height: 210mm;
+  margin: 0 auto;
+  padding: 15mm;
+
+  background: #fff;
+  box-sizing: border-box;
+
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* =========================
+   Header
+========================= */
+
+.print-header {
+  display: grid;
+  grid-template-columns: 120px 1fr 220px;
+  align-items: center;
+
+  min-height: 100px;
+  padding-bottom: 12px;
+
+}
+
+.header-logo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.university-logo {
+  width: 170px;
+  height: 170px;
+}
+
+/* University information */
+
+.header-info {
+  text-align: center;
+  line-height: 1.6;
+}
+
+.university-name-kh {
+  color: black;
+  font-family: "Moul", serif;
+  font-size: 25px;
+}
+
+.university-name-en {
+  color: black;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.university-branch {
+  color: black;
+  font-family: "Moul", serif;
+  font-size: 14px;
+}
+
+/* Right side */
+
+.header-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.document-box {
+  width: 190px;
+  min-height: 70px;
+  border-radius: 10px;
+  border: 1px solid #222;
+}
+
+/* Content */
+
+.print-content {
+  margin-top: 20px;
+}
+
+/* =========================
+   Print
+========================= */
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .a4-preview-wrapper {
+    padding: 0;
+    background: white;
+  }
+
+  .a4-landscape {
+    width: 297mm;
+    height: 210mm;
+    margin: 0;
+    padding: 15mm;
+
+    box-shadow: none;
+  }
+}
 .admission-page {
   display: flex;
   flex-direction: column;
