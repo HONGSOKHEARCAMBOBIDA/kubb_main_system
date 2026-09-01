@@ -282,6 +282,7 @@ func (s *studentService) CreateStudent(ctx context.Context, input request.Studen
 
 					FeeInterval: input.EnrollmentRequestCreate.FeeInterval,
 					Description: nil,
+					Isactive:    true,
 				}
 				if err := tx.Create(&enrollment).Error; err != nil {
 					return err

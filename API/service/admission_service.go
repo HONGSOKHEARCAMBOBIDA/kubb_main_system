@@ -25,6 +25,8 @@ type AdmissionService interface {
 	GetStudentTermFilter(ctx context.Context, filter map[string]string) ([]response.StudentTermResponsebyFilter, error)
 	UpdateAdmission(ctx context.Context, uuid string, input request.AdmissionRequestUpdate) error
 	UpdateEnrollment(ctx context.Context, uuid string, input request.EnrollmentRequestUpdate) error
+	DeleteEnrollment(ctx context.Context, uuid string) error
+	UpdateStudentTerm(ctx context.Context, uuid string, input request.StudentTermRequestUpdate) error
 }
 
 type admissionservice struct {
@@ -35,6 +37,47 @@ func NewAdmissionService() AdmissionService {
 	return &admissionservice{
 		db: config.DB,
 	}
+}
+
+func (s *admissionservice) DeleteEnrollment(ctx context.Context, uuid string) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var enrollment model.Enrollment
+		if err := tx.Where("uuid = ?", uuid).First(&enrollment).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "enrollment not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch enrollment", nil)
+		}
+		enrollment.Isactive = false
+		if err := tx.Save(&enrollment).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+		return nil
+	})
+	return err
+}
+
+func (s *admissionservice) UpdateStudentTerm(ctx context.Context, uuid string, input request.StudentTermRequestUpdate) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var studentterm model.StudentTerm
+		if err := tx.Where("uuid = ?", uuid).First(&studentterm).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "studentterm not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch studentterm", nil)
+		}
+		studentterm.SemesterID = input.SemesterID
+		studentterm.StudyYearID = input.StudyYearID
+		if err := tx.Save(&studentterm).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+		return nil
+	})
+	return err
 }
 
 func (s *admissionservice) UpdateEnrollment(ctx context.Context, uuid string, input request.EnrollmentRequestUpdate) error {
@@ -117,6 +160,7 @@ func (s *admissionservice) GetStudentTermFilter(ctx context.Context, filter map[
 		// 		WHERE cr.student_term_id = st.id
 		// 	)
 		// `)
+		tx = tx.Where("e.is_active = ?", true)
 
 		return tx
 	}
@@ -190,6 +234,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 				"%"+v+"%",
 			)
 		}
+
 		return tx
 	}
 
@@ -260,7 +305,7 @@ func (s *admissionservice) GetAdmission(ctx context.Context, pf request.Paginati
 		Joins("INNER JOIN admissions a ON a.id = e.admission_id").
 		Joins("LEFT JOIN scholarships s ON s.id = e.scholarship_id").
 		Joins("LEFT JOIN student_terms st ON st.id = e.id").
-		Where("e.admission_id IN ?", admissionIDs).
+		Where("e.admission_id IN ? AND e.is_active = ?", admissionIDs, true).
 		Select(`
 			e.id AS id,
 			e.uuid AS uuid,
@@ -504,6 +549,7 @@ func (s *admissionservice) CreateEnrollment(ctx context.Context, input request.E
 		AdmissionID:    input.AdmissionID,
 		SchoolarshipID: input.SchoolarshipID,
 		FeeInterval:    input.FeeInterval,
+		Isactive:       true,
 	}
 
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

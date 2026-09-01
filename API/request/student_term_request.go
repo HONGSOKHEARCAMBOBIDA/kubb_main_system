@@ -10,3 +10,8 @@ type StudentTermRequestv2 struct {
 	SemesterID   int `json:"semester_id" gorm:"column:semester_id"`
 	StudyYearID  int `json:"study_year_id" gorm:"column:study_year_id"`
 }
+
+type StudentTermRequestUpdate struct {
+	SemesterID  int `json:"semester_id" gorm:"column:semester_id"`
+	StudyYearID int `json:"study_year_id" gorm:"column:study_year_id"`
+}

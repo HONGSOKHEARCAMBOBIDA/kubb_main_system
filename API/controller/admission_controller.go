@@ -138,3 +138,34 @@ func (cr *AdmissionController) UpdateEnrollment(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Updated)
 }
+
+func (cr *AdmissionController) UpdateStudentTerm(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+
+	var input request.StudentTermRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	//log.Printf("Update request: %+v", input)
+	if err := cr.service.UpdateStudentTerm(c.Request.Context(), id, input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
+}
+
+func (cr *AdmissionController) DeleteEnrollment(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+	if err := cr.service.DeleteEnrollment(c.Request.Context(), id); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
+}

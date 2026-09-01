@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { getAdmission,updateAdmission } from '../../services/admission.service'
+import { getAdmission, updateAdmission } from '../../services/admission.service'
 import { invoicecreate } from '../../services/invoice.service.js'
 import { useNotification } from '../../composables/useNotification'
 import TableCustom from '../../components/tables/TableCustom.vue'
@@ -10,13 +10,14 @@ import AppButton from '../../components/button/AppButton.vue'
 import AppForm from '@/components/forms/AppForm.vue'
 import AppDialog from '@/components/dialogs/AppDialog.vue'
 import AppSelect from '../../components/common/AppSelect.vue'
-import { studentTermCreate } from '../../services/studentterm.service.js'
+import { studentTermCreate,studentTermUpdate } from '../../services/studentterm.service.js'
 import { getSemesterByAcademic } from '../../services/semester.service.js'
 import { getAcademics } from '../../services/academic.service.js'
-import { EnrollmentCreate,EnrollmentUpdate } from '../../services/enrollment.service.js'
-import { getSchoolarshipGroup } from '../../services/schoolarship.service.js' 
+import { EnrollmentCreate, EnrollmentUpdate,EnrollmentDelete } from '../../services/enrollment.service.js'
+import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
+
 const notify = useNotification()
 let searchTimer = null
 const admissions = ref([])
@@ -91,27 +92,62 @@ async function submitstudentterm() {
 }
 //student term
 
+// update studentterm
+const AcademicIDUpdateStudentTerm = ref(null)
+const updatestudenttermform = reactive({
+  semester_id: null,
+  study_year_id: null,
+})
+const studenttermupdateuuid = ref(null)
+const updatestudenttermvisible = ref(false)
+async function openstudenttermupdate(row) {
+AcademicIDUpdateStudentTerm.value = row.academic_id
+studenttermupdateuuid.value = row.uuid
+updatestudenttermform.semester_id = row.semester_id
+updatestudenttermform.study_year_id = row.study_year_id
+updatestudenttermvisible.value = true
+}
+async function closestudenttermupdate(row) {
+
+studenttermupdateuuid.value = null
+updatestudenttermvisible.value = false
+}
+async function submitUpdateStudentTerm() {
+  try {
+    await studentTermUpdate(studenttermupdateuuid.value, {
+     semester_id : updatestudenttermform.semester_id,
+     study_year_id: updatestudenttermform.study_year_id
+    })
+    notify.success('កែប្រែដោយជោគជ័យ')
+    updatestudenttermvisible.value = false
+    fetchAdmissions()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to update admission')
+  }
+}
+// update studentterm
+
 const filters = reactive({
   student_id: '',
   student_name: '',
   academic_id: null,
   generation_id: null,
-  term_id: null
+  term_id: null,
 })
 
 const updateenrollmentvisible = ref(false)
 const enrollmentuuid = ref(null)
 const formupdateenrollment = reactive({
-  description: ''
+  description: '',
 })
 
-async function openenrollment(row){
-  enrollmentuuid.value = row.uuid           
-  formupdateenrollment.description = row.description  
+async function openenrollment(row) {
+  enrollmentuuid.value = row.uuid
+  formupdateenrollment.description = row.description
   updateenrollmentvisible.value = true
 }
 
-async function closeenrollment(row){
+async function closeenrollment(row) {
   updateenrollmentvisible.value = false
 }
 
@@ -192,7 +228,7 @@ const generationOptions = ref([])
 const termOptions = ref([])
 const formupdateadmission = reactive({
   term_id: null,
-  state: ''
+  state: '',
 })
 async function openUpdateAdmission(row) {
   admissionUpdateID.value = row.uuid
@@ -237,7 +273,6 @@ const admissionStateOptions = [
   { label: 'បដិសេធ', value: 'rejected' },
 ]
 
-
 async function loadGeneration(academicID) {
   if (!academicID) return []
   try {
@@ -247,7 +282,7 @@ async function loadGeneration(academicID) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load districts')
     return []
   }
-}     
+}
 
 async function loadTerm(geneationID) {
   if (!geneationID) return []
@@ -272,8 +307,6 @@ async function onGenerationFilterChange() {
   termFilterOptions.value = await loadTerm(filters.generation_id)
 }
 
-
-
 async function onAcademicChange() {
   selectgenerationforupdateadmission.value = null
   generationOptions.value = await loadGeneration(selectacademicforupdateadmission.value)
@@ -286,9 +319,35 @@ async function onGenerationChange() {
 
 // formupdateadmission
 
+// DeleteEnrollment
+const deleteenrollmentvisible = ref(false)
+const enrollmentuuidfordelete = ref(null)
+async function openDeleteEnrollment(row) {
+  enrollmentuuidfordelete.value = row.uuid
+  deleteenrollmentvisible.value = true
+}
+
+function closedeleteenrollment(){
+  deleteenrollmentvisible.value = false
+}
+
+async function submitDeleteEnrollment() {
+  try {
+    await EnrollmentDelete(enrollmentuuidfordelete.value)
+    notify.success('លុបបានដោយជោគជ័យ')
+    deleteenrollmentvisible.value = false
+    fetchAdmissions()
+  } catch (e) {
+    notify.error(e?.response?.data?.message || e.message || 'Failed to update admission')
+  }
+}
+// DeleteEnrollment
+
 const addenrollmentvisible = ref(false)
 function openCreateEnrollment(admission) {
   formenrollment.admision_id = admission.id
+  AcademicID.value = admission.academic_id
+  
   addenrollmentvisible.value = true
 }
 function closeCreateEnrollment() {
@@ -456,7 +515,6 @@ const columnstudentterms = [
   { prop: 'study_year_id', label: 'ឆ្នាំទី', minwidth: 160 },
   { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 130 },
   { prop: 'status', label: 'ស្ថានភាព', slot: 'stStatus', minwidth: 120 },
-  { label: 'សកម្ម', slot: 'stActive', minwidth: 90 },
 ]
 
 const columngparecord = [
@@ -523,6 +581,17 @@ async function fetchAdmissions() {
     loading.value = false
   }
 }
+
+watch(
+  () => AcademicIDUpdateStudentTerm.value,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(async () => {
+      semesterOptions.value = []
+      semesterOptions.value = await loadSemester(AcademicIDUpdateStudentTerm.value)
+    }, 400)
+  }
+)
 
 watch(
   () => filters.generation_id,
@@ -594,31 +663,32 @@ onMounted(() => {
         { slot: 'studentName', span: 3 },
         { slot: 'academic', span: 3 },
         { slot: 'generation', span: 3 },
-         { slot: 'term', span: 3 },
+        { slot: 'term', span: 3 },
       ]"
-     
     >
       <template #studentId>
-        <AppInput
-          v-model="filters.student_id"
-          placeholder="លេខសម្គាល់សិស្ស"
-          clearable
-         
-        />
+        <AppInput v-model="filters.student_id" placeholder="លេខសម្គាល់សិស្ស" clearable />
       </template>
       <template #studentName>
-        <AppInput
-          v-model="filters.student_name"
-          placeholder="ស្វែងរកតាមឈ្មោះសិស្ស"
-          clearable
-          
-        />
+        <AppInput v-model="filters.student_name" placeholder="ស្វែងរកតាមឈ្មោះសិស្ស" clearable />
       </template>
       <template #academic>
-<AppSelect v-model="filters.academic_id" :options="academicOptions" @change="onAcademicFilterChange" clearable placeholder="ឆ្នាំសិក្សា" />
+        <AppSelect
+          v-model="filters.academic_id"
+          :options="academicOptions"
+          @change="onAcademicFilterChange"
+          clearable
+          placeholder="ឆ្នាំសិក្សា"
+        />
       </template>
       <template #generation>
-<AppSelect v-model="filters.generation_id" :options="generationFilterOptions" @change="onGenerationFilterChange" clearable placeholder="ជំនាន់"/>
+        <AppSelect
+          v-model="filters.generation_id"
+          :options="generationFilterOptions"
+          @change="onGenerationFilterChange"
+          clearable
+          placeholder="ជំនាន់"
+        />
       </template>
       <template #term>
         <AppSelect
@@ -650,7 +720,10 @@ onMounted(() => {
             >
           </div>
           <div>
-            <el-text size="small" tag="b" type="primary">{{ row.student_name_en }} | <el-text size="small">{{ row.student_code }}</el-text></el-text>
+            <el-text size="small" tag="b" type="primary"
+              >{{ row.student_name_en }} |
+              <el-text size="small">{{ row.student_code }}</el-text></el-text
+            >
           </div>
         </el-text>
       </template>
@@ -696,18 +769,18 @@ onMounted(() => {
         </el-text>
       </template>
 
-<template #actions="{ row }">
-  <el-tooltip content="កែប្រែ" placement="top">
-    <AppButton
-      icon="Edit"
-      circle
-      size="small"
-      plain
-      type="primary"
-      @click="openUpdateAdmission(row)"
-    />
-  </el-tooltip>
-</template>
+      <template #actions="{ row }">
+        <el-tooltip content="កែប្រែ" placement="top">
+          <AppButton
+            icon="Edit"
+            circle
+            size="small"
+            plain
+            type="primary"
+            @click="openUpdateAdmission(row)"
+          />
+        </el-tooltip>
+      </template>
 
       <!-- Level 1: enrollments -->
       <template #expand="{ row }">
@@ -715,7 +788,6 @@ onMounted(() => {
           >ព័ត៌មានដាក់ពាក្យ
           <AppButton
             plain
-            v-if="row.enrollment?.length < 5"
             @click="openCreateEnrollment(row)"
             type="primary"
           >
@@ -729,48 +801,59 @@ onMounted(() => {
           :show-pagination="false"
         >
           <template #year_id="{ row }">
-            <el-text > ឆ្នាំទី {{ row.year_id }} </el-text>
+            <el-text> ឆ្នាំទី {{ row.year_id }} </el-text>
           </template>
           <template #schoolarship="{ row }">
-            <el-text v-if="row.schoolarship_id"  >
+            <el-text v-if="row.schoolarship_id">
               {{ row.schoolarship_name }} |
               <el-text type="primary">
-                              {{
-                row.schoolarship_discount_type === 'percentage'
-                  ? `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_percentage}%`
-                  : `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_amount}$`
-              }}
+                {{
+                  row.schoolarship_discount_type === 'percentage'
+                    ? `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_percentage}%`
+                    : `ទទួលការបញ្ចុះតម្លៃ${row.schoolarship_discount_amount}$`
+                }}
               </el-text>
             </el-text>
             <el-text v-else type="info">គ្មាន</el-text>
           </template>
 
           <template #fee_interval="{ row }">
-            <el-text>{{
-              labelOf(feeIntervalLabels, row.fee_interval)
-            }}</el-text>
+            <el-text>{{ labelOf(feeIntervalLabels, row.fee_interval) }}</el-text>
           </template>
 
           <template #description="{ row }">
             <el-text>{{ row.description || '-' }}</el-text>
           </template>
 
-<template #actions="{ row }">
-  <AppButton
-    size="small"
-    circle
-    plain
-    icon="Edit"
-    type="primary"
-    @click="openenrollment(row)"
-  >
-  </AppButton>
-</template>
+          <template #actions="{ row }">
+<el-tooltip content="កែប្រែ" placement="top">
+            <AppButton
+              size="small"
+              circle
+              plain
+              icon="Edit"
+              type="primary"
+              @click="openenrollment(row)"
+            >
+            </AppButton>
+</el-tooltip>
+<el-tooltip content="លុប" placement="top">
+            <AppButton
+              size="small"
+              circle
+              plain
+              icon="Delete"
+              type="danger"
+              @click="openDeleteEnrollment(row)"
+            >
+            </AppButton>
+</el-tooltip>
+          </template>
 
           <template #expand="{ row }">
             <el-divider content-position="left">
               កំពុងសិក្សា
-              <AppButton v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
+              <AppButton plain v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
                 ថែមឆមាសថ្មី
               </AppButton>
             </el-divider>
@@ -781,17 +864,25 @@ onMounted(() => {
               :show-pagination="false"
             >
               <template #semester="{ row }">
-                <el-text tag="b" class="ml-2">{{ row.semester_name }}</el-text>
+                <el-text  class="ml-2">{{ row.semester_name }}</el-text>
               </template>
               <template #stStatus="{ row }">
-                <el-text tag="b" :type="row.status == 'PENDING' ? 'success' : 'info'">
-                  {{ row.status }}
+                <el-text>
+                  {{ row.status == 'PENDING' ? 'កំពុងសិក្សា' : 'បានបញ្ចប់' }}
                 </el-text>
               </template>
-              <template #stActive="{ row }">
-                <el-tag :type="row.active ? 'success' : 'danger'" size="small">
-                  {{ row.active ? 'សកម្ម' : 'អសកម្ម' }}
-                </el-tag>
+              <template #actions="{ row }">
+<el-tooltip content="កែប្រែ" placement="top">
+            <AppButton
+              size="small"
+              circle
+              plain
+              icon="Edit"
+              type="primary"
+              @click="openstudenttermupdate(row)"
+            >
+            </AppButton>
+</el-tooltip>
               </template>
               <template #expand="{ row }">
                 <el-divider content-position="left"> GPA Record </el-divider>
@@ -1094,90 +1185,154 @@ onMounted(() => {
         </el-row>
       </AppForm>
     </AppDialog>
-<AppDialog
-  v-if="updateAdmissionVisible"
-  v-model:visible="updateAdmissionVisible"
-  title="កែប្រែពាក្យសុំចូលរៀន"
-  :showDefaultFooter="false"
-  width="600px"
-  @close="closeUpdateAdmission"
->
-  <AppForm
-    :model="formupdateadmission"
-    :show-actions="true"
-    @submit="submitUpdateAdmission"
-    submitText="រក្សាទុក"
-  >
-    <el-row :gutter="20">
-      <el-col :span="8">
+    <AppDialog
+      v-if="updateAdmissionVisible"
+      v-model:visible="updateAdmissionVisible"
+      title="កែប្រែពាក្យសុំចូលរៀន"
+      :showDefaultFooter="false"
+      width="600px"
+      @close="closeUpdateAdmission"
+    >
+      <AppForm
+        :model="formupdateadmission"
+        :show-actions="true"
+        @submit="submitUpdateAdmission"
+        submitText="រក្សាទុក"
+      >
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <AppSelect
+              v-model="selectacademicforupdateadmission"
+              :options="academicOptions"
+              placeholder="ឆ្នាំសិក្សា"
+              label="ឆ្នាំសិក្សា"
+              clearable
+              @change="onAcademicChange"
+            />
+          </el-col>
+          <el-col :span="8">
+            <AppSelect
+              v-model="selectgenerationforupdateadmission"
+              :options="generationOptions"
+              :disabled="!selectacademicforupdateadmission"
+              placeholder="ជំនាន់"
+              label="ជំនាន់"
+              clearable
+              @change="onGenerationChange"
+            />
+          </el-col>
+          <el-col :span="8">
+            <AppSelect
+              v-model="formupdateadmission.term_id"
+              :options="termOptions"
+              :disabled="!selectgenerationforupdateadmission"
+              placeholder="វគ្គ"
+              label="វគ្គ"
+              clearable
+            />
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <AppSelect
+              v-model="formupdateadmission.state"
+              :options="admissionStateOptions"
+              placeholder="ស្ថានភាពពាក្យ"
+              label="ស្ថានភាពពាក្យ"
+              clearable
+            />
+          </el-col>
+        </el-row>
+      </AppForm>
+    </AppDialog>
+
+    <AppDialog
+      v-if="updateenrollmentvisible"
+      v-model:visible="updateenrollmentvisible"
+      title="កែប្រែ"
+      :showDefaultFooter="false"
+      width="600px"
+      @close="closeenrollment"
+    >
+      <AppForm
+        :model="formupdateenrollment"
+        :show-actions="true"
+        @submit="submitUpdateEnrollment"
+        submitText="រក្សាទុក"
+      >
+        <AppInput
+          type="area"
+          v-model="formupdateenrollment.description"
+          label="សេចក្តីលម្អិត"
+          placeholder="សេចក្តីលម្អិត"
+        >
+        </AppInput>
+      </AppForm>
+    </AppDialog>
+
+    <AppDialog
+      v-if="deleteenrollmentvisible"
+      v-model:visible="deleteenrollmentvisible"
+      title="លុប"
+      :showDefaultFooter="false"
+      width="600px"
+      @close="closedeleteenrollment"
+    >
+      <AppForm
+        :show-actions="true"
+        @submit="submitDeleteEnrollment"
+        submitText="លុប"
+      >
+      <el-alert type="warning">គ្រប់ព័ត៏មាននិងត្រូវបានលុប!</el-alert>
+      </AppForm>
+    </AppDialog>   
+
+    <AppDialog
+      v-if="updatestudenttermvisible"
+      v-model:visible="updatestudenttermvisible"
+      title="កែប្រែឆមាស"
+      :showDefaultFooter="false"
+      width="520px"
+      @close="closestudenttermupdate"
+    >
+      <AppForm
+        :model="updatestudenttermform"
+        :show-actions="true"
+        @submit="submitUpdateStudentTerm"
+        submitText="រក្សាទុក"
+      >
         <AppSelect
-          v-model="selectacademicforupdateadmission"
+          v-model="AcademicIDUpdateStudentTerm"
           :options="academicOptions"
-          placeholder="ឆ្នាំសិក្សា"
+          placeholder="រេីសឆ្នាំសិក្សា"
           label="ឆ្នាំសិក្សា"
           clearable
-          @change="onAcademicChange"
+        
         />
-      </el-col>
-      <el-col :span="8">
-        <AppSelect
-          v-model="selectgenerationforupdateadmission"
-          :options="generationOptions"
-          :disabled="!selectacademicforupdateadmission"
-          placeholder="ជំនាន់"
-          label="ជំនាន់"
-          clearable
-          @change="onGenerationChange"
-        />
-      </el-col>
-      <el-col :span="8">
-        <AppSelect
-          v-model="formupdateadmission.term_id"
-          :options="termOptions"
-          :disabled="!selectgenerationforupdateadmission"
-          placeholder="វគ្គ"
-          label="វគ្គ"
-          clearable
-        />
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col>
-        <AppSelect
-          v-model="formupdateadmission.state"
-          :options="admissionStateOptions"
-          placeholder="ស្ថានភាពពាក្យ"
-          label="ស្ថានភាពពាក្យ"
-          clearable
-        />
-      </el-col>
-    </el-row>
-  </AppForm>
-</AppDialog>
 
-<AppDialog
-  v-if="updateenrollmentvisible"
-  v-model:visible="updateenrollmentvisible"
-  title="កែប្រែ"
-  :showDefaultFooter="false"
-  width="600px"
-  @close="closeenrollment"
->
-  <AppForm
-    :model="formupdateenrollment"
-    :show-actions="true"
-    @submit="submitUpdateEnrollment"
-    submitText="រក្សាទុក"
-  >
-              <AppInput
-              type="area"
-              v-model="formupdateenrollment.description"
-              label="សេចក្តីលម្អិត"
-              placeholder="សេចក្តីលម្អិត"
-            >
-            </AppInput>
-  </AppForm>
-</AppDialog>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <AppSelect
+              v-model="updatestudenttermform.study_year_id"
+              :options="studyyearOption"
+              placeholder="ឆ្នាំទី"
+              label="ឆ្នាំទី"
+              clearable
+            />
+          </el-col>
+          <el-col :span="12">
+            <AppSelect
+              v-model="updatestudenttermform.semester_id"
+              :options="semesterOptions"
+              :disabled="!AcademicIDUpdateStudentTerm"
+              placeholder="ឆមាសទី"
+              label="ឆមាសទី"
+              clearable
+            />
+          </el-col>
+        </el-row>
+      </AppForm>
+    </AppDialog>
   </div>
 </template>
 

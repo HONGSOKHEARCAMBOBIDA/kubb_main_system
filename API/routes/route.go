@@ -203,6 +203,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.StudentTermCreate, middleware.PermissionMiddleware(permission.CRUDSTUDENTTERM), admissioncontroller.CreateStudentTerm)
 		auth.GET(route.StudentTermView, middleware.PermissionMiddleware(permission.CRUDSTUDENTTERM), admissioncontroller.GetStudentTermFilter)
 		auth.PUT(route.AdmissionUpdate, middleware.PermissionMiddleware(permission.CRUDADMISSION), admissioncontroller.UpdateAdmission)
+		auth.PUT(route.StudentTermUpdate, middleware.PermissionMiddleware(permission.CRUDSTUDENTTERM), admissioncontroller.UpdateStudentTerm)
 
 		// Invoice
 		auth.POST(route.InvoiceCreate, middleware.PermissionMiddleware(permission.CRUDINVOICE), invoicecontroller.CreateInvoice)
@@ -210,6 +211,7 @@ func SetupRoutes(r *gin.Engine) {
 		// Enrollment
 		auth.POST(route.EnrollmentCreate, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.CreateEnrollment)
 		auth.PUT(route.EnrollmentUpdate, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.UpdateEnrollment)
+		auth.PUT(route.EnrollmentDelete, middleware.PermissionMiddleware(permission.CRUDENROLLMENT), admissioncontroller.DeleteEnrollment)
 
 		// ClassCurriculumn
 		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)

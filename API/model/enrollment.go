@@ -9,6 +9,7 @@ type Enrollment struct {
 	SchoolarshipID int         `json:"scholarship_id" gorm:"column:scholarship_id"`
 	FeeInterval    FeeInterval `gorm:"type:enum('monthly_fee','quarterly_fee','semesterly_fee','yearly_fee');not null"`
 	Description    *string     `json:"description" gorm:"column:description"`
+	Isactive       bool        `json:"is_active" gorm:"column:is_active"`
 }
 
 func (Enrollment) TableName() string {

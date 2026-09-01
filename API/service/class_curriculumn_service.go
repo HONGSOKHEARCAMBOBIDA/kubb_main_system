@@ -244,7 +244,7 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 			Joins("LEFT JOIN enrollments e ON e.id = st.enrollment_id").
 			Joins("LEFT JOIN admissions a ON a.id = e.admission_id").
 			Joins("LEFT JOIN students s ON s.id = a.student_id").
-			Where("cr.class_offering_id IN ?", offerIDs).
+			Where("cr.class_offering_id IN ? AND e.is_active = ?", offerIDs, true).
 			Select(`
 			cr.id AS course_registration_id,
             cr.class_offering_id AS offer_id,

@@ -168,10 +168,11 @@ const (
 	// Student Term
 	StudentTermCreate = "student.term.create"
 	StudentTermView   = "student.term.view"
-
+	StudentTermUpdate = "student.term.update/:uuid"
 	// Enrollment
 	EnrollmentCreate = "enrollment.create"
 	EnrollmentUpdate = "enrollment.update/:uuid"
+	EnrollmentDelete = "enrollment.delete/:uuid"
 
 	// ClassCurriculumn
 	ClassCurriculumnCreate              = "class_curriculmn.create"
