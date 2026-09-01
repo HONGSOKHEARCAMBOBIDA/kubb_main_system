@@ -74,7 +74,7 @@ async function fetchAcademicOption() {
       label: a.name,
       value: a.id,
     }))
-  } catch (e) {}
+  } catch (e) { }
 }
 async function onSemesterAcademicChange() {
   semesterOptions.value = await loadSemester(AcademicID.value)
@@ -113,7 +113,7 @@ async function submitstudentterm() {
     addstudenttermvisible.value = false
     formstudentterm.enrollment_id = null
     fetchAdmissions()
-  } catch (e) {}
+  } catch (e) { }
 }
 //student term
 
@@ -392,7 +392,7 @@ async function submitEnrollment() {
     addenrollmentvisible.value = false
     formenrollment.admision_id = null
     fetchAdmissions()
-  } catch (e) {}
+  } catch (e) { }
 }
 
 const invoiceRules = {
@@ -690,15 +690,13 @@ onMounted(() => {
 
 <template>
   <div class="admission-page">
-    <AppFilterBar
-      :fields="[
-        { slot: 'studentId', span: 3 },
-        { slot: 'studentName', span: 3 },
-        { slot: 'academic', span: 3 },
-        { slot: 'generation', span: 3 },
-        { slot: 'term', span: 3 },
-      ]"
-    >
+    <AppFilterBar :fields="[
+      { slot: 'studentId', span: 3 },
+      { slot: 'studentName', span: 3 },
+      { slot: 'academic', span: 3 },
+      { slot: 'generation', span: 3 },
+      { slot: 'term', span: 3 },
+    ]">
       <template #studentId>
         <AppInput v-model="filters.student_id" placeholder="លេខសម្គាល់សិស្ស" clearable />
       </template>
@@ -706,57 +704,29 @@ onMounted(() => {
         <AppInput v-model="filters.student_name" placeholder="ស្វែងរកតាមឈ្មោះសិស្ស" clearable />
       </template>
       <template #academic>
-        <AppSelect
-          v-model="filters.academic_id"
-          :options="academicOptions"
-          @change="onAcademicFilterChange"
-          clearable
-          placeholder="ឆ្នាំសិក្សា"
-        />
+        <AppSelect v-model="filters.academic_id" :options="academicOptions" @change="onAcademicFilterChange" clearable
+          placeholder="ឆ្នាំសិក្សា" />
       </template>
       <template #generation>
-        <AppSelect
-          v-model="filters.generation_id"
-          :options="generationFilterOptions"
-          @change="onGenerationFilterChange"
-          clearable
-          placeholder="ជំនាន់"
-        />
+        <AppSelect v-model="filters.generation_id" :options="generationFilterOptions" @change="onGenerationFilterChange"
+          clearable placeholder="ជំនាន់" />
       </template>
       <template #term>
-        <AppSelect
-          v-model="filters.term_id"
-          :options="termFilterOptions"
-          placeholder="វគ្គ"
-          clearable
-          @change=""
-        />
+        <AppSelect v-model="filters.term_id" :options="termFilterOptions" placeholder="វគ្គ" clearable @change="" />
       </template>
     </AppFilterBar>
 
-    <TableCustom
-      expandable
-      :data="admissions"
-      :columns="columns"
-      :loading="loading"
-      :total="total"
-      v-model:current-page="page"
-      v-model:page-size="pageSize"
-      @page-change="fetchAdmissions"
-    >
+    <TableCustom expandable :data="admissions" :columns="columns" :loading="loading" :total="total"
+      v-model:current-page="page" v-model:page-size="pageSize" @page-change="fetchAdmissions">
       <template #student_name="{ row }">
         <el-text>
           <div>
-            <el-text size="small"
-              >{{ row.student_name_kh }} |
-              <el-text size="small">{{ row.student_gender }}</el-text></el-text
-            >
+            <el-text size="small">{{ row.student_name_kh }} |
+              <el-text size="small">{{ row.student_gender }}</el-text></el-text>
           </div>
           <div>
-            <el-text size="small" tag="b" type="primary"
-              >{{ row.student_name_en }} |
-              <el-text size="small">{{ row.student_code }}</el-text></el-text
-            >
+            <el-text size="small" tag="b" type="primary">{{ row.student_name_en }} |
+              <el-text size="small">{{ row.student_code }}</el-text></el-text>
           </div>
         </el-text>
       </template>
@@ -783,10 +753,8 @@ onMounted(() => {
             <el-text>{{ row.major_name }} | {{ row.major_code }}</el-text>
           </div>
           <div>
-            <el-text size="small" type="primary"
-              >{{ row.yearly_fee }}$ /ឆ្នាំ | {{ row.semesterly_fee }}$ /ឆមាស |
-              {{ row.quarterly_fee }}$ /ត្រីមាស | {{ row.monthly_fee }}$ /ខែ</el-text
-            >
+            <el-text size="small" type="primary">{{ row.yearly_fee }}$ /ឆ្នាំ | {{ row.semesterly_fee }}$ /ឆមាស |
+              {{ row.quarterly_fee }}$ /ត្រីមាស | {{ row.monthly_fee }}$ /ខែ</el-text>
           </div>
         </el-text>
       </template>
@@ -804,31 +772,18 @@ onMounted(() => {
 
       <template #actions="{ row }">
         <el-tooltip content="កែប្រែ" placement="top">
-          <AppButton
-            icon="Edit"
-            circle
-            size="small"
-            plain
-            type="primary"
-            @click="openUpdateAdmission(row)"
-          />
+          <AppButton icon="Edit" circle size="small" plain type="primary" @click="openUpdateAdmission(row)" />
         </el-tooltip>
       </template>
 
       <!-- Level 1: enrollments -->
       <template #expand="{ row }">
-        <el-divider content-position="left"
-          >ព័ត៌មានដាក់ពាក្យ
+        <el-divider content-position="left">ព័ត៌មានដាក់ពាក្យ
           <AppButton plain @click="openCreateEnrollment(row)" type="primary">
             ដាក់ពាក្យថ្មី
           </AppButton>
         </el-divider>
-        <TableCustom
-          expandable
-          :data="row.enrollment"
-          :columns="columnenrollments"
-          :show-pagination="false"
-        >
+        <TableCustom expandable :data="row.enrollment" :columns="columnenrollments" :show-pagination="false">
           <template #year_id="{ row }">
             <el-text> ឆ្នាំទី {{ row.year_id }} </el-text>
           </template>
@@ -856,25 +811,11 @@ onMounted(() => {
 
           <template #actions="{ row }">
             <el-tooltip content="កែប្រែ" placement="top">
-              <AppButton
-                size="small"
-                circle
-                plain
-                icon="Edit"
-                type="primary"
-                @click="openenrollment(row)"
-              >
+              <AppButton size="small" circle plain icon="Edit" type="primary" @click="openenrollment(row)">
               </AppButton>
             </el-tooltip>
             <el-tooltip content="លុប" placement="top">
-              <AppButton
-                size="small"
-                circle
-                plain
-                icon="Delete"
-                type="danger"
-                @click="openDeleteEnrollment(row)"
-              >
+              <AppButton size="small" circle plain icon="Delete" type="danger" @click="openDeleteEnrollment(row)">
               </AppButton>
             </el-tooltip>
           </template>
@@ -882,20 +823,11 @@ onMounted(() => {
           <template #expand="{ row }">
             <el-divider content-position="left">
               កំពុងសិក្សា
-              <AppButton
-                plain
-                v-if="row.student_term?.length < 2"
-                @click="openCreateStudentTerm(row)"
-              >
+              <AppButton plain v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
                 ថែមឆមាសថ្មី
               </AppButton>
             </el-divider>
-            <TableCustom
-              expandable
-              :data="row.student_term"
-              :columns="columnstudentterms"
-              :show-pagination="false"
-            >
+            <TableCustom expandable :data="row.student_term" :columns="columnstudentterms" :show-pagination="false">
               <template #semester="{ row }">
                 <el-text class="ml-2">{{ row.semester_name }}</el-text>
               </template>
@@ -906,36 +838,19 @@ onMounted(() => {
               </template>
               <template #actions="{ row }">
                 <el-tooltip content="កែប្រែ" placement="top">
-                  <AppButton
-                    size="small"
-                    circle
-                    plain
-                    icon="Edit"
-                    type="primary"
-                    @click="openstudenttermupdate(row)"
-                  >
+                  <AppButton size="small" circle plain icon="Edit" type="primary" @click="openstudenttermupdate(row)">
                   </AppButton>
                 </el-tooltip>
               </template>
               <template #expand="{ row }">
                 <el-divider content-position="left"> GPA Record </el-divider>
-                <TableCustom
-                  expandable
-                  :data="row.gpa_record"
-                  :columns="columngparecord"
-                  :show-pagination="false"
-                >
+                <TableCustom expandable :data="row.gpa_record" :columns="columngparecord" :show-pagination="false">
                 </TableCustom>
               </template>
             </TableCustom>
 
             <el-divider content-position="left">ថ្លៃសិក្សាប្រចាំឆ្នាំ</el-divider>
-            <TableCustom
-              expandable
-              :data="row.fee_response"
-              :columns="columnfees"
-              :show-pagination="false"
-            >
+            <TableCustom expandable :data="row.fee_response" :columns="columnfees" :show-pagination="false">
               <template #feeAmount="{ row }">
                 <el-text style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
               </template>
@@ -954,13 +869,8 @@ onMounted(() => {
               <template #expand="{ row: feeRow }">
                 <div>
                   <el-divider content-position="left"> ការបង់ប្រាក់ </el-divider>
-                  <TableCustom
-                    expandable
-                    :data="feeRow.installment || []"
-                    :columns="columninstallments"
-                    :show-pagination="false"
-                    actions-width="180"
-                  >
+                  <TableCustom expandable :data="feeRow.installment || []" :columns="columninstallments"
+                    :show-pagination="false" actions-width="180">
                     <template #instAmount="{ row }">
                       <el-text>{{ formatMoney(row.amount) }}$ </el-text>
                     </template>
@@ -976,20 +886,14 @@ onMounted(() => {
                       <el-text style="color: black">{{ row.payment_method }}</el-text>
                     </template>
                     <template #actions="{ row: installmentRow }">
-                      <AppButton
-                        :disabled="installmentRow.status === 'paid'"
-                        type="success"
-                        @click="openInvoiceDialog(feeRow, installmentRow)"
-                      >
+                      <AppButton :disabled="installmentRow.status === 'paid'" type="success"
+                        @click="openInvoiceDialog(feeRow, installmentRow)">
                         បង់ប្រាក់
                       </AppButton>
-<AppButton
-  :disabled="installmentRow.status === 'pending'"
-  type="primary"
-  @click="openshowA4(installmentRow)"
->
-  បោះពុម្ព
-</AppButton>
+                      <AppButton :disabled="installmentRow.status === 'pending'" type="primary"
+                        @click="openshowA4(installmentRow)">
+                        បោះពុម្ព
+                      </AppButton>
                     </template>
                   </TableCustom>
                 </div>
@@ -999,62 +903,30 @@ onMounted(() => {
         </TableCustom>
       </template>
     </TableCustom>
-    <AppDialog
-      v-if="invoiceDialogVisible"
-      v-model:visible="invoiceDialogVisible"
-      title="បង្កើតវិក័យបត្រ / បង់ប្រាក់"
-      :showDefaultFooter="false"
-      width="520px"
-      @close="closeInvoiceDialog"
-    >
-      <AppForm
-        ref="invoiceFormRef"
-        :model="form"
-        :rules="invoiceRules"
-        :show-actions="true"
-        @submit="submitInvoice"
-        submitText="បញ្ជាក់ការបង់ប្រាក់"
-      >
+    <AppDialog v-if="invoiceDialogVisible" v-model:visible="invoiceDialogVisible" title="បង្កើតវិក័យបត្រ / បង់ប្រាក់"
+      :showDefaultFooter="false" width="520px" @close="closeInvoiceDialog">
+      <AppForm ref="invoiceFormRef" :model="form" :rules="invoiceRules" :show-actions="true" @submit="submitInvoice"
+        submitText="បញ្ជាក់ការបង់ប្រាក់">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="ថ្ងៃចេញ" prop="invoice_date">
-              <el-date-picker
-                v-model="form.invoice_date"
-                type="date"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
+              <el-date-picker v-model="form.invoice_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="ថ្ងៃកំណត់" prop="due_date">
-              <el-date-picker
-                v-model="form.due_date"
-                type="date"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
+              <el-date-picker v-model="form.due_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppInput
-              v-model.number="form.total"
-              type="number"
-              label="តម្លៃដេីម"
-              placeholder="តម្លៃដេីម"
-            >
+            <AppInput v-model.number="form.total" type="number" label="តម្លៃដេីម" placeholder="តម្លៃដេីម">
             </AppInput>
           </el-col>
           <el-col :span="12">
-            <AppInput
-              v-model.number="form.discount"
-              type="number"
-              label="បញ្ចុះតម្លៃ"
-              placeholder="បញ្ចុះតម្លៃ"
-            >
+            <AppInput v-model.number="form.discount" type="number" label="បញ្ចុះតម្លៃ" placeholder="បញ្ចុះតម្លៃ">
             </AppInput>
           </el-col>
         </el-row>
@@ -1065,25 +937,15 @@ onMounted(() => {
             </AppInput>
           </el-col>
           <el-col :span="12">
-            <AppInput
-              v-model.number="form.grant_total"
-              type="number"
-              label="សរុបត្រូវបង់"
-              placeholder="សរុបត្រូវបង់"
-            >
+            <AppInput v-model.number="form.grant_total" type="number" label="សរុបត្រូវបង់" placeholder="សរុបត្រូវបង់">
             </AppInput>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppSelect
-              v-model="form.method"
-              :options="methodOptions"
-              placeholder="មធ្យោបាយបង់ប្រាក់"
-              label="មធ្យោបាយបង់ប្រាក់"
-              clearable
-            />
+            <AppSelect v-model="form.method" :options="methodOptions" placeholder="មធ្យោបាយបង់ប្រាក់"
+              label="មធ្យោបាយបង់ប្រាក់" clearable />
           </el-col>
           <el-col :span="12">
             <AppInput v-model="form.reference" label="លេខយោង" placeholder="លេខយោង"> </AppInput>
@@ -1092,365 +954,309 @@ onMounted(() => {
 
         <el-row>
           <el-col>
-            <AppInput
-              type="area"
-              v-model="form.message_on_invoice"
-              label="សេចក្តីលម្អិត"
-              placeholder="សេចក្តីលម្អិត"
-            >
+            <AppInput type="area" v-model="form.message_on_invoice" label="សេចក្តីលម្អិត" placeholder="សេចក្តីលម្អិត">
             </AppInput>
           </el-col>
         </el-row>
       </AppForm>
     </AppDialog>
 
-    <AppDialog
-      v-if="addstudenttermvisible"
-      v-model:visible="addstudenttermvisible"
-      title="ថែមឆមាស"
-      :showDefaultFooter="false"
-      width="520px"
-      @close="closeCreateStudentTerm"
-    >
-      <AppForm
-        :model="formstudentterm"
-        :show-actions="true"
-        @submit="submitstudentterm"
-        submitText="រក្សាទុក"
-      >
-        <AppSelect
-          v-model="AcademicID"
-          :options="academicOptions"
-          placeholder="រេីសឆ្នាំសិក្សា"
-          label="ឆ្នាំសិក្សា"
-          clearable
-          @change="onSemesterAcademicChange"
-        />
+    <AppDialog v-if="addstudenttermvisible" v-model:visible="addstudenttermvisible" title="ថែមឆមាស"
+      :showDefaultFooter="false" width="520px" @close="closeCreateStudentTerm">
+      <AppForm :model="formstudentterm" :show-actions="true" @submit="submitstudentterm" submitText="រក្សាទុក">
+        <AppSelect v-model="AcademicID" :options="academicOptions" placeholder="រេីសឆ្នាំសិក្សា" label="ឆ្នាំសិក្សា"
+          clearable @change="onSemesterAcademicChange" />
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppSelect
-              v-model="formstudentterm.study_year_id"
-              :options="studyyearOption"
-              placeholder="ឆ្នាំទី"
-              label="ឆ្នាំទី"
-              clearable
-            />
+            <AppSelect v-model="formstudentterm.study_year_id" :options="studyyearOption" placeholder="ឆ្នាំទី"
+              label="ឆ្នាំទី" clearable />
           </el-col>
           <el-col :span="12">
-            <AppSelect
-              v-model="formstudentterm.semester_id"
-              :options="semesterOptions"
-              :disabled="!AcademicID"
-              placeholder="ឆមាសទី"
-              label="ឆមាសទី"
-              clearable
-            />
+            <AppSelect v-model="formstudentterm.semester_id" :options="semesterOptions" :disabled="!AcademicID"
+              placeholder="ឆមាសទី" label="ឆមាសទី" clearable />
           </el-col>
         </el-row>
       </AppForm>
     </AppDialog>
-    <AppDialog
-      v-if="addenrollmentvisible"
-      v-model:visible="addenrollmentvisible"
-      title="ថែមការចុះឈ្មោះ"
-      :showDefaultFooter="false"
-      width="720px"
-      @close="closeCreateEnrollment"
-    >
-      <AppForm
-        :model="formenrollment"
-        :show-actions="true"
-        @submit="submitEnrollment"
-        submitText="រក្សាទុក"
-      >
+    <AppDialog v-if="addenrollmentvisible" v-model:visible="addenrollmentvisible" title="ថែមការចុះឈ្មោះ"
+      :showDefaultFooter="false" width="720px" @close="closeCreateEnrollment">
+      <AppForm :model="formenrollment" :show-actions="true" @submit="submitEnrollment" submitText="រក្សាទុក">
         <el-row :gutter="20">
           <el-col :span="8">
-            <AppSelect
-              v-model="AcademicID"
-              :options="academicOptions"
-              placeholder="រេីសឆ្នាំសិក្សា"
-              label="ឆ្នាំសិក្សា"
-              clearable
-              @change="onSemesterAcademicChange"
-            />
+            <AppSelect v-model="AcademicID" :options="academicOptions" placeholder="រេីសឆ្នាំសិក្សា" label="ឆ្នាំសិក្សា"
+              clearable @change="onSemesterAcademicChange" />
           </el-col>
           <el-col :span="8">
-            <AppSelect
-              v-model="formenrollment.scholarship_id"
-              :options="schoolarshipOptions"
-              placeholder="អាហារូបករណ៍"
-              label="អាហារូបករណ៍"
-              clearable
-            />
+            <AppSelect v-model="formenrollment.scholarship_id" :options="schoolarshipOptions" placeholder="អាហារូបករណ៍"
+              label="អាហារូបករណ៍" clearable />
           </el-col>
           <el-col :span="8">
-            <AppSelect
-              v-model="formenrollment.fee_interval"
-              :options="endrollmentFeeintervalOption"
-              placeholder="សុំបង់ប្រាក់ជា"
-              label="សុំបង់ប្រាក់ជា"
-              clearable
-            />
+            <AppSelect v-model="formenrollment.fee_interval" :options="endrollmentFeeintervalOption"
+              placeholder="សុំបង់ប្រាក់ជា" label="សុំបង់ប្រាក់ជា" clearable />
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppSelect
-              v-model="formenrollment.student_term.study_year_id"
-              :options="studyyearOption"
-              placeholder="ឆ្នាំទី"
-              label="ឆ្នាំទី"
-              clearable
-            />
+            <AppSelect v-model="formenrollment.student_term.study_year_id" :options="studyyearOption"
+              placeholder="ឆ្នាំទី" label="ឆ្នាំទី" clearable />
           </el-col>
           <el-col :span="12">
-            <AppSelect
-              v-model="formenrollment.student_term.semester_id"
-              :options="semesterOptions"
-              :disabled="!AcademicID"
-              placeholder="ឆមាសទី"
-              label="ឆមាសទី"
-              clearable
-            />
+            <AppSelect v-model="formenrollment.student_term.semester_id" :options="semesterOptions"
+              :disabled="!AcademicID" placeholder="ឆមាសទី" label="ឆមាសទី" clearable />
           </el-col>
         </el-row>
       </AppForm>
     </AppDialog>
-    <AppDialog
-      v-if="updateAdmissionVisible"
-      v-model:visible="updateAdmissionVisible"
-      title="កែប្រែពាក្យសុំចូលរៀន"
-      :showDefaultFooter="false"
-      width="600px"
-      @close="closeUpdateAdmission"
-    >
-      <AppForm
-        :model="formupdateadmission"
-        :show-actions="true"
-        @submit="submitUpdateAdmission"
-        submitText="រក្សាទុក"
-      >
+    <AppDialog v-if="updateAdmissionVisible" v-model:visible="updateAdmissionVisible" title="កែប្រែពាក្យសុំចូលរៀន"
+      :showDefaultFooter="false" width="600px" @close="closeUpdateAdmission">
+      <AppForm :model="formupdateadmission" :show-actions="true" @submit="submitUpdateAdmission" submitText="រក្សាទុក">
         <el-row :gutter="20">
           <el-col :span="8">
-            <AppSelect
-              v-model="selectacademicforupdateadmission"
-              :options="academicOptions"
-              placeholder="ឆ្នាំសិក្សា"
-              label="ឆ្នាំសិក្សា"
-              clearable
-              @change="onAcademicChange"
-            />
+            <AppSelect v-model="selectacademicforupdateadmission" :options="academicOptions" placeholder="ឆ្នាំសិក្សា"
+              label="ឆ្នាំសិក្សា" clearable @change="onAcademicChange" />
           </el-col>
           <el-col :span="8">
-            <AppSelect
-              v-model="selectgenerationforupdateadmission"
-              :options="generationOptions"
-              :disabled="!selectacademicforupdateadmission"
-              placeholder="ជំនាន់"
-              label="ជំនាន់"
-              clearable
-              @change="onGenerationChange"
-            />
+            <AppSelect v-model="selectgenerationforupdateadmission" :options="generationOptions"
+              :disabled="!selectacademicforupdateadmission" placeholder="ជំនាន់" label="ជំនាន់" clearable
+              @change="onGenerationChange" />
           </el-col>
           <el-col :span="8">
-            <AppSelect
-              v-model="formupdateadmission.term_id"
-              :options="termOptions"
-              :disabled="!selectgenerationforupdateadmission"
-              placeholder="វគ្គ"
-              label="វគ្គ"
-              clearable
-            />
+            <AppSelect v-model="formupdateadmission.term_id" :options="termOptions"
+              :disabled="!selectgenerationforupdateadmission" placeholder="វគ្គ" label="វគ្គ" clearable />
           </el-col>
         </el-row>
         <el-row>
           <el-col>
-            <AppSelect
-              v-model="formupdateadmission.state"
-              :options="admissionStateOptions"
-              placeholder="ស្ថានភាពពាក្យ"
-              label="ស្ថានភាពពាក្យ"
-              clearable
-            />
+            <AppSelect v-model="formupdateadmission.state" :options="admissionStateOptions" placeholder="ស្ថានភាពពាក្យ"
+              label="ស្ថានភាពពាក្យ" clearable />
           </el-col>
         </el-row>
       </AppForm>
     </AppDialog>
 
-    <AppDialog
-      v-if="updateenrollmentvisible"
-      v-model:visible="updateenrollmentvisible"
-      title="កែប្រែ"
-      :showDefaultFooter="false"
-      width="600px"
-      @close="closeenrollment"
-    >
-      <AppForm
-        :model="formupdateenrollment"
-        :show-actions="true"
-        @submit="submitUpdateEnrollment"
-        submitText="រក្សាទុក"
-      >
-        <AppInput
-          type="area"
-          v-model="formupdateenrollment.description"
-          label="សេចក្តីលម្អិត"
-          placeholder="សេចក្តីលម្អិត"
-        >
+    <AppDialog v-if="updateenrollmentvisible" v-model:visible="updateenrollmentvisible" title="កែប្រែ"
+      :showDefaultFooter="false" width="600px" @close="closeenrollment">
+      <AppForm :model="formupdateenrollment" :show-actions="true" @submit="submitUpdateEnrollment"
+        submitText="រក្សាទុក">
+        <AppInput type="area" v-model="formupdateenrollment.description" label="សេចក្តីលម្អិត"
+          placeholder="សេចក្តីលម្អិត">
         </AppInput>
       </AppForm>
     </AppDialog>
 
-    <AppDialog
-      v-if="deleteenrollmentvisible"
-      v-model:visible="deleteenrollmentvisible"
-      title="លុប"
-      :showDefaultFooter="false"
-      width="600px"
-      @close="closedeleteenrollment"
-    >
+    <AppDialog v-if="deleteenrollmentvisible" v-model:visible="deleteenrollmentvisible" title="លុប"
+      :showDefaultFooter="false" width="600px" @close="closedeleteenrollment">
       <AppForm :show-actions="true" @submit="submitDeleteEnrollment" submitText="លុប">
         <el-alert type="warning">គ្រប់ព័ត៏មាននិងត្រូវបានលុប!</el-alert>
       </AppForm>
     </AppDialog>
 
-    <AppDialog
-      v-if="updatestudenttermvisible"
-      v-model:visible="updatestudenttermvisible"
-      title="កែប្រែឆមាស"
-      :showDefaultFooter="false"
-      width="520px"
-      @close="closestudenttermupdate"
-    >
-      <AppForm
-        :model="updatestudenttermform"
-        :show-actions="true"
-        @submit="submitUpdateStudentTerm"
-        submitText="រក្សាទុក"
-      >
-        <AppSelect
-          v-model="AcademicIDUpdateStudentTerm"
-          :options="academicOptions"
-          placeholder="រេីសឆ្នាំសិក្សា"
-          label="ឆ្នាំសិក្សា"
-          clearable
-        />
+    <AppDialog v-if="updatestudenttermvisible" v-model:visible="updatestudenttermvisible" title="កែប្រែឆមាស"
+      :showDefaultFooter="false" width="520px" @close="closestudenttermupdate">
+      <AppForm :model="updatestudenttermform" :show-actions="true" @submit="submitUpdateStudentTerm"
+        submitText="រក្សាទុក">
+        <AppSelect v-model="AcademicIDUpdateStudentTerm" :options="academicOptions" placeholder="រេីសឆ្នាំសិក្សា"
+          label="ឆ្នាំសិក្សា" clearable />
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <AppSelect
-              v-model="updatestudenttermform.study_year_id"
-              :options="studyyearOption"
-              placeholder="ឆ្នាំទី"
-              label="ឆ្នាំទី"
-              clearable
-            />
+            <AppSelect v-model="updatestudenttermform.study_year_id" :options="studyyearOption" placeholder="ឆ្នាំទី"
+              label="ឆ្នាំទី" clearable />
           </el-col>
           <el-col :span="12">
-            <AppSelect
-              v-model="updatestudenttermform.semester_id"
-              :options="semesterOptions"
-              :disabled="!AcademicIDUpdateStudentTerm"
-              placeholder="ឆមាសទី"
-              label="ឆមាសទី"
-              clearable
-            />
+            <AppSelect v-model="updatestudenttermform.semester_id" :options="semesterOptions"
+              :disabled="!AcademicIDUpdateStudentTerm" placeholder="ឆមាសទី" label="ឆមាសទី" clearable />
           </el-col>
         </el-row>
-        <AppSelect
-          v-model="updatestudenttermform.status"
-          :options="enrollmentStateOptions"
-          placeholder="ស្ថានភាព"
-          label="ស្ថានភាព"
-          clearable
-        />
+        <AppSelect v-model="updatestudenttermform.status" :options="enrollmentStateOptions" placeholder="ស្ថានភាព"
+          label="ស្ថានភាព" clearable />
       </AppForm>
     </AppDialog>
 
-<AppDialog
-  v-if="showA4visible"
-  v-model:visible="showA4visible"
-  :showDefaultFooter="false"
-  width="58%"
->
-  <AppForm
-    :show-actions="true"
-    @submit="printA4"
-    submitText="បោះពុម្ព"
-  >
-    <div class="a4-preview-wrapper">
-      <div class="a4-landscape">
+    <AppDialog v-if="showA4visible" v-model:visible="showA4visible" :showDefaultFooter="false" width="58%">
+      <AppForm :show-actions="true" @submit="printA4" submitText="បោះពុម្ព">
+        <div class="a4-preview-wrapper">
+          <div class="a4-landscape">
 
-        <!-- Header -->
-        <div class="print-header">
+            <!-- Header -->
+            <div class="print-header">
 
-          <!-- Logo -->
-          <div class="header-logo">
-            <el-image
-              :src="url"
-              fit="contain"
-              class="university-logo"
-            />
+              <!-- Logo -->
+              <div class="header-logo">
+                <el-image :src="url" fit="contain" class="university-logo" />
+              </div>
+
+              <!-- University Information -->
+              <div class="header-info">
+                <div class="university-name-kh">
+
+                  សាកលវិទ្យាល័យ ខេមរាវិទូ
+
+                </div>
+
+                <div class="university-name-en">
+                  KHEMARAVITU UNIVERSITY
+                </div>
+
+                <div class="university-branch">
+                  សាខាខេត្តបាត់ដំបង
+                </div>
+                <div class="university-branch">
+                  បង្កាន់ដៃទទួលប្រាក់
+                </div>
+
+                <div class="university-name-en">
+                  Receipt
+                </div>
+              </div>
+
+              <!-- Right Section -->
+              <div class="header-right">
+                <div class="document-box">
+                  <el-row class="pl-5 pt-2">
+                    <el-text>
+                      No: {{ datashowA4.invoice_code }}
+                    </el-text>
+                  </el-row>
+                  <el-row class="pl-5 pb-2">
+                    <el-text>
+                      Date: {{ datashowA4.invoice_date }}
+                    </el-text>
+                  </el-row>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Content -->
+            <div class="">
+              <el-row :gutter="20">
+                <el-col :span="12">
+
+                  <div class="document-box ">
+                    <el-row :gutter="20">
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            ឈ្មោះ
+                          </el-text>
+                        </div>
+                      </el-col>
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            លេខសម្គាល់សិស្ស
+                          </el-text>
+                        </div>
+                      </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            កម្រិតសិក្សា
+                          </el-text>
+                        </div>
+                      </el-col>
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            ជំនាន់ទី
+                          </el-text>
+                        </div>
+                      </el-col>
+                    </el-row>
+<div class="pb-2">
+                    <el-row :gutter="20">
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            ជំនាញ
+                          </el-text>
+                        </div>
+                      </el-col>
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            វគ្គ
+                          </el-text>
+                        </div>
+                      </el-col>
+                    </el-row>
+</div>
+                  </div>
+                </el-col>
+
+                <el-col :span="12">
+
+                  <div class="document-box ">
+                    <el-row :gutter="20">
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            ចំនួនទឹកប្រាក់
+                          </el-text>
+                        </div>
+                      </el-col>
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            ក្នុងខ្ទង់
+                          </el-text>
+                        </div>
+                      </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            ជាអក្សរ
+                          </el-text>
+                        </div>
+                      </el-col>
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            វិធីសាស្រ្តទូទាត់
+                          </el-text>
+                        </div>
+                      </el-col>
+                    </el-row>
+                    <div class="pb-2">
+                    <el-row :gutter="20" >
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            របៀបបង់ប្រាក់
+                          </el-text>
+                        </div>
+                      </el-col>
+                      <el-col :span="12">
+                        <div class="pl-5 pt-2">
+                          <el-text>
+                            បង់លើកទី
+                          </el-text>
+                        </div>
+                      </el-col>
+                    </el-row>
+                    </div>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
+
           </div>
-
-          <!-- University Information -->
-          <div class="header-info">
-            <div class="university-name-kh">
-            
-                សាកលវិទ្យាល័យ ខេមរាវិទូ
-              
-            </div>
-
-            <div class="university-name-en">
-              KHEMARAVITU UNIVERSITY
-            </div>
-
-            <div class="university-branch">
-              សាខាខេត្តបាត់ដំបង
-            </div>
-            <div class="university-branch">
-              បង្កាន់ដៃទទួលប្រាក់
-            </div>
-
-            <div class="university-name-en">
-              Receipt
-            </div>
-          </div>
-
-          <!-- Right Section -->
-          <div class="header-right">
-            <div class="document-box">
-             <el-row class="pl-5 pt-2">
-              <el-text>
-                No:  {{ datashowA4.invoice_code }}
-              </el-text>
-             </el-row>
-             <el-row class="pl-5 pb-2">
-              <el-text>
-                Date:  {{ datashowA4.invoice_date }}
-              </el-text>
-             </el-row>
-            </div>
-          </div>
-
         </div>
-
-        <!-- Content -->
-        <div class="print-content">
-          <!-- Your content here -->
-        </div>
-
-      </div>
-    </div>
-  </AppForm>
-</AppDialog>
+      </AppForm>
+    </AppDialog>
   </div>
 </template>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+
 .a4-preview-wrapper {
   width: 100%;
   padding: 20px;
@@ -1517,6 +1323,7 @@ onMounted(() => {
 .university-branch {
   color: black;
   font-family: "Moul", serif;
+  letter-spacing: 0.5px;
   font-size: 14px;
 }
 
@@ -1528,7 +1335,7 @@ onMounted(() => {
 }
 
 .document-box {
-  width: 190px;
+  width: 100%;
   min-height: 70px;
   border-radius: 10px;
   border: 1px solid #222;
@@ -1569,6 +1376,7 @@ onMounted(() => {
     box-shadow: none;
   }
 }
+
 .admission-page {
   display: flex;
   flex-direction: column;
