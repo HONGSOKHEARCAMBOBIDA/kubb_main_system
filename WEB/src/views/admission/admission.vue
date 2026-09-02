@@ -21,8 +21,8 @@ import {
 import { getSchoolarshipGroup } from '../../services/schoolarship.service.js'
 import { getGenerationByAcademic } from '../../services/generation.service.js'
 import { getTermByGeneation } from '../../services/term.service'
-const url =
-  '/logo.png'
+
+const url = '/logo.png'
 const notify = useNotification()
 let searchTimer = null
 const admissions = ref([])
@@ -30,10 +30,87 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+
+/* ---------------------------------------------------
+ * Khmer number-to-words helper (for the receipt)
+ * --------------------------------------------------- */
+const KH_ONES = ['សូន្យ', 'មួយ', 'ពីរ', 'បី', 'បួន', 'ប្រាំ', 'ប្រាំមួយ', 'ប្រាំពីរ', 'ប្រាំបី', 'ប្រាំបួន']
+const KH_TENS = ['', 'ដប់', 'ម្ភៃ', 'សាមសិប', 'សែសិប', 'ហាសិប', 'ហុកសិប', 'ចិតសិប', 'ប៉ែតសិប', 'កៅសិប']
+
+function twoDigitKh(n) {
+  if (n === 0) return ''
+  if (n < 10) return KH_ONES[n]
+  const t = Math.floor(n / 10)
+  const o = n % 10
+  if (t === 1) {
+    return o === 0 ? 'ដប់' : o === 1 ? 'ដប់មួយ' : 'ដប់' + KH_ONES[o]
+  }
+  let s = KH_TENS[t]
+  if (o === 0) return s
+  if (o === 1) return s + 'មួយ'
+  return s + KH_ONES[o]
+}
+
+function integerToKhmerWords(numIn) {
+  let n = Math.floor(numIn)
+  if (n === 0) return KH_ONES[0]
+
+  const million = Math.floor(n / 1000000); n %= 1000000
+  const hunThousand = Math.floor(n / 100000); n %= 100000
+  const tenThousand = Math.floor(n / 10000); n %= 10000
+  const thousand = Math.floor(n / 1000); n %= 1000
+  const hundred = Math.floor(n / 100); n %= 100
+  const rest = n
+
+  let parts = []
+  if (million > 0) parts.push(integerToKhmerWords(million) + 'លាន')
+  if (hunThousand > 0) parts.push(KH_ONES[hunThousand] + 'សែន')
+  if (tenThousand > 0) parts.push(KH_ONES[tenThousand] + 'ម៉ឺន')
+  if (thousand > 0) parts.push((thousand < 10 ? KH_ONES[thousand] : integerToKhmerWords(thousand)) + 'ពាន់')
+  if (hundred > 0) parts.push(KH_ONES[hundred] + 'រយ')
+  if (rest > 0) parts.push(twoDigitKh(rest))
+
+  return parts.join('')
+}
+
+function amountToKhmerWords(amount) {
+  const num = Number(amount) || 0
+  const dollars = Math.floor(num)
+  const cents = Math.round((num - dollars) * 100)
+
+  let words = integerToKhmerWords(dollars) + 'ដុល្លារ'
+  if (cents > 0) {
+    words += ' ' + integerToKhmerWords(cents) + 'សេន'
+  }
+  return words
+}
+/* --------------------------------------------------- */
+
 const showA4visible = ref(false)
 const datashowA4 = ref(null)
-async function openshowA4(row) {
-  datashowA4.value = row
+
+// row = admission row, enrollment = enrollment row, feeRow = fee_response row, installmentRow = installment row
+async function openshowA4(admission, enrollment, feeRow, installmentRow) {
+  datashowA4.value = {
+    invoice_code: installmentRow.invoice_code,
+    invoice_date: installmentRow.invoice_date,
+
+    student_name: admission.student_name_kh,
+    student_name_en: admission.student_name_en,
+    student_code: admission.student_code,
+    study_level: admission.programme_name,
+    generation: admission.generation_name,
+    major: admission.major_name,
+    course: admission.term_name,
+
+    amount: formatMoney(installmentRow.invoice_grant_total),
+    amount_unit: 'ដុល្លារ',
+    amount_in_words: amountToKhmerWords(installmentRow.invoice_grant_total),
+
+    payment_method: installmentRow.payment_method,
+    payment_type: labelOf(feeIntervalLabels, enrollment.fee_interval),
+    payment_number: installmentRow.sequence_no,
+  }
   showA4visible.value = true
 }
 
@@ -51,12 +128,10 @@ const getStatusLabel = (status) => {
     FINISH: 'បានបញ្ចប់',
     SUSPENDED: 'ផ្អាកការសិក្សា',
   }
-
   return labels[status] ?? ''
 }
 
 // add new student term
-
 const studyyearOption = [
   { label: 'ឆ្នាំទី1', value: 1 },
   { label: 'ឆ្នាំទី2', value: 2 },
@@ -490,7 +565,7 @@ async function submitInvoice() {
   }
 }
 
-// --- Label maps: replace with your real enum values ---
+// --- Label maps ---
 const stateLabels = {
   pending: 'កំពុងរង់ចាំ',
   approved: 'អនុម័ត',
@@ -526,7 +601,6 @@ const columns = [
   { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', slot: 'academic', width: 130 },
   { prop: 'generation_name', label: 'ជំនាន់', slot: 'generation', width: 130 },
   { prop: 'term_name', label: 'វគ្គ', width: 80 },
-
   { slot: 'major_name', label: 'ជំនាញ', minwidth: 150 },
   { prop: 'programme_name', label: 'កម្រិត', width: 110 },
   { slot: 'group', label: 'ក្រុមបញ្ចុះតម្លៃ', minwidth: 150 },
@@ -633,7 +707,7 @@ watch(
     searchTimer = setTimeout(() => {
       page.value = 1
       fetchAdmissions()
-    }, 400) // debounce so we don't hit the API on every keystroke
+    }, 400)
   }
 )
 
@@ -644,7 +718,7 @@ watch(
     searchTimer = setTimeout(() => {
       page.value = 1
       fetchAdmissions()
-    }, 400) // debounce so we don't hit the API on every keystroke
+    }, 400)
   }
 )
 
@@ -655,7 +729,7 @@ watch(
     searchTimer = setTimeout(() => {
       page.value = 1
       fetchAdmissions()
-    }, 400) // debounce so we don't hit the API on every keystroke
+    }, 400)
   }
 )
 
@@ -666,7 +740,7 @@ watch(
     searchTimer = setTimeout(() => {
       page.value = 1
       fetchAdmissions()
-    }, 400) // debounce so we don't hit the API on every keystroke
+    }, 400)
   }
 )
 
@@ -677,7 +751,7 @@ watch(
     searchTimer = setTimeout(() => {
       page.value = 1
       fetchAdmissions()
-    }, 400) // debounce so we don't hit the API on every keystroke
+    }, 400)
   }
 )
 
@@ -759,7 +833,6 @@ onMounted(() => {
         </el-text>
       </template>
 
-      >
       <template #group="{ row }">
         <el-text style="color: black">
           {{
@@ -776,14 +849,14 @@ onMounted(() => {
         </el-tooltip>
       </template>
 
-      <!-- Level 1: enrollments -->
-      <template #expand="{ row }">
+      <!-- Level 1: admission -> enrollments -->
+      <template #expand="{ row: admissionRow }">
         <el-divider content-position="left">ព័ត៌មានដាក់ពាក្យ
-          <AppButton plain @click="openCreateEnrollment(row)" type="primary">
+          <AppButton plain @click="openCreateEnrollment(admissionRow)" type="primary">
             ដាក់ពាក្យថ្មី
           </AppButton>
         </el-divider>
-        <TableCustom expandable :data="row.enrollment" :columns="columnenrollments" :show-pagination="false">
+        <TableCustom expandable :data="admissionRow.enrollment" :columns="columnenrollments" :show-pagination="false">
           <template #year_id="{ row }">
             <el-text> ឆ្នាំទី {{ row.year_id }} </el-text>
           </template>
@@ -820,14 +893,15 @@ onMounted(() => {
             </el-tooltip>
           </template>
 
-          <template #expand="{ row }">
+          <!-- Level 2: enrollment -> student_term / fee_response -->
+          <template #expand="{ row: enrollmentRow }">
             <el-divider content-position="left">
               កំពុងសិក្សា
-              <AppButton plain v-if="row.student_term?.length < 2" @click="openCreateStudentTerm(row)">
+              <AppButton plain v-if="enrollmentRow.student_term?.length < 2" @click="openCreateStudentTerm(enrollmentRow)">
                 ថែមឆមាសថ្មី
               </AppButton>
             </el-divider>
-            <TableCustom expandable :data="row.student_term" :columns="columnstudentterms" :show-pagination="false">
+            <TableCustom expandable :data="enrollmentRow.student_term" :columns="columnstudentterms" :show-pagination="false">
               <template #semester="{ row }">
                 <el-text class="ml-2">{{ row.semester_name }}</el-text>
               </template>
@@ -842,15 +916,16 @@ onMounted(() => {
                   </AppButton>
                 </el-tooltip>
               </template>
-              <template #expand="{ row }">
+              <!-- Level 3: student_term -> gpa_record -->
+              <template #expand="{ row: studentTermRow }">
                 <el-divider content-position="left"> GPA Record </el-divider>
-                <TableCustom expandable :data="row.gpa_record" :columns="columngparecord" :show-pagination="false">
+                <TableCustom expandable :data="studentTermRow.gpa_record" :columns="columngparecord" :show-pagination="false">
                 </TableCustom>
               </template>
             </TableCustom>
 
             <el-divider content-position="left">ថ្លៃសិក្សាប្រចាំឆ្នាំ</el-divider>
-            <TableCustom expandable :data="row.fee_response" :columns="columnfees" :show-pagination="false">
+            <TableCustom expandable :data="enrollmentRow.fee_response" :columns="columnfees" :show-pagination="false">
               <template #feeAmount="{ row }">
                 <el-text style="color: black"> {{ formatMoney(row.amount) }}$ </el-text>
               </template>
@@ -866,6 +941,7 @@ onMounted(() => {
                 </el-tag>
               </template>
 
+              <!-- Level 4: fee_response -> installment -->
               <template #expand="{ row: feeRow }">
                 <div>
                   <el-divider content-position="left"> ការបង់ប្រាក់ </el-divider>
@@ -891,7 +967,7 @@ onMounted(() => {
                         បង់ប្រាក់
                       </AppButton>
                       <AppButton :disabled="installmentRow.status === 'pending'" type="primary"
-                        @click="openshowA4(installmentRow)">
+                        @click="openshowA4(admissionRow, enrollmentRow, feeRow, installmentRow)">
                         បោះពុម្ព
                       </AppButton>
                     </template>
@@ -903,6 +979,7 @@ onMounted(() => {
         </TableCustom>
       </template>
     </TableCustom>
+
     <AppDialog v-if="invoiceDialogVisible" v-model:visible="invoiceDialogVisible" title="បង្កើតវិក័យបត្រ / បង់ប្រាក់"
       :showDefaultFooter="false" width="520px" @close="closeInvoiceDialog">
       <AppForm ref="invoiceFormRef" :model="form" :rules="invoiceRules" :show-actions="true" @submit="submitInvoice"
@@ -1082,169 +1159,80 @@ onMounted(() => {
 
             <!-- Header -->
             <div class="print-header">
-
-              <!-- Logo -->
               <div class="header-logo">
                 <el-image :src="url" fit="contain" class="university-logo" />
               </div>
 
-              <!-- University Information -->
               <div class="header-info">
-                <div class="university-name-kh">
-
-                  សាកលវិទ្យាល័យ ខេមរាវិទូ
-
-                </div>
-
-                <div class="university-name-en">
-                  KHEMARAVITU UNIVERSITY
-                </div>
-
-                <div class="university-branch">
-                  សាខាខេត្តបាត់ដំបង
-                </div>
-                <div class="university-branch">
-                  បង្កាន់ដៃទទួលប្រាក់
-                </div>
-
-                <div class="university-name-en">
-                  Receipt
-                </div>
+                <div class="university-name-kh">សាកលវិទ្យាល័យ ខេមរាវិទូ</div>
+                <div class="university-name-en">KHEMARAVITU UNIVERSITY</div>
+                <div class="university-branch">សាខាខេត្តបាត់ដំបង</div>
+                <div class="university-branch">បង្កាន់ដៃទទួលប្រាក់</div>
+                <div class="university-name-en">Receipt</div>
               </div>
 
-              <!-- Right Section -->
               <div class="header-right">
                 <div class="document-box">
                   <el-row class="pl-5 pt-2">
-                    <el-text>
-                      No: {{ datashowA4.invoice_code }}
-                    </el-text>
+                    <el-text>No: {{ datashowA4.invoice_code }}</el-text>
                   </el-row>
                   <el-row class="pl-5 pb-2">
-                    <el-text>
-                      Date: {{ datashowA4.invoice_date }}
-                    </el-text>
+                    <el-text>Date: {{ datashowA4.invoice_date }}</el-text>
                   </el-row>
                 </div>
               </div>
-
             </div>
 
             <!-- Content -->
-            <div class="">
-              <el-row :gutter="20">
-                <el-col :span="12">
+            <div class="receipt-content">
+              <div class="info-box">
+                <div class="info-row">
+                  <div class="info-cell">ឈ្មោះ {{ datashowA4.student_name }}</div>
+                  <div class="info-cell">លេខសម្គាល់សិស្ស {{ datashowA4.student_code }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-cell">កម្រិតសិក្សា {{ datashowA4.study_level }}</div>
+                  <div class="info-cell">ជំនាន់ទី {{ datashowA4.generation }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-cell">ជំនាញ {{ datashowA4.major }}</div>
+                  <div class="info-cell">វគ្គ {{ datashowA4.course }}</div>
+                </div>
+              </div>
 
-                  <div class="document-box ">
-                    <el-row :gutter="20">
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            ឈ្មោះ
-                          </el-text>
-                        </div>
-                      </el-col>
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            លេខសម្គាល់សិស្ស
-                          </el-text>
-                        </div>
-                      </el-col>
-                    </el-row>
-                    <el-row :gutter="20">
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            កម្រិតសិក្សា
-                          </el-text>
-                        </div>
-                      </el-col>
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            ជំនាន់ទី
-                          </el-text>
-                        </div>
-                      </el-col>
-                    </el-row>
-<div class="pb-2">
-                    <el-row :gutter="20">
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            ជំនាញ
-                          </el-text>
-                        </div>
-                      </el-col>
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            វគ្គ
-                          </el-text>
-                        </div>
-                      </el-col>
-                    </el-row>
-</div>
-                  </div>
-                </el-col>
+              <div class="info-box" style="margin-top: 12px;">
+                <div class="info-row">
+                  <div class="info-cell">ចំនួនទឹកប្រាក់ {{ datashowA4.amount }}</div>
+                  <div class="info-cell">ក្នុងខ្ទង់ {{ datashowA4.amount_unit }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-cell">ជាអក្សរ {{ datashowA4.amount_in_words }}</div>
+                  <div class="info-cell">វិធីសាស្រ្តទូទាត់ {{ datashowA4.payment_method }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-cell">របៀបបង់ប្រាក់ {{ datashowA4.payment_type }}</div>
+                  <div class="info-cell">បង់លើកទី {{ datashowA4.payment_number }}</div>
+                </div>
+              </div>
+            </div>
 
-                <el-col :span="12">
+            <div class="signature-section">
+              <div class="signature-row">
+                <div class="signature-item"><div class="signature-title">អ្នកបង់ប្រាក់</div></div>
+                <div class="signature-item"><div class="signature-title">អ្នកទទួល</div></div>
+                <div class="signature-item"><div class="signature-title">ហេរញ្ញិក</div></div>
+              </div>
+            </div>
 
-                  <div class="document-box ">
-                    <el-row :gutter="20">
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            ចំនួនទឹកប្រាក់
-                          </el-text>
-                        </div>
-                      </el-col>
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            ក្នុងខ្ទង់
-                          </el-text>
-                        </div>
-                      </el-col>
-                    </el-row>
-                    <el-row :gutter="20">
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            ជាអក្សរ
-                          </el-text>
-                        </div>
-                      </el-col>
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            វិធីសាស្រ្តទូទាត់
-                          </el-text>
-                        </div>
-                      </el-col>
-                    </el-row>
-                    <div class="pb-2">
-                    <el-row :gutter="20" >
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            របៀបបង់ប្រាក់
-                          </el-text>
-                        </div>
-                      </el-col>
-                      <el-col :span="12">
-                        <div class="pl-5 pt-2">
-                          <el-text>
-                            បង់លើកទី
-                          </el-text>
-                        </div>
-                      </el-col>
-                    </el-row>
-                    </div>
-                  </div>
-                </el-col>
-              </el-row>
+            <div class="receipt-footer">
+              <div class="footer-address">
+                អាសយដ្ឋាន : ភូមិកម្មករ សង្កាត់ស្វាយប៉ោ ក្រុងបាត់ដំបង ខេត្តបាត់ដំបង
+                ទូរសព្ទ ០១២ ៨២៥ ២៥៦ / ០៥៣ ៩៥២ ៣០៦
+              </div>
+              <div class="footer-note">
+                បញ្ជាក់ : ទឹកប្រាក់ដែលបានបង់រួច មិនអាចដក ឬបង្វិលទៅឲ្យអ្នកផ្សេងបានទេ ។
+                សូមរក្សាបង្កាន់ដៃនេះឲ្យបានល្អ ។
+              </div>
             </div>
 
           </div>
@@ -1262,72 +1250,61 @@ onMounted(() => {
   padding: 20px;
   background: #f5f6f8;
   overflow: auto;
+  box-sizing: border-box;
 }
 
 .a4-landscape {
   width: 297mm;
   height: 210mm;
   margin: 0 auto;
-  padding: 15mm;
-
+  padding: 12mm 15mm;
   background: #fff;
   box-sizing: border-box;
-
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  font-family: "Siemreap", sans-serif;
+  color: #000;
 }
-
-/* =========================
-   Header
-========================= */
 
 .print-header {
   display: grid;
-  grid-template-columns: 120px 1fr 220px;
+  grid-template-columns: 100px 1fr 190px;
   align-items: center;
-
-  min-height: 100px;
+  min-height: 90px;
   padding-bottom: 12px;
-
 }
 
 .header-logo {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
 }
 
 .university-logo {
-  width: 170px;
-  height: 170px;
+  width: 85px;
+  height: 85px;
 }
-
-/* University information */
 
 .header-info {
   text-align: center;
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .university-name-kh {
-  color: black;
   font-family: "Moul", serif;
-  font-size: 25px;
+  font-size: 21px;
+  line-height: 1.5;
 }
 
 .university-name-en {
-  color: black;
-  font-size: 15px;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
 }
 
 .university-branch {
-  color: black;
   font-family: "Moul", serif;
-  letter-spacing: 0.5px;
-  font-size: 14px;
+  font-size: 12px;
+  line-height: 1.5;
 }
-
-/* Right side */
 
 .header-right {
   display: flex;
@@ -1336,20 +1313,79 @@ onMounted(() => {
 
 .document-box {
   width: 100%;
-  min-height: 70px;
-  border-radius: 10px;
   border: 1px solid #222;
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
-/* Content */
-
-.print-content {
-  margin-top: 20px;
+.header-right .document-box {
+  min-height: 55px;
 }
 
-/* =========================
-   Print
-========================= */
+.receipt-content {
+  margin-top: 50px;
+}
+
+.info-box {
+  border: 1px solid #222;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 100%;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.info-cell {
+  min-height: 34px;
+  padding: 7px 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #ddd;
+}
+
+.info-cell:nth-child(odd) {
+  border-right: 1px solid #ddd;
+}
+
+.info-row:last-child .info-cell {
+  border-bottom: none;
+}
+
+.signature-section {
+  margin-top: 35px;
+}
+
+.signature-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+}
+
+.signature-item {
+  min-height: 80px;
+}
+
+.signature-title {
+  font-family: "Siemreap", sans-serif;
+  font-size: 14px;
+}
+
+.receipt-footer {
+  margin-top: 60px;
+  border: 1px solid #222;
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: "Moul", serif;
+  font-size: 11px;
+}
+
+.footer-address,
+.footer-note {
+  padding: 8px 12px;
+  line-height: 2;
+}
 
 @media print {
   @page {
@@ -1357,29 +1393,25 @@ onMounted(() => {
     margin: 0;
   }
 
-  body {
-    margin: 0;
-    padding: 0;
+  body * {
+    visibility: hidden;
+  }
+  .a4-preview-wrapper{
+    visibility: visible;
   }
 
+  /* Pull the receipt out of the dialog flow and pin it to the page */
   .a4-preview-wrapper {
+  width: 297mm;
+  height: 210mm;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     padding: 0;
-    background: white;
-  }
-
-  .a4-landscape {
-    width: 297mm;
-    height: 210mm;
     margin: 0;
-    padding: 15mm;
-
-    box-shadow: none;
+    background: #fff;
   }
-}
 
-.admission-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 </style>

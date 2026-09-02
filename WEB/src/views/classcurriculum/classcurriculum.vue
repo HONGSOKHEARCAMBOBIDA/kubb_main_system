@@ -52,13 +52,13 @@ const columns = [
     prop: 'major_duration_interval',
     slot: 'major_duration_interval',
     label: 'រយៈពេលសិក្សា',
-    minwidth: 120,
+    width: 120,
   },
-  { slot: 'programme_name', label: 'កម្រិត', minwidth: 120 },
-  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', minwidth: 120 },
-  { prop: 'generation_name', label: 'ជំនាន់', minwidth: 120 },
-  { prop: 'term_name', label: 'វគ្គ', minwidth: 120 },
-  { prop: 'active', slot: 'active', label: 'ស្ថានភាព', minwidth: 120 },
+  { slot: 'programme_name', label: 'កម្រិត', width: 140 },
+  { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', width: 120 },
+  { prop: 'generation_name', label: 'ជំនាន់', width: 120 },
+  { prop: 'term_name', label: 'វគ្គ', width: 120 },
+  { prop: 'active', slot: 'active', label: 'ស្ថានភាព', width: 120 },
 ]
 
 const columndetails = [
@@ -590,7 +590,7 @@ onMounted(() => {
     @page-change="fetchClassCurriculum"
   >
     <template #programme_name="{ row }">
-      <el-text tag="b" style="color: crimson">
+      <el-text>
         {{ row.programme_name }}
       </el-text>
     </template>
@@ -600,14 +600,44 @@ onMounted(() => {
       </el-text>
     </template>
     <template #major_name="{ row }">
-      <el-text tag="b"> {{ row.major_code }} - {{ row.major_name }} </el-text>
+      <el-text > {{ row.major_code }} | <el-text size="small" type="primary">{{ row.major_name }}</el-text> | <el-text size="small">{{ row.faculty_name }}</el-text> </el-text>
     </template>
     <template #major_duration_interval="{ row }">
-      <el-text tag="b"> {{ row.major_duration_period }} {{ row.major_duration_interval }} </el-text>
+      <el-text > {{ row.major_duration_period }} {{ row.major_duration_interval }} </el-text>
+    </template>
+    <template #actions>
+      <el-tooltip content="កែប្រែ" placement="top">
+      <AppButton
+      circle
+      plain
+      type="warning"
+      icon="Edit"
+      size="small"
+      >
+
+      </AppButton>
+      </el-tooltip>
+      <el-tooltip content="លុប" placement="top">
+      <AppButton
+      circle
+      plain
+      type="danger"
+      icon="Delete"
+      size="small"
+      >
+
+      </AppButton>
+      </el-tooltip>
     </template>
     <!-- `row` here is the parent class curriculum row -->
     <template #expand="{ row }">
-      <el-divider content-position="left">លំអិត</el-divider>
+      <el-divider content-position="left">
+        <AppButton
+        plain
+        >
+          ថែម
+        </AppButton>
+      </el-divider>
       <TableCustom
         expandable
         :data="row.class_curriculum_detais"

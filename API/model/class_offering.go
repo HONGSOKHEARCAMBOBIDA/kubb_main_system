@@ -7,6 +7,7 @@ type ClassOffering struct {
 	base.UUIDBase
 	ClassCurriculumnDetailID  int                 `json:"class_curriculum_detail_id" gorm:"column:class_curriculum_detail_id"`
 	SubjectID                 int                 `json:"subject_id" gorm:"column:subject_id"`
+	SubjectGroupID            int                 `json:"subject_group_id" gorm:"column:subject_group_id"`
 	Credit                    int                 `json:"credit" gorm:"column:credit"`
 	PassingScore              float64             `json:"passing_score" gorm:"column:passing_score"`
 	TotalHour                 float64             `json:"total_hour" gorm:"column:total_hour"`
