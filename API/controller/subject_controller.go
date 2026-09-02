@@ -23,6 +23,15 @@ func NewSubjectController() SubjectController {
 	}
 }
 
+func (cr *SubjectController) GetSubjectGroup(c *gin.Context) {
+	data, err := cr.service.GetSubjectGroup(c)
+	if err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
+
 func (cr *SubjectController) GetSubject(c *gin.Context) {
 	page, pageSize := helper.GetPagination(c)
 

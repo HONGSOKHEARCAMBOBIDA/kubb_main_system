@@ -140,6 +140,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.SubjectCreate, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.CreateSubject)
 		auth.PUT(route.SubjectUpdate, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.UpdateSubject)
 		auth.PUT(route.SubjectToggle, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.Toggle)
+		auth.GET(route.SubjectGroupView, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.GetSubjectGroup)
 
 		// MajorTerm
 		auth.POST(route.MajorTermCreate, middleware.PermissionMiddleware(permission.CRUDMAJORTERM), majortermcontroller.CreateMajorTerm)
@@ -217,6 +218,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.ClassCurriculumnCreate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.CreateClassCurriculumn)
 		auth.GET(route.ClassCurriculumnView, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumn)
 		auth.GET(route.ClassCurriculumnViewWithTeacherRate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumnWithTeacherRate)
+		auth.PUT(route.ClassCurriculumnUpdate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.UpdateClassCurriculumn)
 
 		// ClassOffering
 		auth.POST(route.ClassOfferingCreate, middleware.PermissionMiddleware(permission.CRUDCLASSOFFERING), classofferingcontroller.CreateClassOffering)

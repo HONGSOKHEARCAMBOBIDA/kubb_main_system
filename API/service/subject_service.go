@@ -24,6 +24,7 @@ type SubjectService interface {
 	Toggle(ctx context.Context, id string) error
 	UpdateSubject(ctx context.Context, id string, input request.SubjectRequestUpdate) error
 	CreateGradeComponent(ctx context.Context, input request.GradeComponentRequestCreate) error
+	GetSubjectGroup(ctx context.Context) ([]model.SubjectGroup, error)
 }
 
 type subjectservice struct {
@@ -34,6 +35,17 @@ func NewSubjectService() SubjectService {
 	return &subjectservice{
 		db: config.DB,
 	}
+}
+
+func (s *subjectservice) GetSubjectGroup(ctx context.Context) ([]model.SubjectGroup, error) {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	var data []model.SubjectGroup
+	err := s.db.WithContext(ctx).Find(&data).Error
+	if err != nil {
+		return nil, apperror.Internal("failed to fetch subject group", err)
+	}
+	return data, nil
 }
 
 func (s *subjectservice) CreateSubject(ctx context.Context, input request.SubjectRequestCreate) error {

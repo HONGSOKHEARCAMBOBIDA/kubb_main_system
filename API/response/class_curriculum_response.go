@@ -29,7 +29,7 @@ type ClasCurriculumnResponse struct {
 	GenerationID                  int                             `json:"generation_id" gorm:"column:generation_id"`
 	GenerationCode                string                          `json:"generation_code"`
 	GenerationName                string                          `json:"generation_name"`
-	AcademicID                    int                             `json:"academic_id"`
+	AcademicID                    int                             `json:"academic_id" gorm:"column:academic_id"`
 	AcademicCode                  string                          `json:"academic_code"`
 	AcademicName                  string                          `json:"academic_name"`
 	ClasCurriculumnDetailResponse []ClasCurriculumnDetailResponse `json:"class_curriculum_detais" gorm:"-"`

@@ -7,6 +7,7 @@ import (
 	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
+	"mysql/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -96,4 +97,23 @@ func (cr *ClassCurriculumnController) GetClassCurriculumnWithTeacherRate(c *gin.
 		return
 	}
 	share.ResponsePagination(c, http.StatusOK, data, meta)
+}
+
+func (cr *ClassCurriculumnController) UpdateClassCurriculumn(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+
+	var input request.ClassCurriculumnRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	//log.Printf("Update request: %+v", input)
+	if err := cr.service.UpdateClassCurriculumn(c.Request.Context(), id, input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
 }

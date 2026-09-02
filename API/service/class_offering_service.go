@@ -50,6 +50,7 @@ func (s *classofferingservice) CreateClassOffering(ctx context.Context, input re
 				},
 				ClassCurriculumnDetailID:  input.ClassCurriculumnDetailID,
 				SubjectID:                 c.SubjectID,
+				SubjectGroupID:            c.SubjectGroupID,
 				Credit:                    c.Credit,
 				PassingScore:              c.PassingScore,
 				TotalHour:                 c.TotalHour,

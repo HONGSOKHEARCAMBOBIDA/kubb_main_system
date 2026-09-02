@@ -95,6 +95,7 @@ const (
 
 	// subject
 	SubjectView             = "Subject.view"
+	SubjectGroupView        = "subject.group.view"
 	SubjectViewByDepartment = "Subject.view.by.major/:id"
 	SubjectCreate           = "Subject.create"
 	SubjectUpdate           = "Subject.update/:uuid"
@@ -178,6 +179,7 @@ const (
 	ClassCurriculumnCreate              = "class_curriculmn.create"
 	ClassCurriculumnView                = "class_curriculmn.view"
 	ClassCurriculumnViewWithTeacherRate = "class_curriculmn.view.with.teacher.rate"
+	ClassCurriculumnUpdate              = "class_curriculumn.update/:uuid"
 
 	// ClassOffering
 	ClassOfferingCreate = "class.offering.create"

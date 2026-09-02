@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mysql/config"
 	"mysql/constant/apperror"
@@ -20,6 +21,7 @@ type ClassCurriculumnService interface {
 	CreateClassCurriculumn(ctx context.Context, input request.ClassCurriculumnRequestCreate) error
 	GetClassCurriculumn(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.ClasCurriculumnResponse, *model.PaginationMetadata, error)
 	GetClassCurriculumnWithTeacherRate(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.ClasCurriculumnResponseWithTeacherRate, *model.PaginationMetadata, error)
+	UpdateClassCurriculumn(ctx context.Context, uuid string, input request.ClassCurriculumnRequestUpdate) error
 }
 
 type classcurriculmnservice struct {
@@ -30,6 +32,28 @@ func NewClassCurriculumnService() ClassCurriculumnService {
 	return &classcurriculmnservice{
 		db: config.DB,
 	}
+}
+
+func (s *classcurriculmnservice) UpdateClassCurriculumn(ctx context.Context, uuid string, input request.ClassCurriculumnRequestUpdate) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var classcurriculumn model.ClassCurriculumn
+		if err := tx.Where("uuid = ?", uuid).First(&classcurriculumn).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "classcurriculumn not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch classcurriculumn", nil)
+		}
+		classcurriculumn.Name = input.Name
+		classcurriculumn.MajorID = input.MajorID
+		classcurriculumn.TermID = input.TermID
+		if err := tx.Save(&classcurriculumn).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+		return nil
+	})
+	return err
 }
 
 func (s *classcurriculmnservice) CreateClassCurriculumn(ctx context.Context, input request.ClassCurriculumnRequestCreate) error {
@@ -214,6 +238,7 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 	if err := s.db.WithContext(ctx).
 		Table("class_offerings co").
 		Joins("LEFT JOIN subjects s ON s.id = co.subject_id").
+		Joins("LEFT JOIN subject_groups sg ON sg.id = co.subject_group_id").
 		Where("co.class_curriculum_detail_id IN ?", detailIDs).Select(`
 		co.id AS id,
 		co.uuid AS uuid,
@@ -221,6 +246,8 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 		s.id AS subject_id,
 		s.code AS subject_code,
 		s.name AS subject_name,
+		sg.id AS subject_group_id,
+		sg.name AS subject_group_name,
 		co.credit AS credit,
 		co.passing_score AS passing_score,
 		co.total_hour AS total_hour,

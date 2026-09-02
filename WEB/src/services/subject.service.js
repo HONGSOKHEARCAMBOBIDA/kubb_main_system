@@ -2,6 +2,8 @@ import api from "./api"
 
 export const getSubject = (params) => api.get('/v1/Subject.view',{params})
 
+export const getSubjectGroup = () => api.get(`/v1/subject.group.view`)
+
 export const createSubject = (data) => api.post('/v1/Subject.create',data)
 
 export const getSubjectByMajor = (id) => api.get(`/v1/Subject.view.by.major/${id}`)
