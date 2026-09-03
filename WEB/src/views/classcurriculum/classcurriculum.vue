@@ -3,7 +3,8 @@
   import {
     CreateClassCurriculum,
     GetClassCurriculum,
-    UpdateClassCurriculumn
+    UpdateClassCurriculumn,
+    DeleteClassCurriculumn
   } from '../../services/classcurriculmn.service.js'
   import { getAcademics } from '../../services/academic.service.js'
   import { getGenerationByAcademic } from '../../services/generation.service.js'
@@ -139,9 +140,23 @@ async function updatedepartmentidchange(updatedepartmentid){
 
   // updateclasscurriculumn
 
+  // deleteclasscurriculumn
+  async function handleSubmitDeleteClassCurriculum(row) {
+    submitting.value = true
+    try {
+      await DeleteClassCurriculumn(row.uuid)
+      notify.success('លុបកម្មវិធីសិក្សាបានជោគជ័យ')
+      fetchClassCurriculum()
+    } catch (e) {
+      notify.error(e?.response?.data?.message || e.message || 'Failed to create')
+    } finally {
+      submitting.value = false
+    }
+  }
+  // deleteclasscurriculumn
+
   const studentcolumns = [
-  { prop: 'name_kh', label: 'ឈ្មោះខ្មែរ', minwidth: 120 }, 
-  { prop: 'name_en', label: 'ឈ្មោះអង់គ្លេស', minwidth: 120 }, 
+  { prop: 'name_kh',slot:'name_kh', label: 'ឈ្មោះ', minwidth: 120 }, 
   { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 }, 
   { prop: 'gender',slot:'gender', label: 'ភេទ', minwidth: 120 }, 
   { prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 120 },
@@ -152,16 +167,16 @@ async function updatedepartmentidchange(updatedepartmentid){
   const columns = [
     { prop: 'name', label: 'ឈ្មោះថ្នាក់', minwidth: 120 },
     { prop: 'major_name', slot: 'major_name', label: 'ជំនាញ', minwidth: 120 },
+        { prop: 'generation_name', label: 'ជំនាន់', width: 120 },
+    { prop: 'term_name', label: 'វគ្គ', width: 120 },
+      { slot: 'programme_name', label: 'កម្រិត', width: 140 },
     {
       prop: 'major_duration_interval',
       slot: 'major_duration_interval',
       label: 'រយៈពេលសិក្សា',
       width: 120,
     },
-    { slot: 'programme_name', label: 'កម្រិត', width: 140 },
     { prop: 'academic_name', label: 'ឆ្នាំសិក្សា', width: 120 },
-    { prop: 'generation_name', label: 'ជំនាន់', width: 120 },
-    { prop: 'term_name', label: 'វគ្គ', width: 120 },
     { prop: 'active', slot: 'active', label: 'ស្ថានភាព', width: 120 },
   ]
 
@@ -743,6 +758,7 @@ async function updatedepartmentidchange(updatedepartmentid){
         type="danger"
         icon="Delete"
         size="small"
+        @click="handleSubmitDeleteClassCurriculum(row)"
         >
 
         </AppButton>
@@ -824,6 +840,7 @@ async function updatedepartmentidchange(updatedepartmentid){
         <AppButton
         size="small"
           type="success"
+          plain
           @click="openClassRegistrationDialog(detailRow, row, class_offering)"
         >
           បញ្ចូលសិស្ស
@@ -831,8 +848,9 @@ async function updatedepartmentidchange(updatedepartmentid){
         <AppButton
         size="small"
           type="primary"
+          plain
         >
-          កាលវិភាគ
+          កែប្រែ
         </AppButton>
       </template>
   <template #expand="{ row: offeringRow }">
@@ -845,6 +863,11 @@ async function updatedepartmentidchange(updatedepartmentid){
       :columns="studentcolumns"
       :show-pagination="false"
     >
+    <template #name_kh="{row}">
+      <el-text>
+        {{ row.name_kh }} | <el-text type="primary" size="small">{{ row.name_en }}</el-text>
+      </el-text>
+    </template>
     <template #gender="{row}">
       <el-text>
         {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}

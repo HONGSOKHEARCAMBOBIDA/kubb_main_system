@@ -23,6 +23,18 @@ func NewClassCurriculumnController() ClassCurriculumnController {
 	}
 }
 
+func (cr *ClassCurriculumnController) Toggle(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+	if err := cr.service.Toggle(c, id); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+}
+
 func (cr *ClassCurriculumnController) CreateClassCurriculumn(c *gin.Context) {
 	var input request.ClassCurriculumnRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {

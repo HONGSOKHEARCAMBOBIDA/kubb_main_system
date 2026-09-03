@@ -22,6 +22,7 @@ type ClassCurriculumnService interface {
 	GetClassCurriculumn(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.ClasCurriculumnResponse, *model.PaginationMetadata, error)
 	GetClassCurriculumnWithTeacherRate(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.ClasCurriculumnResponseWithTeacherRate, *model.PaginationMetadata, error)
 	UpdateClassCurriculumn(ctx context.Context, uuid string, input request.ClassCurriculumnRequestUpdate) error
+	Toggle(ctx context.Context, uuid string) error
 }
 
 type classcurriculmnservice struct {
@@ -32,6 +33,10 @@ func NewClassCurriculumnService() ClassCurriculumnService {
 	return &classcurriculmnservice{
 		db: config.DB,
 	}
+}
+
+func (s *classcurriculmnservice) Toggle(ctx context.Context, uuid string) error {
+	return utils.ToggleStatus[model.ClassCurriculumn](ctx, s.db, uuid)
 }
 
 func (s *classcurriculmnservice) UpdateClassCurriculumn(ctx context.Context, uuid string, input request.ClassCurriculumnRequestUpdate) error {

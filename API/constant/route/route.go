@@ -180,6 +180,7 @@ const (
 	ClassCurriculumnView                = "class_curriculmn.view"
 	ClassCurriculumnViewWithTeacherRate = "class_curriculmn.view.with.teacher.rate"
 	ClassCurriculumnUpdate              = "class_curriculumn.update/:uuid"
+	ClassCurriculumnDelete              = "class_curriculmn.delete/:uuid"
 
 	// ClassOffering
 	ClassOfferingCreate = "class.offering.create"

@@ -222,6 +222,7 @@ func SetupRoutes(r *gin.Engine) {
 
 		// ClassOffering
 		auth.POST(route.ClassOfferingCreate, middleware.PermissionMiddleware(permission.CRUDCLASSOFFERING), classofferingcontroller.CreateClassOffering)
+		auth.PUT(route.ClassCurriculumnDelete, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.Toggle)
 
 		// CourseRegistratin
 		auth.POST(route.CourseRegistrationCreate, middleware.PermissionMiddleware(permission.CRUDCOURSEREGISTRATION), courseregistrationcontroller.CreateCourseRegistration)
