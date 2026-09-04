@@ -207,19 +207,16 @@ async function handleSubmitUpdateClassCurriculumDetail() {
 // updateclasscurriculumndetail
 
 // create classrepresentative
+const positionOptions = [
+  { label: 'ប្រធានថ្នាក់', value: 'president' },
+  { label: 'អនុប្រធានទី១', value: 'vice_president_1' },
+  { label: 'អនុប្រធានទី២', value: 'vice_president_2' },
+]
 
 const createclassrepresentativevisible = ref(false)
 const selectclasscurriculumndetail = ref(null)
 const selectrowstudentterms = ref([])
 const submittingRepresentative = ref(false)
-
-function defaultRepresentativeForm() {
-  return {
-    start_date: '',
-    end_date: '',
-  }
-}
-const classrepresentativeform = reactive(defaultRepresentativeForm())
 
 async function openclasrepresentativeDialog(detailRow, curriculumRow) {
   classregistrationfilters.semester_id = detailRow.semester_id
@@ -229,16 +226,27 @@ async function openclasrepresentativeDialog(detailRow, curriculumRow) {
 
   selectclasscurriculumndetail.value = detailRow
   selectrowstudentterms.value = []
-  Object.assign(classrepresentativeform, defaultRepresentativeForm())
 
-  studentterms.value = await fetchStudentTerm(classregistrationfilters)
+  const students = await fetchStudentTerm(classregistrationfilters)
+  studentterms.value = students.map((s) => ({
+    ...s,
+    position: null,
+    start_date: '',
+    end_date: '',
+  }))
+
   createclassrepresentativevisible.value = true
 }
 
 function closeclasrepresentativeDialog() {
   createclassrepresentativevisible.value = false
   selectrowstudentterms.value = []
-  Object.assign(classrepresentativeform, defaultRepresentativeForm())
+  studentterms.value = []
+  selectclasscurriculumndetail.value = null
+}
+
+function handleRepresentativeSelectionChange(rows) {
+  selectrowstudentterms.value = rows
 }
 
 async function submitclassrepresentative() {
@@ -252,21 +260,27 @@ async function submitclassrepresentative() {
     return
   }
 
+  const missingPosition = selectrowstudentterms.value.some((row) => !row.position)
+  if (missingPosition) {
+    notify.error('សូមជ្រើសរើសតួនាទីសម្រាប់សិស្សគ្រប់រូប')
+    return
+  }
+
   submittingRepresentative.value = true
   try {
     const payload = {
       class_curriculum_detail_id: selectclasscurriculumndetail.value.id,
       student_term_id: selectrowstudentterms.value.map((row) => ({
         student_term_id: row.id,
-        start_date: classrepresentativeform.start_date,
-        end_date: classrepresentativeform.end_date,
+        position: row.position,
+        start_date: row.start_date,
+        end_date: row.end_date,
       })),
     }
 
     await CreateClassRepresentative(payload)
-
     notify.success('ជ្រើសរើសប្រធានថ្នាក់បានជោគជ័យ')
-
+    fetchClassCurriculum()
     closeclasrepresentativeDialog()
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to create class representative')
@@ -274,7 +288,6 @@ async function submitclassrepresentative() {
     submittingRepresentative.value = false
   }
 }
-
 // create classrepresentative
 
 // deleteclasscurriculumn
@@ -325,7 +338,7 @@ const columndetails = [
   { prop: 'start_date', label: 'ថ្ងៃចាប់ផ្ដើម', minwidth: 120 },
   { prop: 'midterm_date', label: 'ថ្ងៃប្រឡង Midterm', minwidth: 120 },
   { prop: 'final_date', label: 'ថ្ងៃប្រឡង Final', minwidth: 120 },
-  { prop: 'total_student', label: 'ប្រធានថ្នាក់', minwidth: 120 },
+  { prop: 'total_student', slot: 'class_representative', label: 'ប្រធានថ្នាក់', minwidth: 160 },
   { prop: 'type_class', slot: 'type_class', label: 'ប្រភេទថ្នាក់', minwidth: 120 },
 ]
 
@@ -467,6 +480,19 @@ const columnclass_registration = [
   { prop: 'term_name', label: 'វគ្គទី', minwidth: 90 },
   { prop: 'major_name', slot: 'major_name', label: 'ជំនាញ', minwidth: 90 },
   { prop: 'programm_name', slot: 'programm_name', label: 'កម្រិត', minwidth: 90 },
+]
+
+const columnclass_representative = [
+  { prop: 'student_name_kh', slot: 'student_name_kh', label: 'ឈ្មោះ', minwidth: 90 },
+  { prop: 'student_gender', slot: 'student_gender', label: 'ភេទ', width: 90 },
+  {slot:'position',label:'តួនាទី',minwidth: 140},
+  {slot:'start_date',label:'ចាប់ផ្ដើម',width: 160},
+  {slot:'end_date',label:'បញ្ចប់',width: 160},
+  { prop: 'study_year_id', label: 'ឆ្នាំទី', width: 90 },
+  { prop: 'semester_name', label: 'ឆមាសទី', width: 90 },
+  { prop: 'term_name', label: 'វគ្គទី', width: 90 },
+  { prop: 'major_name', slot: 'major_name', label: 'ជំនាញ', width: 180 },
+  { prop: 'programm_name', slot: 'programm_name', label: 'កម្រិត', width: 140 },
 ]
 
 async function fetchStudentTerm(filters) {
@@ -913,11 +939,19 @@ onMounted(() => {
             {{ row.type_class === 'onclass' ? 'រៀនថ្នាក់ផ្ទាល់' : 'រៀនOnline' }}
           </el-text>
         </template>
+  <template #class_representative="{ row }">
+    <template v-if="row.class_representative && row.class_representative.length">
+      <el-text v-for="(rep, idx) in row.class_representative" :key="rep.id" style="display:block">
+        {{ rep.student_name_kh }} | <el-text type="primary" size="small">{{ rep.position === 'president' ? 'ប្រធាន' : 'អនុប្រធាន'}}</el-text>
+      </el-text>
+    </template>
+    <el-text v-else type="info">មិនទាន់មានប្រធានថ្នាក់</el-text>
+  </template>
         <!-- rename inner scope's `row` to `detailRow` so it doesn't shadow the outer curriculum `row` -->
         <template #actions="{ row: detailRow }">
           <el-tooltip content="ថែមមុខវិជ្ជា" placement="top">
             <AppButton
-              @click="openClassRegistrationDialog(detailRow, row)"
+              @click="openClassOfferingDialog(detailRow, row)"
               plain
               type="primary"
               icon="Plus"
@@ -1657,74 +1691,79 @@ onMounted(() => {
       </div>
     </AppForm>
   </AppDialog>
-
-  <AppDialog
-    v-if="createclassrepresentativevisible"
-    v-model:visible="createclassrepresentativevisible"
-    title="ជ្រើសរើសប្រធានថ្នាក់"
-    :showDefaultFooter="false"
-    width="70%"
-    @close="closeclasrepresentativeDialog"
+<AppDialog
+  v-if="createclassrepresentativevisible"
+  v-model:visible="createclassrepresentativevisible"
+  title="ជ្រើសរើសប្រធានថ្នាក់"
+  :showDefaultFooter="false"
+  width="70%"
+  @close="closeclasrepresentativeDialog"
+>
+  <AppForm
+    :loading="submittingRepresentative"
+    :show-actions="true"
+    @submit="submitclassrepresentative"
+    submitText="រក្សាទុក"
+    resetText="ចាកចេញ"
   >
-    <AppForm
-      :model="classrepresentativeform"
-      :loading="submittingRepresentative"
-      :show-actions="true"
-      @submit="submitclassrepresentative"
-      submitText="រក្សាទុក"
-      resetText="ចាកចេញ"
+    <TableCustom
+      selectable
+      :data="studentterms"
+      :columns="columnclass_representative"
+      :show-pagination="false"
+      @selection-change="handleRepresentativeSelectionChange"
     >
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <AppInput
-            v-model="classrepresentativeform.start_date"
-            type="date"
-            placeholder="ថ្ងៃចាប់ផ្ដើម"
-            clearable
-            label="ថ្ងៃចាប់ផ្ដើម"
-          />
-        </el-col>
-        <el-col :span="12">
-          <AppInput
-            v-model="classrepresentativeform.end_date"
-            type="date"
-            placeholder="ថ្ងៃបញ្ចប់"
-            clearable
-            label="ថ្ងៃបញ្ចប់"
-          />
-        </el-col>
-      </el-row>
+      <template #student_name_kh="{ row }">
+        <div>
+          <el-text tag="b" style="color: black">{{ row.student_name_kh }}</el-text>
+        </div>
+        <div>
+          <el-text type="primary">{{ row.student_name_en }}</el-text>
+        </div>
+      </template>
+      <template #student_gender="{ row }">
+        <el-text style="color: black">
+          {{ row.student_gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+        </el-text>
+      </template>
+      <template #major_name="{ row }">
+        <el-text type="warning" tag="b"> ({{ row.major_code }}) </el-text>
+        <el-text tag="b" style="color: darkcyan">{{ row.major_name }}</el-text>
+      </template>
+      <template #programm_name="{ row }">
+        <el-text tag="b" style="color: crimson">{{ row.programm_name }}</el-text>
+      </template>
 
-      <TableCustom
-        selectable
-        :data="studentterms"
-        :columns="columnclass_registration"
-        :show-pagination="false"
-        @selection-change="selectrowstudentterms = $event"
-      >
-        <template #student_name_kh="{ row }">
-          <div>
-            <el-text tag="b" style="color: black">{{ row.student_name_kh }}</el-text>
-          </div>
-          <div>
-            <el-text type="primary">{{ row.student_name_en }}</el-text>
-          </div>
-        </template>
-        <template #student_gender="{ row }">
-          <el-text style="color: black">
-            {{ row.student_gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
-          </el-text>
-        </template>
-        <template #major_name="{ row }">
-          <el-text type="warning" tag="b"> ({{ row.major_code }}) </el-text>
-          <el-text tag="b" style="color: darkcyan">{{ row.major_name }}</el-text>
-        </template>
-        <template #programm_name="{ row }">
-          <el-text tag="b" style="color: crimson">{{ row.programm_name }}</el-text>
-        </template>
-      </TableCustom>
-    </AppForm>
-  </AppDialog>
+      <template #position="{ row }">
+        <AppSelect
+          v-model="row.position"
+          :options="positionOptions"
+          placeholder="ជ្រើសរើសតួនាទី"
+          clearable
+          style="width: 200px"
+        />
+      </template>
+
+      <template #start_date="{ row }">
+        <AppInput
+          v-model="row.start_date"
+          type="date"
+          placeholder="ថ្ងៃចាប់ផ្ដើម"
+          clearable
+        />
+      </template>
+
+      <template #end_date="{ row }">
+        <AppInput
+          v-model="row.end_date"
+          type="date"
+          placeholder="ថ្ងៃបញ្ចប់"
+          clearable
+        />
+      </template>
+    </TableCustom>
+  </AppForm>
+</AppDialog>
 </template>
 
 <style scoped>

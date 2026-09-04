@@ -270,6 +270,26 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 		detailIDs = append(detailIDs, d.ID)
 	}
 
+	var classrepresentative []response.ClassRepresentativeResponse
+	if err := s.db.WithContext(ctx).
+		Table("class_representatives cr").
+		Joins("LEFT JOIN student_terms st ON st.id = cr.student_term_id").
+		Joins("LEFT JOIN enrollments e ON e.id = st.enrollment_id").
+		Joins("LEFT JOIN admissions a ON a.id = e.admission_id").
+		Joins("LEFT JOIN students s ON s.id = a.student_id").
+		Where("cr.class_curriculum_detail_id IN ?", detailIDs).
+		Select(`
+		cr.id AS id,
+		cr.uuid AS uuid,
+		cr.class_curriculum_detail_id AS class_curriculumn_detail_id,
+		s.name_kh AS student_name_kh,
+		s.name_en AS student_neme_en,
+		s.gender AS student_gender,
+		cr.position AS position
+	`).Scan(&classrepresentative).Error; err != nil {
+		return nil, nil, fmt.Errorf("fetch class presentative: %w", err)
+	}
+
 	var classoffer []response.ClassOfferingResponse
 	if err := s.db.WithContext(ctx).
 		Table("class_offerings co").
@@ -395,6 +415,15 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 
 	for i := range classoffer {
 		classoffer[i].StudentResponseSummary = studentByOffer[classoffer[i].ID] // add this field if missing
+	}
+
+	representativebyDetail := make(map[int][]response.ClassRepresentativeResponse, len(details))
+	for _, r := range classrepresentative {
+		representativebyDetail[r.ClassCurriculumnDetailID] = append(representativebyDetail[r.ClassCurriculumnDetailID], r)
+
+	}
+	for i := range details {
+		details[i].ClassRepresentativeResponse = representativebyDetail[details[i].ID]
 	}
 
 	offeringsByDetail := make(map[int][]response.ClassOfferingResponse, len(details))

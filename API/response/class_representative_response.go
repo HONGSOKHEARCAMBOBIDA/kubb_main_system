@@ -8,4 +8,6 @@ type ClassRepresentativeResponse struct {
 	ClassCurriculumnDetailID int    `json:"class_curriculumn_detail_id"`
 	StudentNameKh            string `json:"student_name_kh"`
 	StudentNameEn            string `json:"student_neme_en"`
+	StudentGender            string `json:"student_gender"`
+	Position                 string `json:"position"`
 }

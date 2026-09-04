@@ -48,6 +48,7 @@ func (s *classrepresentativeservice) CreateClassRepresentative(ctx context.Conte
 				},
 				ClassCurriculumnDetailID: input.ClassCurriculumnDetailID,
 				StudentTermID:            c.StudentTermID,
+				Position:                 c.Position,
 				StartDate:                c.StartDate,
 				EndDate:                  c.EndDate,
 				Isactive:                 true,
