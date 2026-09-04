@@ -181,6 +181,7 @@ const (
 	ClassCurriculumnViewWithTeacherRate = "class_curriculmn.view.with.teacher.rate"
 	ClassCurriculumnUpdate              = "class_curriculumn.update/:uuid"
 	ClassCurriculumnDelete              = "class_curriculmn.delete/:uuid"
+	ClassCurriculumnDetailUpdate        = "class_curriculumn.detail.update/:uuid"
 
 	// ClassOffering
 	ClassOfferingCreate = "class.offering.create"
@@ -208,4 +209,7 @@ const (
 
 	// Grade Component
 	GradeComponentCreate = "grade.component.create"
+
+	// Class Representative
+	ClassRepresentativeCreate = "class.representative.create"
 )

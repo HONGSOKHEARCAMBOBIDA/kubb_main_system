@@ -45,6 +45,7 @@ func SetupRoutes(r *gin.Engine) {
 	teachercontroller := controller.NewTeacherController()
 	schedulecontroller := controller.NewScheduleController()
 	attendancecontroller := controller.NewAttendanceController()
+	classrepresentativecontroller := controller.NewClassRepresentativeController()
 	public := r.Group("/api/v1")
 	public.Use(middleware.APIKeyAuth())
 	{
@@ -219,6 +220,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.GET(route.ClassCurriculumnView, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumn)
 		auth.GET(route.ClassCurriculumnViewWithTeacherRate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.GetClassCurriculumnWithTeacherRate)
 		auth.PUT(route.ClassCurriculumnUpdate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.UpdateClassCurriculumn)
+		auth.PUT(route.ClassCurriculumnDetailUpdate, middleware.PermissionMiddleware(permission.CRUDCLASSCURRICULMN), classcurriculumcontroller.UpdateClassCurriculumnDetail)
 
 		// ClassOffering
 		auth.POST(route.ClassOfferingCreate, middleware.PermissionMiddleware(permission.CRUDCLASSOFFERING), classofferingcontroller.CreateClassOffering)
@@ -246,5 +248,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Grade Component
 		auth.POST(route.GradeComponentCreate, middleware.PermissionMiddleware(permission.CRUDSUBJECT), subjectcontroller.CreateGradeComponent)
+
+		// ClassRepresentative
+		auth.POST(route.ClassRepresentativeCreate, middleware.PermissionMiddleware(permission.CRUDCLASSREPRESENTATIVE), classrepresentativecontroller.CreateClassRepresentative)
 	}
 }

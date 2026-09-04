@@ -5,3 +5,4 @@ export const GetClassCurriculum = (params) => api.get('/v1/class_curriculmn.view
 export const GetClassCurriculumWithTeacherRate = (params) => api.get('/v1/class_curriculmn.view.with.teacher.rate', { params })
 export const UpdateClassCurriculumn = (uuid,data) => api.put(`/v1/class_curriculumn.update/${uuid}`,data)
 export const DeleteClassCurriculumn = (uuid) => api.put(`/v1/class_curriculmn.delete/${uuid}`)
+export const UpdateClassCurriculumnDetail  = (uuid,data) => api.put(`/v1/class_curriculumn.detail.update/${uuid}`,data)

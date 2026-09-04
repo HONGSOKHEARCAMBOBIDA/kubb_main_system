@@ -77,4 +77,6 @@ const (
 	CRUDSCHEDULE = "crud.schedule"
 
 	CRUDATTENDANCE = "crud.attendance"
+
+	CRUDCLASSREPRESENTATIVE = "crud.class.representative"
 )

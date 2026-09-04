@@ -129,3 +129,22 @@ func (cr *ClassCurriculumnController) UpdateClassCurriculumn(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, share.Updated)
 }
+
+func (cr *ClassCurriculumnController) UpdateClassCurriculumnDetail(c *gin.Context) {
+	id, ok := utils.GetParamUUID(c)
+	if !ok {
+		return
+	}
+
+	var input request.ClassCurriculumnDetailRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	//log.Printf("Update request: %+v", input)
+	if err := cr.service.UpdateClassCurriculumnDetail(c.Request.Context(), id, input); err != nil {
+		share.RespondServiceError(c, err)
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, share.Updated)
+}

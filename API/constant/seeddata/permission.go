@@ -151,4 +151,8 @@ var Permissions = []model.Permission{
 		Name:  "crud.attendance",
 		Group: "attendance",
 	},
+	{
+		Name:  "crud.class.representative",
+		Group: "class.representative",
+	},
 }

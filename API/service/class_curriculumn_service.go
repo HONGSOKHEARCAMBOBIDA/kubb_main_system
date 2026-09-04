@@ -23,6 +23,7 @@ type ClassCurriculumnService interface {
 	GetClassCurriculumnWithTeacherRate(ctx context.Context, pf request.Pagination, filter map[string]string) ([]response.ClasCurriculumnResponseWithTeacherRate, *model.PaginationMetadata, error)
 	UpdateClassCurriculumn(ctx context.Context, uuid string, input request.ClassCurriculumnRequestUpdate) error
 	Toggle(ctx context.Context, uuid string) error
+	UpdateClassCurriculumnDetail(ctx context.Context, uuid string, input request.ClassCurriculumnDetailRequestUpdate) error
 }
 
 type classcurriculmnservice struct {
@@ -61,6 +62,32 @@ func (s *classcurriculmnservice) UpdateClassCurriculumn(ctx context.Context, uui
 	return err
 }
 
+func (s *classcurriculmnservice) UpdateClassCurriculumnDetail(ctx context.Context, uuid string, input request.ClassCurriculumnDetailRequestUpdate) error {
+	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
+	defer cancel()
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var classcurriculumndetail model.ClassCurriculumnDetail
+		if err := tx.Where("uuid = ?", uuid).First(&classcurriculumndetail).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.New(apperror.CodeNotFound, "classcurriculumn not found", nil)
+			}
+			return apperror.New(apperror.CodeInternal, "failed to fetch classcurriculumn", nil)
+		}
+		classcurriculumndetail.SemesterID = input.SemesterID
+		classcurriculumndetail.StudyYearID = input.StudyYearID
+		classcurriculumndetail.AcademicShiftID = input.AcademicShiftID
+		classcurriculumndetail.StartDate = input.StartDate
+		classcurriculumndetail.MidtermDate = input.MidtermDate
+		classcurriculumndetail.FinalDate = input.FinalDate
+		classcurriculumndetail.TypeClass = input.TypeClass
+		if err := tx.Save(&classcurriculumndetail).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to update student", nil)
+		}
+		return nil
+	})
+	return err
+}
+
 func (s *classcurriculmnservice) CreateClassCurriculumn(ctx context.Context, input request.ClassCurriculumnRequestCreate) error {
 	name := strings.TrimSpace(input.Name)
 	ctx, cancel := context.WithTimeout(ctx, utils.DefaultQueryTimeout)
@@ -92,6 +119,7 @@ func (s *classcurriculmnservice) CreateClassCurriculumn(ctx context.Context, inp
 					SemesterID:         c.SemesterID,
 					StudyYearID:        c.StudyYearID,
 					AcademicShiftID:    c.AcademicShiftID,
+					StartDate:          c.StartDate,
 					MidtermDate:        c.MidtermDate,
 					FinalDate:          c.FinalDate,
 					TotalStudent:       nil,
@@ -217,10 +245,12 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 			s.id AS semester_id,
 			s.code AS semester_code,
 			s.name AS semester_name,
+			a.id AS academic_id,
 			a.name AS academic_name,
 			cd.study_year_id AS study_year_id,
 			ash.id AS academic_shift_id,
 			ash.name AS academic_shift_name,
+			cd.start_date AS start_date,
 			cd.midterm_date AS midterm_date,
 			cd.final_date AS final_date,
 			cd.total_student AS total_student,
@@ -230,6 +260,7 @@ func (s *classcurriculmnservice) GetClassCurriculumn(
 	}
 
 	for i := range details {
+		details[i].StartDate = helper.FormatDate(details[i].StartDate)
 		details[i].MidtermDate = helper.FormatDate(details[i].MidtermDate)
 		details[i].FinalDate = helper.FormatDate(details[i].FinalDate)
 	}
@@ -495,6 +526,7 @@ func (s *classcurriculmnservice) GetClassCurriculumnWithTeacherRate(ctx context.
 			cd.study_year_id AS study_year_id,
 			ash.id AS academic_shift_id,
 			ash.name AS academic_shift_name,
+			cd.start_date AS start_date,
 			cd.midterm_date AS midterm_date,
 			cd.final_date AS final_date,
 			cd.total_student AS total_student,
