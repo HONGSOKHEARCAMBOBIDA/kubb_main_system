@@ -218,6 +218,12 @@ const routes = [
         component: () => import('@/views/schedule/schedule.vue'),
         meta: { title: 'កាលវិភាគ', icone: 'Document' },
       },
+      {
+        path: 'print',
+        name: 'print',
+        component: () => import('@/views/print/print.vue'),
+        meta: { title: 'print', icone: 'Document' },
+      },
     ],
   },
   {

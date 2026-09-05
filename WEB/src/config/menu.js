@@ -49,6 +49,7 @@ export const menuConfig = [
       { title: 'និស្សិតបង់ថ្លៃសិក្សាសិក្សា', icon: 'Document', path: '/admission' },
       { title: 'សាស្រ្តាចារ្យ', icon: 'Document', path: '/teacher' },
       { title: 'កាលវិភាគ', icon: 'Document', path: '/schedule' },
+      { title: 'print', icon: 'Document', path: '/print' },
     ],
   },
 ]

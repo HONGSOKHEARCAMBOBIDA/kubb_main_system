@@ -30,6 +30,8 @@ import { getSubjectByMajor } from '../../services/subject.service.js'
 import { studentTermGet } from '../../services/studentterm.service.js'
 import { createcourseregistration } from '../../services/course_registration.service.js'
 import { getSubjectGroup } from '../../services/subject.service.js'
+import { nextTick } from 'vue'
+import PrintableTable from '../../layouts/components/PrintableTable.vue'
 const notify = useNotification()
 const classcurriculmn = ref([])
 const total = ref(0)
@@ -40,6 +42,33 @@ const formRef = ref(null)
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
 const subjectgroup = ref([])
+
+// student list print
+const printableRef = ref(null)
+const printTitle = ref('')
+const printRows = ref([])
+const studentPrintColumns = [
+  { key: 'name_kh', label: 'ឈ្មោះ' },
+  { key: 'name_en', label: 'ឈ្មោះឡាតាំង' },
+  {
+    key: 'gender',
+    label: 'ភេទ',
+    format: (v) => (v === 'Male' ? 'ប្រុស' : 'ស្រី'),
+  },
+  { key: 'date_of_birth', label: 'ថ្ងៃខែឆ្នាំកំណើត' },
+  { key: 'phone', label: 'លេខទូរស័ព្ទ' },
+  { key: 'occupation', label: 'មុខរបរ' },
+]
+
+function printStudentList(classOffering,class_curriculum_detais) {
+  printTitle.value = `បញ្ជីឈ្មោះសិស្ស មុខវិជ្ជា ${classOffering.subject_code} | ${classOffering.subject_name} ឆ្នាំទី${class_curriculum_detais.study_year_id} ${class_curriculum_detais.semester_name} វេន${class_curriculum_detais.academic_shift_name}`
+  printRows.value = classOffering.student || []
+
+  nextTick(() => {
+    printableRef.value?.print()
+  })
+}
+
 
 // updateclasscurriculumn
 const updateuuid = ref(null)
@@ -374,6 +403,7 @@ async function fetchClassCurriculum() {
     const res = await GetClassCurriculum(params)
     classcurriculmn.value = res.data.data || []
     total.value = res.data.pagination.totalCount || 0
+    console.log(classcurriculmn.value)
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load class curriculums')
   }
@@ -1048,9 +1078,17 @@ onMounted(() => {
               <el-tooltip content="កែប្រែ" placement="top">
                 <AppButton size="small" type="warning" icon="Edit" plain circle>  </AppButton>
               </el-tooltip>
-              <el-tooltip content="ព្រីនបញ្ជីឈ្មោះ" placement="top">
-                <AppButton size="small" type="primary" icon="Printer" plain circle>  </AppButton>
-              </el-tooltip>
+  <el-tooltip content="ព្រីនបញ្ជីឈ្មោះ" placement="top">
+    <AppButton
+      size="small"
+      type="primary"
+      icon="Printer"
+      plain
+      circle
+      @click="printStudentList(class_offering,detailRow)"
+    >
+    </AppButton>
+  </el-tooltip>
             </template>
             <template #expand="{ row: offeringRow }">
               <el-divider content-position="left">
@@ -1775,9 +1813,25 @@ onMounted(() => {
       </TableCustom>
     </AppForm>
   </AppDialog>
+  <div class="print-only-wrapper">
+  <PrintableTable
+    ref="printableRef"
+    :title="printTitle"
+    :columns="studentPrintColumns"
+    :rows="printRows"
+  />
+</div>
 </template>
 
 <style scoped>
+.print-only-wrapper {
+  display: none;
+}
+@media print {
+  .print-only-wrapper {
+    display: block;
+  }
+}
 .detail-section {
   margin-top: 16px;
   border-top: 1px solid #ebeef5;
