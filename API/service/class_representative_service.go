@@ -55,6 +55,12 @@ func (s *classrepresentativeservice) CreateClassRepresentative(ctx context.Conte
 			})
 		}
 
+		if err := tx.Where(&model.ClassRepresentative{
+			ClassCurriculumnDetailID: input.ClassCurriculumnDetailID,
+		}).Delete(&model.ClassRepresentative{}).Error; err != nil {
+			return apperror.New(apperror.CodeInternal, "failed to delete", err)
+		}
+
 		if err := tx.Create(&classrepresentatives).Error; err != nil {
 			return apperror.New(apperror.CodeInternal, "failed to create", err)
 		}

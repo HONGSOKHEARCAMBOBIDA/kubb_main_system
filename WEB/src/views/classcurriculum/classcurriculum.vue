@@ -307,11 +307,10 @@ async function handleSubmitDeleteClassCurriculum(row) {
 
 const studentcolumns = [
   { prop: 'name_kh', slot: 'name_kh', label: 'ឈ្មោះ', minwidth: 120 },
-  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', minwidth: 120 },
-  { prop: 'gender', slot: 'gender', label: 'ភេទ', minwidth: 120 },
-  { prop: 'nationality', label: 'សញ្ជាតិ', minwidth: 120 },
-  { prop: 'phone', label: 'លេខទូរសព្ទ', minwidth: 120 },
   { prop: 'occupation', label: 'មុខរបរ', minwidth: 120 },
+  { prop: 'date_of_birth', label: 'ថ្ងៃ-ខែ-ឆ្នាំកំណើត', width: 120 },
+  { prop: 'nationality', label: 'សញ្ជាតិ', width: 120 },
+  { prop: 'phone', label: 'លេខទូរសព្ទ', width: 120 },
 ]
 
 const columns = [
@@ -374,8 +373,7 @@ async function fetchClassCurriculum() {
     }
     const res = await GetClassCurriculum(params)
     classcurriculmn.value = res.data.data || []
-    total.value = res.data.pagination.total_count || 0
-    console.log(classcurriculmn.value)
+    total.value = res.data.pagination.totalCount || 0
   } catch (e) {
     notify.error(e?.response?.data?.message || e.message || 'Failed to load class curriculums')
   }
@@ -485,9 +483,9 @@ const columnclass_registration = [
 const columnclass_representative = [
   { prop: 'student_name_kh', slot: 'student_name_kh', label: 'ឈ្មោះ', minwidth: 90 },
   { prop: 'student_gender', slot: 'student_gender', label: 'ភេទ', width: 90 },
-  {slot:'position',label:'តួនាទី',minwidth: 140},
-  {slot:'start_date',label:'ចាប់ផ្ដើម',width: 160},
-  {slot:'end_date',label:'បញ្ចប់',width: 160},
+  { slot: 'position', label: 'តួនាទី', minwidth: 140 },
+  { slot: 'start_date', label: 'ចាប់ផ្ដើម', width: 160 },
+  { slot: 'end_date', label: 'បញ្ចប់', width: 160 },
   { prop: 'study_year_id', label: 'ឆ្នាំទី', width: 90 },
   { prop: 'semester_name', label: 'ឆមាសទី', width: 90 },
   { prop: 'term_name', label: 'វគ្គទី', width: 90 },
@@ -939,14 +937,21 @@ onMounted(() => {
             {{ row.type_class === 'onclass' ? 'រៀនថ្នាក់ផ្ទាល់' : 'រៀនOnline' }}
           </el-text>
         </template>
-  <template #class_representative="{ row }">
-    <template v-if="row.class_representative && row.class_representative.length">
-      <el-text v-for="(rep, idx) in row.class_representative" :key="rep.id" style="display:block">
-        {{ rep.student_name_kh }} | <el-text type="primary" size="small">{{ rep.position === 'president' ? 'ប្រធាន' : 'អនុប្រធាន'}}</el-text>
-      </el-text>
-    </template>
-    <el-text v-else type="info">មិនទាន់មានប្រធានថ្នាក់</el-text>
-  </template>
+        <template #class_representative="{ row }">
+          <template v-if="row.class_representative && row.class_representative.length">
+            <el-text
+              v-for="(rep, idx) in row.class_representative"
+              :key="rep.id"
+              style="display: block"
+            >
+              {{ rep.student_name_kh }} |
+              <el-text type="primary" size="small">{{
+                rep.position === 'president' ? 'ប្រធាន' : 'អនុប្រធាន'
+              }}</el-text>
+            </el-text>
+          </template>
+          <el-text v-else type="info">មិនទាន់មានប្រធានថ្នាក់</el-text>
+        </template>
         <!-- rename inner scope's `row` to `detailRow` so it doesn't shadow the outer curriculum `row` -->
         <template #actions="{ row: detailRow }">
           <el-tooltip content="ថែមមុខវិជ្ជា" placement="top">
@@ -1028,15 +1033,24 @@ onMounted(() => {
               </el-text>
             </template>
             <template #actions="{ row: class_offering }">
-              <AppButton
+              <el-tooltip content="បញ្ចូលសិស្ស" placement="top">
+                              <AppButton
                 size="small"
                 type="success"
+                circle
                 plain
+                icon="Plus"
                 @click="openClassRegistrationDialog(detailRow, row, class_offering)"
               >
-                បញ្ចូលសិស្ស
+               
               </AppButton>
-              <AppButton size="small" type="primary" plain> កែប្រែ </AppButton>
+              </el-tooltip>
+              <el-tooltip content="កែប្រែ" placement="top">
+                <AppButton size="small" type="warning" icon="Edit" plain circle>  </AppButton>
+              </el-tooltip>
+              <el-tooltip content="ព្រីនបញ្ជីឈ្មោះ" placement="top">
+                <AppButton size="small" type="primary" icon="Printer" plain circle>  </AppButton>
+              </el-tooltip>
             </template>
             <template #expand="{ row: offeringRow }">
               <el-divider content-position="left">
@@ -1053,13 +1067,20 @@ onMounted(() => {
                 <template #name_kh="{ row }">
                   <el-text>
                     {{ row.name_kh }} |
-                    <el-text type="primary" size="small">{{ row.name_en }}</el-text>
+                    <el-text type="primary" size="small"
+                      >{{ row.name_en }} |
+                      <el-text size="small">
+                        {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}</el-text
+                      >
+                    </el-text>
                   </el-text>
                 </template>
-                <template #gender="{ row }">
-                  <el-text>
-                    {{ row.gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
-                  </el-text>
+                <template #actions>
+                  <el-tooltip content="ដកចេញ" placement="top">
+                  <AppButton circle size="small" plain icon="Delete" type="danger">
+
+                  </AppButton>
+                  </el-tooltip>
                 </template>
 
                 <template #expand="{ row: studentgrade }">
@@ -1691,79 +1712,69 @@ onMounted(() => {
       </div>
     </AppForm>
   </AppDialog>
-<AppDialog
-  v-if="createclassrepresentativevisible"
-  v-model:visible="createclassrepresentativevisible"
-  title="ជ្រើសរើសប្រធានថ្នាក់"
-  :showDefaultFooter="false"
-  width="70%"
-  @close="closeclasrepresentativeDialog"
->
-  <AppForm
-    :loading="submittingRepresentative"
-    :show-actions="true"
-    @submit="submitclassrepresentative"
-    submitText="រក្សាទុក"
-    resetText="ចាកចេញ"
+  <AppDialog
+    v-if="createclassrepresentativevisible"
+    v-model:visible="createclassrepresentativevisible"
+    title="ជ្រើសរើសប្រធានថ្នាក់"
+    :showDefaultFooter="false"
+    width="70%"
+    @close="closeclasrepresentativeDialog"
   >
-    <TableCustom
-      selectable
-      :data="studentterms"
-      :columns="columnclass_representative"
-      :show-pagination="false"
-      @selection-change="handleRepresentativeSelectionChange"
+    <AppForm
+      :loading="submittingRepresentative"
+      :show-actions="true"
+      @submit="submitclassrepresentative"
+      submitText="រក្សាទុក"
+      resetText="ចាកចេញ"
     >
-      <template #student_name_kh="{ row }">
-        <div>
-          <el-text tag="b" style="color: black">{{ row.student_name_kh }}</el-text>
-        </div>
-        <div>
-          <el-text type="primary">{{ row.student_name_en }}</el-text>
-        </div>
-      </template>
-      <template #student_gender="{ row }">
-        <el-text style="color: black">
-          {{ row.student_gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
-        </el-text>
-      </template>
-      <template #major_name="{ row }">
-        <el-text type="warning" tag="b"> ({{ row.major_code }}) </el-text>
-        <el-text tag="b" style="color: darkcyan">{{ row.major_name }}</el-text>
-      </template>
-      <template #programm_name="{ row }">
-        <el-text tag="b" style="color: crimson">{{ row.programm_name }}</el-text>
-      </template>
+      <TableCustom
+        selectable
+        :data="studentterms"
+        :columns="columnclass_representative"
+        :show-pagination="false"
+        @selection-change="handleRepresentativeSelectionChange"
+      >
+        <template #student_name_kh="{ row }">
+          <div>
+            <el-text tag="b" style="color: black">{{ row.student_name_kh }}</el-text>
+          </div>
+          <div>
+            <el-text type="primary">{{ row.student_name_en }}</el-text>
+          </div>
+        </template>
+        <template #student_gender="{ row }">
+          <el-text style="color: black">
+            {{ row.student_gender === 'Male' ? 'ប្រុស' : 'ស្រី' }}
+          </el-text>
+        </template>
+        <template #major_name="{ row }">
+          <el-text type="warning" tag="b"> ({{ row.major_code }}) </el-text>
+          <el-text tag="b" style="color: darkcyan">{{ row.major_name }}</el-text>
+        </template>
+        <template #programm_name="{ row }">
+          <el-text tag="b" style="color: crimson">{{ row.programm_name }}</el-text>
+        </template>
 
-      <template #position="{ row }">
-        <AppSelect
-          v-model="row.position"
-          :options="positionOptions"
-          placeholder="ជ្រើសរើសតួនាទី"
-          clearable
-          style="width: 200px"
-        />
-      </template>
+        <template #position="{ row }">
+          <AppSelect
+            v-model="row.position"
+            :options="positionOptions"
+            placeholder="ជ្រើសរើសតួនាទី"
+            clearable
+            style="width: 200px"
+          />
+        </template>
 
-      <template #start_date="{ row }">
-        <AppInput
-          v-model="row.start_date"
-          type="date"
-          placeholder="ថ្ងៃចាប់ផ្ដើម"
-          clearable
-        />
-      </template>
+        <template #start_date="{ row }">
+          <AppInput v-model="row.start_date" type="date" placeholder="ថ្ងៃចាប់ផ្ដើម" clearable />
+        </template>
 
-      <template #end_date="{ row }">
-        <AppInput
-          v-model="row.end_date"
-          type="date"
-          placeholder="ថ្ងៃបញ្ចប់"
-          clearable
-        />
-      </template>
-    </TableCustom>
-  </AppForm>
-</AppDialog>
+        <template #end_date="{ row }">
+          <AppInput v-model="row.end_date" type="date" placeholder="ថ្ងៃបញ្ចប់" clearable />
+        </template>
+      </TableCustom>
+    </AppForm>
+  </AppDialog>
 </template>
 
 <style scoped>
